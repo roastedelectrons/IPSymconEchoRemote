@@ -73,6 +73,8 @@ class AmazonEchoIO extends IPSModule
         //Never delete this line!
         parent::ApplyChanges();
 
+        $this->SendDebug(__FUNCTION__, '== started ==', 0);
+
         if (IPS_GetKernelRunlevel() !== KR_READY) {
             return;
         }
@@ -93,7 +95,8 @@ class AmazonEchoIO extends IPSModule
         if ( $this->ReadPropertyString('refresh_token') == "")
         {
             $this->SetStatus(self::STATUS_INST_REFRESH_TOKEN_IS_EMPTY);
-            return;
+            trigger_error('refresh token missing');
+            return false;
         } 
 
         
@@ -171,15 +174,24 @@ class AmazonEchoIO extends IPSModule
         $info = curl_getinfo($ch);
         curl_close($ch);
 
-        if ($info['http_code'] != 200) 
+        $result = $this->getReturnValues($info, $result);
+
+        if ($result['http_code'] == 400) 
         {
+            $response = json_decode($result['body']);
+            if ($response !== false)
+            {
+                trigger_error( $response->response->error->code.": ".$response->response->error->message );
+            }
             return false;
         }
 
-        $result = $this->getReturnValues($info, $result);
+        if ($result['http_code'] == 200)
+        {
+            return $this->generateCookieFromJSON( $result['body'] );
+        }
 
-        return $this->generateCookieFromJSON( $result['body'] );
-
+        return false;
     }
 
     private function generateCookieFromJSON( $cookieJSON )
@@ -301,7 +313,7 @@ class AmazonEchoIO extends IPSModule
         $getfields = ['version' => $guiversion];
 
         $url = 'https://' . $this->GetAlexaURL() . '/api/bootstrap?' . http_build_query($getfields);
-        $return_data = $this->SendEcho($url, $this->GetHeader());
+        $return_data = $this->SendEchoData($url, $this->GetHeader());
 
         if ($return_data['body'] === null) {
             $return = null;
@@ -378,6 +390,12 @@ class AmazonEchoIO extends IPSModule
     {
         $this->SendDebug(__FUNCTION__, 'Header: ' . json_encode($header), 0);
 
+        if ( $this->GetStatus() != 102 )
+        {
+            $this->SendDebug(__FUNCTION__, 'canceled: EchoID error', 0);
+            //Workaroud since the Echo Device Instances expext an array response to load the Configurationform properly
+            return ['http_code' => 505, 'header' => '', 'body' => ''];;
+        }
 
         $ch = curl_init();
 
@@ -445,7 +463,8 @@ class AmazonEchoIO extends IPSModule
         return $this->getReturnValues($info, $result);
     }
 
-    /** @noinspection PhpMissingParentCallCommonInspection */
+
+
 
     private function getReturnValues(array $info, string $result): array
     {
