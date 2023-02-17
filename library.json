@@ -1,13 +1,13 @@
 {
   "id": "{F5204558-5349-4C73-82E3-09CD2254C513}",
-  "author": "Fonzo/bumaas",
+  "author": "Fonzo/bumaas forked by roastedelectrons",
   "name": "Amazon Echo Remote",
   "url": "http://www.amazon.de/echo",
   "compatibility": {
     "version": "5.0",
     "date": 1492639200
   },
-  "version": "1.2",
+  "version": "2.0",
   "build": 12,
   "date": 1570781364
 }
