@@ -12,11 +12,8 @@ class AmazonEchoIO extends IPSModule
     use EchoBufferHelper;
     use EchoDebugHelper;
 
-    private const STATUS_INST_USER_NAME_IS_EMPTY = 210; // user name must not be empty.
-    private const STATUS_INST_PASSWORD_IS_EMPTY = 211; // password must not be empty.
-    private const STATUS_INST_COOKIE_IS_EMPTY = 212; // cookie must not be empty.
-    private const STATUS_INST_COOKIE_WITHOUT_CSRF = 213; // cookie must include csrf.
     private const STATUS_INST_NOT_AUTHENTICATED = 214; // authentication must be performed.
+    private const STATUS_INST_REFRESH_TOKEN_IS_EMPTY = 215; // authentication must be performed.
 
     public function Create()
     {
@@ -28,22 +25,19 @@ class AmazonEchoIO extends IPSModule
 
         //the following Properties can be set in the configuration form
         $this->RegisterPropertyBoolean('active', false);
-        $this->RegisterPropertyString('username', '');
-        $this->RegisterPropertyString('password', '');
-        $this->RegisterPropertyString('amazon2fa', '');
         $this->RegisterPropertyInteger('language', 0);
-        $this->RegisterPropertyBoolean('UseCustomCSRFandCookie', false);
-        $this->RegisterPropertyString('alexa_cookie', '');
-        $this->RegisterAttributeString('devices', '[]');
-        $this->RegisterTimer('TimerLastDevice', 0, 'ECHOIO_GetLastDevice(' . $this->InstanceID . ');');
-
-        //the following Properties are only used internally
+        $this->RegisterPropertyString('refresh_token', '');    
+        $this->RegisterPropertyBoolean('TimerLastAction', true);
+        
         $this->RegisterPropertyString(
             'browser', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gecko/20100101 Firefox/58.0'
         );
+
+        $this->RegisterAttributeString('devices', '[]');
         $this->RegisterAttributeString('CookiesFileName', IPS_GetKernelDir() . 'alexa_cookie.txt');
-        $this->RegisterAttributeString('LoginFileName', IPS_GetKernelDir() . 'alexa_login.html');
-        $this->RegisterPropertyBoolean('TimerLastAction', true);
+
+        $this->RegisterTimer('TimerLastDevice', 0, 'ECHOIO_GetLastDevice(' . $this->InstanceID . ');');
+        $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -69,49 +63,51 @@ class AmazonEchoIO extends IPSModule
         }
     }
 
-    /** @noinspection PhpMissingParentCallCommonInspection */
+
 
     public function ApplyChanges()
     {
         //Never delete this line!
         parent::ApplyChanges();
 
+        $this->SendDebug(__FUNCTION__, '== started ==', 0);
+
         if (IPS_GetKernelRunlevel() !== KR_READY) {
             return;
         }
 
-        $username = $this->ReadPropertyString('username');
-        $password = $this->ReadPropertyString('password');
-        $cookie = $this->ReadPropertyString('alexa_cookie');
-        $useCookie = $this->ReadPropertyBoolean('UseCustomCSRFandCookie');
+        $this->RegisterVariableInteger('cookie_expiration_date', $this->Translate('Cookie expiration date'), '~UnixTimestamp', 0);
+
         $active = $this->ReadPropertyBoolean('active');
-        $TimerLastAction = $this->ReadPropertyBoolean('TimerLastAction');
-        $currentProperties = json_encode(
-            [
-                'username' => $username,
-                'password' => $password,
-                'alexa_cookie' => $cookie,
-                'active' => $active]
-        );
 
-        $bufferedProperties = $this->GetBuffer($this->InstanceID . '-SavedProperties');
-        if ($bufferedProperties === '' || $bufferedProperties !== $currentProperties) {
-            $this->SetBuffer($this->InstanceID . '-SavedProperties', $currentProperties);
-            $this->SetBuffer($this->InstanceID . '-failedLogins', json_encode(0));
-        }
-
-        if (json_decode($this->GetBuffer($this->InstanceID . '-failedLogins'), false) >= 3) {
-            $this->SendDebug(__FUNCTION__, 'count of failed logins exceeded', 0);
-            $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
-
+        if (!$active)
+        {
+            $this->LogOff();
+            $this->SetTimerInterval('TimerLastDevice', 0);
+            $this->SetTimerInterval('RefreshCookie', 0);
+            $this->SetStatus(IS_INACTIVE);
             return;
         }
 
-        if ($active) {
-            $this->ValidateConfiguration($username, $password, $cookie, $useCookie);
-        } else {
-            $this->SetStatus(IS_INACTIVE);
+
+
+        if ( $this->ReadPropertyString('refresh_token') == "")
+        {
+            $this->SetStatus(self::STATUS_INST_REFRESH_TOKEN_IS_EMPTY);
+            die('refresh token missing');
+            return false;
+        } 
+
+        
+        if ( !$this->CheckLoginStatus() )
+        {
+            if ( !$this->LogIn() )
+                return;
         }
+
+        
+        $TimerLastAction = $this->ReadPropertyBoolean('TimerLastAction');
+
         $devices = $this->GetDeviceList();
         if (empty($devices)) {
             $this->SendDebug(__FUNCTION__, 'no devices found', 0);
@@ -136,116 +132,253 @@ class AmazonEchoIO extends IPSModule
         }
     }
 
-    /**
-     * Die folgenden Funktionen stehen automatisch zur Verfügung, wenn das Modul über die "Module Control" eingefügt
-     * wurden. Die Funktionen werden, mit dem selbst eingerichteten Prefix, in PHP und JSON-RPC wiefolgt zur Verfügung
-     * gestellt:.
-     *
-     * @param $username
-     * @param $password
-     * @param $cookie
-     * @param $useCookie
-     */
-    private function ValidateConfiguration($username, $password, $cookie, $useCookie): void
-    {
-        if ($useCookie) {
-            if ($cookie === '') {
-                $this->SetStatus(self::STATUS_INST_COOKIE_IS_EMPTY);
-            } elseif ($this->getCsrfFromCookie() === false) {
-                $this->SetStatus(self::STATUS_INST_COOKIE_WITHOUT_CSRF);
-            } /** @noinspection NotOptimalIfConditionsInspection */ elseif ($this->LogIn()) {
-                $this->SetStatus(IS_ACTIVE);
-            } else {
-                $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
-            }
-        } elseif ($username === '') {
-            $this->SetStatus(self::STATUS_INST_USER_NAME_IS_EMPTY);
-        } elseif ($password === '') {
-            $this->SetStatus(self::STATUS_INST_PASSWORD_IS_EMPTY);
-        } elseif ($this->LogIn()) {
-            $this->SetStatus(IS_ACTIVE);
-            $this->SetBuffer($this->InstanceID . '-failedLogins', json_encode(0));
-        } else {
-            $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
-            $failedLogins = json_decode($this->GetBuffer($this->InstanceID . '-failedLogins'), false) + 1;
-            $this->SetBuffer($this->InstanceID . '-failedLogins', json_encode($failedLogins));
 
-            $errorTxt = sprintf('Number of failed LogIns: %d', json_decode($this->GetBuffer($this->InstanceID . '-failedLogins'), false));
-            $this->SendDebug(__FUNCTION__, $errorTxt, 0);
-            IPS_LogMessage(__CLASS__, $errorTxt);
+    private function GetCookieByRefreshToken()
+    {
+
+        $header = [
+            'Accept-Language: ' . $this->GetLanguage(),
+            'DNT: 1',
+            'Connection: keep-alive',
+            'Upgrade-Insecure-Requests: 1',
+            'x-amzn-identity-auth-domain: api.'.$this->GetAmazonURL() ];
+
+        $url = "https://api.".$this->GetAmazonURL()."/ap/exchangetoken/cookies";
+
+        $post['requested_token_type'] = 'auth_cookies';
+        $post['app_name'] = 'Amazon Alexa';
+        $post['domain'] = 'www.'.$this->GetAmazonURL();
+        $post['source_token_type'] = 'refresh_token';
+        $post['source_token'] = $this->ReadPropertyString('refresh_token');
+
+        $this->SendDebug(__FUNCTION__, 'url: ' . $url, 0);
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->ReadPropertyString('browser'));
+        curl_setopt($ch, CURLOPT_ENCODING, '');
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
+
+        curl_setopt($ch, CURLOPT_URL, $url);
+
+        $result = curl_exec($ch);
+        if (curl_errno($ch)) {
+            trigger_error('Error:' . curl_error($ch));
         }
-    }
+        $info = curl_getinfo($ch);
+        curl_close($ch);
 
-    //################################################################
-    // Amazon Login
-    //
+        $result = $this->getReturnValues($info, $result);
 
-    private function getCsrfFromCookie()
-    {
-        $cookie = $this->ReadPropertyString('alexa_cookie');
-        $cookie_arr = explode('; ', $cookie);
-        if (count($cookie_arr) === 0) {
+        if ($result['http_code'] == 400) 
+        {
+            $response = json_decode($result['body']);
+            if ($response !== false)
+            {
+                die( $response->response->error->code.": ".$response->response->error->message );
+            }
             return false;
         }
-        foreach ($cookie_arr as $item) {
-            if (strpos($item, 'csrf=') === 0) {
-                $csrf_arr = explode('=', $item);
-                if (count($csrf_arr) === 2) {
-                    return $csrf_arr[1];
-                }
+
+        if ($result['http_code'] == 200)
+        {
+            $cookieTXT = $this->convertJSONtoPlainTxtCookie( $result['body'] );
+
+            if ($cookieTXT != "" ) 
+            {
+                file_put_contents($this->ReadAttributeString('CookiesFileName') , $cookieTXT);
+                return true;
             }
         }
 
         return false;
     }
 
+    private function convertJSONtoPlainTxtCookie( $cookieJSON )
+    {
+
+        $amazonURL = ".".$this->GetAmazonURL();
+  
+        $cookieJSON = json_decode($cookieJSON, true);
+
+        $cookieTXT = "";
+        foreach ( $cookieJSON['response']['tokens']['cookies'][$amazonURL] as $entry )
+        {
+            $cookie = [];
+        
+            $entry['Domain'] = $amazonURL;
+        
+            if ( $entry['HttpOnly'] == true )
+            {
+                $entry['Domain'] = "#HttpOnly_".$amazonURL;
+            }
+        
+         
+        
+            if ($entry['Secure'])
+            {
+                $entry['Secure'] = "TRUE";
+            } else
+            {
+                $entry['Secure'] = "FALSE";
+            }
+        
+            $cookie[0] = $entry['Domain'];
+            $cookie[1] = "TRUE";
+            $cookie[2] = $entry['Path'];
+            $cookie[3] = $entry['Secure'];
+            $cookie[4] = strtotime( $entry['Expires']) ;
+            $cookie[5] = $entry['Name'];
+            $cookie[6] = $entry['Value'];
+        
+            $cookieTXT .= implode( "\t", $cookie)."\n";
+        }
+
+        return $cookieTXT;
+
+    }
+
+    private function GetCSRF()
+    {
+        //######################################################
+        // get CSRF
+        //
+        // ${CURL} ${OPTS} -s -c ${COOKIE} -b ${COOKIE} -A "${BROWSER}" -H "DNT: 1" -H "Connection: keep-alive" -L\
+        // -H "Referer: https://alexa.${AMAZON}/spa/index.html" -H "Origin: https://alexa.${AMAZON}"\
+        // https://${ALEXA}/api/language > /dev/null
+
+        /*
+        Damit die XHR-Aufrufe gegen cross-site Attacken gesichert werden, muss für das Cookie noch ein CSRF Token erstellt werden.
+        Dies erfolgt beim ersten Aufruf von einer API auf layla.amazon.de. z.B. /api/language unter Angabe des oben gespeicherten Cookies
+        => CSRF wird ins Cookie geschrieben
+         */       
+
+        $headers = [
+            'Accept-Language: ' . $this->GetLanguage(),
+            'DNT: 1',
+            'Connection: keep-alive',
+            'Upgrade-Insecure-Requests: 1',
+            'Referer: https://alexa.' . $this->GetAmazonURL() . '/spa/index.html',
+            'Origin: https://alexa.' . $this->GetAmazonURL()
+        ];
+
+
+        
+        $url = 'https://' . $this->GetAlexaURL() . '/api/language';
+        $this->SendDebug(__FUNCTION__, 'url: ' . $url , 0);
+
+        $this->HttpRequestCookie($url, $headers);
+
+        if ( $this->getCsrfFromCookie() == false )
+        {
+            $url = 'https://' . $this->GetAlexaURL() . '/api/devices-v2/device?cached=false';
+            $this->SendDebug(__FUNCTION__, 'url: ' . $url , 0);
+
+            $this->HttpRequestCookie($url, $headers);
+        }
+
+
+        if ( $this->getCsrfFromCookie() == false )
+        {
+            $url = 'https://' . $this->GetAlexaURL() . '/templates/oobe/d-device-pick.handlebars';
+            $this->SendDebug(__FUNCTION__, 'url: ' . $url , 0);
+
+            $this->HttpRequestCookie($url, $headers);
+        }
+
+        if ( $this->getCsrfFromCookie() == false )
+            die('Failed to get CSRF');
+
+        return true;
+
+    }
+
+    private function getCsrfFromCookie()
+    {
+
+        $CookiesFileName = $this->ReadAttributeString('CookiesFileName');
+
+        if (file_exists($CookiesFileName)) {
+            //get CSRF from cookie file
+            $cookie_line = array_values(preg_grep('/\tcsrf\t/', file($CookiesFileName)));
+            if (isset($cookie_line[0])) {
+                $csrf = preg_split('/\s+/', $cookie_line[0])[6];
+                return $csrf;
+            }
+        }
+
+        return false;
+
+    }
+
+    private function getExpirationDateFromCookie()
+    {
+
+        $expirationDate = 0;
+
+        $CookiesFileName = $this->ReadAttributeString('CookiesFileName');
+
+        if (file_exists($CookiesFileName)) {
+            
+            $cookie_line = array_values(preg_grep('/\tat-acbde\t/', file($CookiesFileName)));
+            if (isset($cookie_line[0])) {
+                $expirationDate = preg_split('/\s+/', $cookie_line[0])[4];
+            }
+        }
+
+        return $expirationDate;
+
+    }
+
     public function LogIn(): bool
     {
         $this->SendDebug(__FUNCTION__, '== started ==', 0);
 
-        if ($this->ReadPropertyBoolean('UseCustomCSRFandCookie')) {
-            return $this->CheckLoginStatus();
+        $this->SetTimerInterval('RefreshCookie', 0);
+
+        if ( !$this->ReadPropertyBoolean('active') )
+        {
+            die('EchoIO Instance is inactive');
         }
 
-        // see https://loetzimmer.de/patches/alexa_remote_control_plain.sh
-        // Vorgehensweise: https://www.alefo.de/forum/alexa-automatisiert-fernsteuern-739-120#p31690
-        // Anmeldung: https://www.alefo.de/forum/alexa-automatisiert-fernsteuern-739-80#p30159
+        $result = $this->GetCookieByRefreshToken();
 
-        // get first cookie and write redirection target into referer
-
-        $first_login = $this->GetFirstCookie();
-        if (count($first_login['hidden fields']) === 0) {
-            $this->SendDebug(__FUNCTION__, 'no hidden fields found!', 0);
-            $failedLogins = json_decode($this->GetBuffer($this->InstanceID . '-failedLogins'), false);
-            $this->SetBuffer($this->InstanceID . '-failedLogins', json_encode($failedLogins + 1));
+        if ( !$result )
             return false;
-        }
-        $referer = $first_login['referer'];
 
-        // login empty to generate session
-        $hiddenfields = $this->StartSession(
-            $referer, $first_login['hidden fields']
-        );
+        $result = $this->GetCSRF();
 
-        // login with filled out form
-        // referer now contains session in URL
-        $session_data = $this->GetSession($hiddenfields);
-
-        // check whether the login has been successful
-        $loginOK = $this->CheckSuccessOfLogin($session_data);
-
-        if (!$loginOK) {
+        if ( !$result )
             return false;
-        }
-
-        // get CSRF
-        $return_data = $this->GetCSRF();
-
-        if ($return_data['http_code'] !== 200) {
-            return false;
-        }
+        
+        $this->SetValue('cookie_expiration_date', $this->getExpirationDateFromCookie() );
 
         return $this->CheckLoginStatus();
+
+    }
+
+    public function LogOff(): bool
+    {
+        $this->SendDebug(__FUNCTION__, '== started ==', 0);
+        $url = $this->GetAlexaURL() . '/logout';
+
+        $headers = [
+            'DNT: 1',
+            'Connection: keep-alive']; //the header must not contain any cookie
+
+        $return = $this->HttpRequestCookie($url, $headers);
+
+        if ($return['http_code'] === 200) { //OK
+            $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
+            return $this->deleteFile($this->ReadAttributeString('CookiesFileName'));
+        }
+
+        return false;
     }
 
     /**
@@ -264,12 +397,17 @@ class AmazonEchoIO extends IPSModule
         // AUTHSTATUS=$(${CURL} ${OPTS} -s -b ${COOKIE} -A "${BROWSER}" -H "DNT: 1" -H "Connection: keep-alive" -L https://${ALEXA}/api/bootstrap?version=${GUIVERSION}
         //   | sed -r 's/^.*"authenticated":([^,]+),.*$/\1/g')
 
+        if ( !$this->ReadPropertyBoolean('active') )
+        {
+            die('EchoIO Instance is inactive');
+        }
+
         $guiversion = 0;
 
         $getfields = ['version' => $guiversion];
 
         $url = 'https://' . $this->GetAlexaURL() . '/api/bootstrap?' . http_build_query($getfields);
-        $return_data = $this->SendEcho($url, $this->GetHeader());
+        $return_data = $this->HttpRequestCookie($url, $this->GetHeader());
 
         if ($return_data['body'] === null) {
             $return = null;
@@ -288,6 +426,7 @@ class AmazonEchoIO extends IPSModule
 
             $authenticated = false;
         } elseif ($return->authentication->authenticated) {
+            //$this->WriteAttributeString('customerID', $return->authentication->customerId); //TEST
             $this->SetBuffer('customerID', $return->authentication->customerId);
             $this->SendDebug(__FUNCTION__, 'CustomerID: ' . $return->authentication->customerId, 0);
             $authenticated = true;
@@ -300,32 +439,18 @@ class AmazonEchoIO extends IPSModule
         }
 
         if (!$authenticated) {
+            //$this->WriteAttributeString('customerID', ''); //TEST
             $this->SetBuffer('customerID', '');
             $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
+        } else 
+        {
+            $this->SetStatus(IS_ACTIVE);
+            $this->setCookieRefreshTimer();
         }
 
         return $authenticated;
     }
 
-    private function GetAlexaURL(): string
-    {
-        $language = $this->ReadPropertyInteger('language');
-        switch ($language) {
-            case 0: // de
-                $alexa_url = 'alexa.amazon.de';
-                break;
-
-            case 1:
-                $alexa_url = 'pitangui.amazon.com';
-                break;
-
-            default:
-                trigger_error('Unexpected language: ' . $language);
-                $alexa_url = '';
-        }
-
-        return $alexa_url;
-    }
 
     /**  Send to Echo API
      *
@@ -341,6 +466,13 @@ class AmazonEchoIO extends IPSModule
     {
         $this->SendDebug(__FUNCTION__, 'Header: ' . json_encode($header), 0);
 
+        if ( $this->GetStatus() != 102 )
+        {
+            $this->SendDebug(__FUNCTION__, 'canceled: EchoID error', 0);
+            //Workaroud since the Echo Device Instances expext an array response to load the Configurationform properly
+            return ['http_code' => 505, 'header' => '', 'body' => ''];;
+        }
+
         $ch = curl_init();
 
         $options = [
@@ -353,11 +485,9 @@ class AmazonEchoIO extends IPSModule
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1];
 
-        if ($this->ReadPropertyBoolean('UseCustomCSRFandCookie')) {
-            $options[CURLOPT_COOKIE] = $this->ReadPropertyString('alexa_cookie'); //this content is read
-        } else {
-            $options[CURLOPT_COOKIEFILE] = $this->ReadAttributeString('CookiesFileName'); //this file is read
-        }
+
+        $options[CURLOPT_COOKIEFILE] = $this->ReadAttributeString('CookiesFileName'); //this file is read
+
 
         if ($postfields !== null) {
             if (isset($postfields['type'])) {
@@ -401,147 +531,16 @@ class AmazonEchoIO extends IPSModule
         curl_close($ch);
         //eine Fehlerbehandlung macht hier leider keinen Sinn, da 400 auch kommt, wenn z.b. der Bildschirm (Show) ausgeschaltet ist
 
+        if ($info['http_code'] == 401)
+        {
+            $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
+        }
+
         return $this->getReturnValues($info, $result);
     }
 
-    /** @noinspection PhpMissingParentCallCommonInspection */
 
-    private function getReturnValues(array $info, string $result): array
-    {
-        $HeaderSize = $info['header_size'];
-
-        $http_code = $info['http_code'];
-        $this->SendDebug(__FUNCTION__, 'Response (http_code): ' . $http_code, 0);
-
-        $header = explode("\n", substr($result, 0, $HeaderSize));
-        $this->SendDebug(__FUNCTION__, 'Response (header): ' . json_encode($header), 0);
-
-        $body = substr($result, $HeaderSize);
-        $this->SendDebug(__FUNCTION__, 'Response (body): ' . $body, 0);
-
-        return ['http_code' => $http_code, 'header' => $header, 'body' => $body];
-    }
-
-    /*
-     * Configuration Form
-     */
-    /** @noinspection PhpMissingParentCallCommonInspection */
-
-    private function GetHeader(): array
-    {
-        $csrf = '';
-
-        if ($this->ReadPropertyBoolean('UseCustomCSRFandCookie')) {
-            $csrf = $this->getCsrfFromCookie();
-            if ($csrf === false) {
-                trigger_error('no valid CSRF in cookie: ' . $this->ReadPropertyString('alexa_cookie'));
-            }
-        } else {
-            $CookiesFileName = $this->ReadAttributeString('CookiesFileName');
-
-            if (file_exists($CookiesFileName)) {
-                //get CSRF from cookie file
-                $cookie_line = array_values(preg_grep('/\tcsrf\t/', file($CookiesFileName)));
-                if (isset($cookie_line[0])) {
-                    $csrf = preg_split('/\s+/', $cookie_line[0])[6];
-                }
-            }
-        }
-
-        $header = [
-            'User-Agent: ' . $this->ReadPropertyString('browser'),
-            'Accept-Encoding: gzip, deflate, br',
-            'Accept-Language:  de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept: application/json, text/javascript, */*; q=0.01',
-            'Referer: http://alexa.' . $this->GetAmazonURL() . '/spa/index.html',
-            'Connection: keep-alive'];
-        //'Content-Type: application/x-www-form-urlencoded; charset=UTF-8']; //todo: experimentell auskommentiert, damit Capabilities abgefragt werden können
-
-        if ($csrf) {
-            $header[] = 'csrf: ' . $csrf;
-        }
-
-        return $header;
-    }
-
-    //Profile
-
-    private function GetAmazonURL(): string
-    {
-        $language = $this->ReadPropertyInteger('language');
-        switch ($language) {
-            case 0: // de
-                $amazon_url = 'amazon.de';
-                break;
-
-            case 1:
-                $amazon_url = 'amazon.com';
-                break;
-
-            default:
-                trigger_error('Unexpected language: ' . $language);
-                $amazon_url = '';
-        }
-
-        return $amazon_url;
-    }
-
-    /**
-     * Step 1: get first cookie and write redirection target into referer.
-     *
-     * @return array
-     */
-    private function GetFirstCookie(): array
-    {
-        //###########################################################
-        // get first cookie and write redirection target into referer
-        //
-        // $CURL $OPTS -s -D "${TMP}/.alexa.header" -c ${COOKIE} -b ${COOKIE} -A "${BROWSER}" -H "Accept-Language: ${LANGUAGE}" -H "DNT: 1" -H "Connection: keep-alive" -H "Upgrade-Insecure-Requests: 1" -L\
-        //  https://alexa.${AMAZON} | grep "hidden" | sed 's/hidden/\n/g' | grep "value=\"" | sed -r 's/^.*name="([^"]+)".*value="([^"]+)".*/\1=\2\&/g' > "${TMP}/.alexa.postdata"
-
-        /*
-         Aufruf von alexa.amazon.de (Accept-Language Header erforderlich für die Umleitung auf deutsch/englische Login Seite):
-         => erstes Cookie wird geschrieben, Amazon Session hat alexa.amazon.de als Ziel nach erfolgreicher Authentifizierung hinterlegt,
-         Weiterleitung auf Amazon Login Seite (das Umleitungsziel ist der Referer der nächsten Anfrage), die Hidden Felder werden
-         zum Abschicken der Login-Form im nächsten Schritt benötigt.
-         */
-
-        //delete old cookie
-        $this->deleteFile($this->ReadAttributeString('CookiesFileName'));
-
-        $echo_data = $this->SendEchoData('https://alexa.' . $this->GetAmazonURL(), $this->GetLoginHeader());
-
-        //get location from header and build referer
-        $location = implode('', preg_grep('/Location: /', $echo_data['header']));
-        $referer = str_replace('Location: ', 'Referer: ', $location);
-        $this->SendDebug(__FUNCTION__, $referer, 0);
-
-        //get hidden fields from body and build post data
-        $hiddenFields = $this->GetHiddenFields($echo_data['body']);
-
-        $this->SendDebug(__FUNCTION__, 'hidden fields: ' . json_encode($hiddenFields), 0);
-
-        return ['referer' => $referer, 'hidden fields' => $hiddenFields];
-    }
-
-    private function deleteFile(string $FileName): bool
-    {
-        if (file_exists($FileName)) {
-            $Success = unlink($FileName);
-
-            if ($Success) { //the cookie file was deleted successfully
-                $this->SendDebug(__FUNCTION__, 'File \'' . $FileName . '\' was deleted', 0);
-                return true;
-            }
-            $this->SendDebug(__FUNCTION__, 'File \'' . $FileName . '\' was not deleted', 0);
-            return false;
-        }
-
-        $this->SendDebug(__FUNCTION__, 'File \'' . $FileName . '\' does not exist', 0);
-        return true;
-    }
-
-    private function SendEchoData(string $url, array $header, array $postfields = null): array
+    private function HttpRequestCookie(string $url, array $header, array $postfields = null): array
     {
         $this->SendDebug(__FUNCTION__, 'url: ' . $url, 0);
 
@@ -572,18 +571,84 @@ class AmazonEchoIO extends IPSModule
         return $this->getReturnValues($info, $result);
     }
 
-    /**
-     * Headers for Login procedure.
-     *
-     * @return array
-     */
-    private function GetLoginHeader(): array
+    private function GetHeader(): array
     {
-        return [
-            'Accept-Language: ' . $this->GetLanguage(),
-            'DNT: 1',
-            'Connection: keep-alive',
-            'Upgrade-Insecure-Requests: 1'];
+        $csrf = '';
+
+        $csrf = $this->getCsrfFromCookie();
+
+        $header = [
+            'User-Agent: ' . $this->ReadPropertyString('browser'),
+            'Accept-Encoding: gzip, deflate, br',
+            'Accept-Language:  de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept: application/json, text/javascript, */*; q=0.01',
+            'Referer: http://alexa.' . $this->GetAmazonURL() . '/spa/index.html',
+            'Connection: keep-alive'];
+        //'Content-Type: application/x-www-form-urlencoded; charset=UTF-8']; //todo: experimentell auskommentiert, damit Capabilities abgefragt werden können
+
+        if ($csrf) {
+            $header[] = 'csrf: ' . $csrf;
+        }
+
+        return $header;
+    }
+
+
+    private function getReturnValues(array $info, string $result): array
+    {
+        $HeaderSize = $info['header_size'];
+
+        $http_code = $info['http_code'];
+        $this->SendDebug(__FUNCTION__, 'Response (http_code): ' . $http_code, 0);
+
+        $header = explode("\n", substr($result, 0, $HeaderSize));
+        $this->SendDebug(__FUNCTION__, 'Response (header): ' . json_encode($header), 0);
+
+        $body = substr($result, $HeaderSize);
+        $this->SendDebug(__FUNCTION__, 'Response (body): ' . $body, 0);
+
+        return ['http_code' => $http_code, 'header' => $header, 'body' => $body];
+    }
+
+
+    private function GetAlexaURL(): string
+    {
+        $language = $this->ReadPropertyInteger('language');
+        switch ($language) {
+            case 0: // de
+                $alexa_url = 'alexa.amazon.de';
+                break;
+
+            case 1:
+                $alexa_url = 'pitangui.amazon.com';
+                break;
+
+            default:
+                trigger_error('Unexpected language: ' . $language);
+                $alexa_url = '';
+        }
+
+        return $alexa_url;
+    }
+
+    private function GetAmazonURL(): string
+    {
+        $language = $this->ReadPropertyInteger('language');
+        switch ($language) {
+            case 0: // de
+                $amazon_url = 'amazon.de';
+                break;
+
+            case 1:
+                $amazon_url = 'amazon.com';
+                break;
+
+            default:
+                trigger_error('Unexpected language: ' . $language);
+                $amazon_url = '';
+        }
+
+        return $amazon_url;
     }
 
     private function GetLanguage(): string
@@ -606,273 +671,24 @@ class AmazonEchoIO extends IPSModule
         return $language_string;
     }
 
-    /**
-     * Step 3: get hidden fields from body and return as array.
-     *
-     * @param $body
-     *
-     * @return array|mixed|null|string|string[]
-     */
-    private function GetHiddenFields(string $body): array
+    private function deleteFile(string $FileName): bool
     {
-        //get hidden fields from body and return as array
-        $result = explode("\n", $body);
-        //$this->SendDebug(__FUNCTION__, "result: " . json_encode($result), 0);
+        if (file_exists($FileName)) {
+            $Success = unlink($FileName);
 
-        $hiddenFields = implode("\n", preg_grep('/type=\"hidden\"/', $result));
-        //$this->SendDebug(__FUNCTION__.'temp', "hidden fields: " . json_encode($hiddenFields), 0);
-
-        $hiddenFields = str_replace('hidden', "\n", $hiddenFields);
-
-        $hiddenFields = explode("\n", $hiddenFields);
-        $hiddenFields = preg_grep('/value=\"/', $hiddenFields);
-
-        $pattern = '^.*name="([^"]+)".*value="([^"]+)".*';
-        $replacement = '\1=\2';
-
-        $hiddenFields = preg_replace('/' . $pattern . '/', $replacement, $hiddenFields);
-
-        $arrhiddenFields = [];
-        foreach ($hiddenFields as $hiddenfield) {
-            $field = explode('=', $hiddenfield, 2);
-            $arrhiddenFields[$field[0]] = $field[1];
-        }
-        return $arrhiddenFields;
-    }
-
-    /**
-     * Step 2: login empty to generate session.
-     *
-     * @param $referer
-     * @param $hiddenfields
-     *
-     * @return array|mixed|null|string|string[]
-     */
-    private function StartSession(string $referer, array $hiddenfields): array
-    {
-        //#########################################
-        // login empty to generate session
-        //
-        // ${CURL} ${OPTS} -s -c ${COOKIE} -b ${COOKIE} -A "${BROWSER}" -H "Accept-Language: ${LANGUAGE}" -H "DNT: 1" -H "Connection: keep-alive" -H "Upgrade-Insecure-Requests: 1" -L\
-        // -H "$(grep 'Location: ' ${TMP}/.alexa.header | sed 's/Location: /Referer: /')" -d "@${TMP}/.alexa.postdata" https://www.${AMAZON}/ap/signin | grep "hidden" | sed 's/hidden/\n/g' | grep "value=\"" | sed -r 's/^.*name="([^"]+)".*value="([^"]+)".*/\1=\2\&/g' > "${TMP}/.alexa.postdata2"
-
-        /*
-        Aufruf von www.amazon.de/ap/signin (mit Referrer aus dem Location Header der vorigen Anfrage und den Hidden Feldern als POST-Data)
-        => Login Vorgang unter /ap/signin schlägt OHNE JAVASCRIPT erwartungsgemäß fehl, Session-Id wird generiert und im Cookie abgelegt,
-        die Hidden Felder werden zum Abschicken der Login-Form im nächsten Schritt benötigt.
-         */
-
-        $headers = array_merge($this->GetLoginHeader(), [$referer]);
-        $this->SendDebug(__FUNCTION__, 'Send (Header): ' . json_encode($headers), 0);
-        $echo_data = $this->SendEchoData('https://www.' . $this->GetAmazonURL() . '/ap/signin', $headers, $hiddenfields);
-
-        //get hidden fields from body and build post data
-        $hiddenFields = $this->GetHiddenFields($echo_data['body']);
-        $this->SendDebug(__FUNCTION__, 'hidden fields: ' . json_encode($hiddenFields), 0);
-
-        return $hiddenFields;
-    }
-
-    /**
-     * Step 4: login with filled out form.
-     *
-     * @param $hiddenFields
-     *
-     * @return array
-     */
-    private function GetSession(array $hiddenFields): array
-    {
-        //###########################################
-        // login with filled out form
-        //  !!! referer now contains session in URL
-        //
-        //${CURL} ${OPTS} -s -D "${TMP}/.alexa.header2" -c ${COOKIE} -b ${COOKIE} -A "${BROWSER}" -H "Accept-Language: ${LANGUAGE}" -H "DNT: 1" -H "Connection: keep-alive" -H "Upgrade-Insecure-Requests: 1" -L\
-        //-H "Referer: https://www.${AMAZON}/ap/signin/$(awk "\$0 ~/.${AMAZON}.*session-id[ \\s\\t]+/ {print \$7}" ${COOKIE})" --data-urlencode "email=${EMAIL}" --data-urlencode "password=${PASSWORD}" -d "@${TMP}/.alexa.postdata2" https://www.${AMAZON}/ap/signin > "${TMP}/.alexa.login"
-
-        /*
-         Aufruf von www.amazon.de/ap/signin (Referrer ist jetzt /ap/signin/<session-id>; Post Data enthält jetzt Login Informationen und Hidden Felder der vorigen Anfrage):
-         => Cookie wird um gültige Login Session ergänzt und ist jetzt für den Zugriff ohne Anmeldung gültig, Weiterleitung zur ursprünglichen URL in Schritt 1. Damit ist das Cookie auch bei alexa.amazon.de gültig.
-         */
-
-        //get session-id from cookie file
-        $session_line = array_values(preg_grep('/\tsession-id\t/', file($this->ReadAttributeString('CookiesFileName'))));
-        $session_id = preg_split('/\s+/', $session_line[0])[6];
-        $this->SendDebug(__FUNCTION__, 'Session ID: ' . $session_id, 0);
-
-        // build referer
-        $referer = 'Referer: https://www.' . $this->GetAmazonURL() . '/ap/signin/' . $session_id;
-        $this->SendDebug(__FUNCTION__, 'referer: ' . $referer, 0);
-
-        $headers = $this->GetLoginHeader();
-        $headers[] = $referer;
-
-        $this->SendDebug(__FUNCTION__, 'Send (Header): ' . json_encode($headers), 0);
-
-        $postfields = array_merge(
-            $hiddenFields, [
-                'email' => $this->ReadPropertyString('username'),
-                'password' => $this->ReadPropertyString('password') . $this->GetOTP()]
-        );
-
-        return $this->SendEchoData('https://www.' . $this->GetAmazonURL() . '/ap/signin', $headers, $postfields);
-    }
-
-    public function GetOTP()
-    {
-        // returns Amzon 2FA OTP Code if Seed is set, otherwise an empty String
-        $Seed = str_replace(' ', '', $this->ReadPropertyString('amazon2fa'));
-        if ($Seed !== '') {
-            $res = $this->GetAmazon2FACode($Seed, 6, 30);
-            if ($res['TTL'] < 3) {
-                sleep(4); // Wait till a fresh code is generated
-                $res = $this->GetAmazon2FACode($Seed, 6, 30);
+            if ($Success) { //the cookie file was deleted successfully
+                $this->SendDebug(__FUNCTION__, 'File \'' . $FileName . '\' was deleted', 0);
+                return true;
             }
-            return $res['OTP'];
+            $this->SendDebug(__FUNCTION__, 'File \'' . $FileName . '\' was not deleted', 0);
+            return false;
         }
-        return '';
+
+        $this->SendDebug(__FUNCTION__, 'File \'' . $FileName . '\' does not exist', 0);
+        return true;
     }
 
-    private function GetAmazon2FACode($Seed, $OtpLength, $OtpKeyRegen)
-    {
-        /**
-         * Based on the 2FA Example found on: https://www.idontplaydarts.com/2011/07/google-totp-two-factor-authentication-for-php/.
-         */
-        // Current Timestamp
-        $timestamp = floor(microtime(true) / $OtpKeyRegen);
-        // Lookuptable for Base32
-        $lut = [
-            'A' => 0,
-            'B' => 1,
-            'C' => 2,
-            'D' => 3,
-            'E' => 4,
-            'F' => 5,
-            'G' => 6,
-            'H' => 7,
-            'I' => 8,
-            'J' => 9,
-            'K' => 10,
-            'L' => 11,
-            'M' => 12,
-            'N' => 13,
-            'O' => 14,
-            'P' => 15,
-            'Q' => 16,
-            'R' => 17,
-            'S' => 18,
-            'T' => 19,
-            'U' => 20,
-            'V' => 21,
-            'W' => 22,
-            'X' => 23,
-            'Y' => 24,
-            'Z' => 25,
-            '2' => 26,
-            '3' => 27,
-            '4' => 28,
-            '5' => 29,
-            '6' => 30,
-            '7' => 31];
-        // Decode Base32 Seed
-        $b32 = strtoupper($Seed);
-        $n = $j = 0;
-        $key = '';
-        if (!preg_match('/^[ABCDEFGHIJKLMNOPQRSTUVWXYZ234567]+$/', $b32, $match)) {
-            trigger_error('Invalid characters in the base32 string.');
-            return null;
-        }
-        for ($i = 0, $iMax = strlen($b32); $i < $iMax; $i++) {
-            $n <<= 5;              // Move buffer left by 5 to make room
-            $n += $lut[$b32[$i]]; // Add value into buffer
-            $j += 5;              // Keep track of number of bits in buffer
-            if ($j >= 8) {
-                $j -= 8;
-                $key .= chr(($n & (0xFF << $j)) >> $j);
-            }
-        }
-        // Check Binary Key
-        if (strlen($key) < 8) {
-            trigger_error('Secret key is too short. Must be at least 16 base 32 characters');
-            return null;
-        }
-        // Generate OTA Code based on Seed and Current Timestamp
-        $h = hash_hmac('sha1', pack('N*', 0) . pack('N*', $timestamp), $key, true);  // NOTE: Counter must be 64-bit int
-        $o = ord($h[19]) & 0xf;
-        $ota_code =
-            (((ord($h[$o + 0]) & 0x7f) << 24) | ((ord($h[$o + 1]) & 0xff) << 16) | ((ord($h[$o + 2]) & 0xff) << 8) | (ord($h[$o + 3]) & 0xff)) % (10
-                ** $OtpLength);
-        // Output Debug Info
-        //echo("Code Valid for: " . ($OtpKeyRegen - round(microtime(true) - ($timestamp*$OtpKeyRegen), 0)) );
 
-        // Return OTP Code
-        return [
-            'OTP' => str_pad((string)$ota_code, $OtpLength, '0', STR_PAD_LEFT),
-            'TTL' => $OtpKeyRegen - round(microtime(true) - ($timestamp * $OtpKeyRegen))];
-    }
-
-    /**
-     * Step 5: Check if return of Step 4 is correct.
-     *
-     * @param $session_data
-     *
-     * @return bool
-     */
-    private function CheckSuccessOfLogin(array $session_data): bool
-    {
-        /*
-         * if [ -z "$(grep 'Location: https://alexa.*html' ${TMP}/.alexa.header2)" ] ; then
-        echo "ERROR: Amazon Login was unsuccessful. Possibly you get a captcha login screen."
-        echo " Try logging in to https://alexa.${AMAZON} with your browser. In your browser"
-        echo " make sure to have all Amazon related cookies deleted and Javascript disabled!"
-        echo
-        echo " (For more information have a look at ${TMP}/.alexa.login)"
-
-         */
-
-        $LoginFile = $this->ReadAttributeString('LoginFileName');
-
-        if (count(preg_grep('/Location: https:\/\/alexa.*html/', $session_data['header'])) === 0) {
-            file_put_contents($LoginFile, $session_data['body']);
-            $this->SendDebug(__FUNCTION__, ' >> login with filled out form failed. See ' . $LoginFile . ' <<', 0);
-            $check = false;
-        } else {
-            //delete an existing html error file
-            $this->deleteFile($LoginFile);
-
-            $this->SendDebug(__FUNCTION__, 'login with filled out form: OK', 0);
-            $check = true;
-        }
-        return $check;
-    }
-
-    private function GetCSRF(): array
-    {
-        //######################################################
-        // get CSRF
-        //
-        // ${CURL} ${OPTS} -s -c ${COOKIE} -b ${COOKIE} -A "${BROWSER}" -H "DNT: 1" -H "Connection: keep-alive" -L\
-        // -H "Referer: https://alexa.${AMAZON}/spa/index.html" -H "Origin: https://alexa.${AMAZON}"\
-        // https://${ALEXA}/api/language > /dev/null
-
-        /*
-        Damit die XHR-Aufrufe gegen cross-site Attacken gesichert werden, muss für das Cookie noch ein CSRF Token erstellt werden.
-        Dies erfolgt beim ersten Aufruf von einer API auf layla.amazon.de. z.B. /api/language unter Angabe des oben gespeicherten Cookies
-        => CSRF wird ins Cookie geschrieben
-         */
-
-        $url = 'https://' . $this->GetAlexaURL() . '/api/language';
-
-        // build referer
-        $referer = 'Referer: https://alexa.' . $this->GetAmazonURL() . '/spa/index.html';
-        $this->SendDebug(__FUNCTION__, 'referer: ' . $referer, 0);
-
-        //build origin
-        $origin = 'Origin: https://alexa.' . $this->GetAmazonURL();
-        $this->SendDebug(__FUNCTION__, 'Origin: ' . $origin, 0);
-        $headers = array_merge($this->GetLoginHeader(), [$referer, $origin]);
-
-        return $this->SendEchoData($url, $headers);
-    }
 
     public function GetDeviceList()
     {
@@ -940,9 +756,21 @@ class AmazonEchoIO extends IPSModule
         return $result;
     }
 
-    //
-    // get CSRF
-    //
+
+    private function setCookieRefreshTimer()
+    {
+        $refreshInterval = $this->getExpirationDateFromCookie() - time();
+
+        $this->SendDebug(__FUNCTION__, 'RefreshCookie in: '.$refreshInterval.' s', 0);
+    
+        // Invlid Cookie
+        if ( $refreshInterval < 0) $refreshInterval = 0;
+
+
+        if ( $refreshInterval > 3600) $refreshInterval = $refreshInterval - 3600;
+    
+        $this->SetTimerInterval('RefreshCookie', $refreshInterval*1000);
+    }
 
     /**
      * register profile association.
@@ -1025,24 +853,6 @@ class AmazonEchoIO extends IPSModule
         $this->SendDebug($notification, $message, $format);
     }
 
-    public function LogOff(): bool
-    {
-        $this->SendDebug(__FUNCTION__, '== started ==', 0);
-        $url = $this->GetAlexaURL() . '/logout';
-
-        $headers = [
-            'DNT: 1',
-            'Connection: keep-alive']; //the header must not contain any cookie
-
-        $return = $this->SendEchoData($url, $headers);
-
-        if ($return['http_code'] === 200) { //OK
-            $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
-            return $this->deleteFile($this->ReadAttributeString('CookiesFileName'));
-        }
-
-        return false;
-    }
 
     public function GetLastDevice()
     {
@@ -1268,6 +1078,7 @@ class AmazonEchoIO extends IPSModule
 
             case 'GetCustomerID':
                 $result = ['http_code' => 200, 'header' => '', 'body' => $this->GetBuffer('customerID')];
+                //$result = ['http_code' => 200, 'header' => '', 'body' => $this->ReadAttributeString('customerID')]; //TEST
                 $this->SendDebug(__FUNCTION__, 'Return: ' . $this->GetBuffer('customerID'), 0);
 
                 break;
@@ -1635,30 +1446,18 @@ class AmazonEchoIO extends IPSModule
                 'type' => 'CheckBox',
                 'caption' => 'active'],
             [
-                'name' => 'username',
-                'type' => 'ValidationTextBox',
-                'caption' => 'Amazon User Name'],
-            [
-                'name' => 'password',
-                'type' => 'PasswordTextBox',
-                'caption' => 'Amazon Password'],
-            [
-                'name' => 'amazon2fa',
-                'type' => 'PasswordTextBox',
-                'caption' => 'Amazon 2FA'],
-            [
                 'name' => 'language',
                 'type' => 'Select',
                 'caption' => 'Echo language',
                 'options' => $this->GetEchoLanguageList()],
             [
-                'name' => 'UseCustomCSRFandCookie',
-                'type' => 'CheckBox',
-                'caption' => 'Use Custom Cookie'],
-            [
-                'name' => 'alexa_cookie',
+                'name' => 'refresh_token',
                 'type' => 'ValidationTextBox',
-                'caption' => 'Cookie'],
+                'caption' => 'Refresh-Token'],
+            [
+                'type' => 'Label',
+                'link' => 'true',
+                'caption' => 'To generate the refresh token, download the following tool and follow the instructions: https://github.com/adn77/alexa-cookie-cli/releases'],              
             [
                 'name' => 'TimerLastAction',
                 'type' => 'CheckBox',
@@ -1704,11 +1503,7 @@ class AmazonEchoIO extends IPSModule
             [
                 'type' => 'Button',
                 'caption' => 'Login Status',
-                'onClick' => "if (EchoIO_CheckLoginStatus(\$id)){echo 'Sie sind angemeldet.';} else {echo 'Sie sind nicht angemeldet.';}"],
-            [
-                'type' => 'Button',
-                'caption' => 'Get OTP',
-                'onClick' => "echo 'Amazon OTP: ' . EchoIO_GetOTP(\$id);"]];
+                'onClick' => "if (EchoIO_CheckLoginStatus(\$id)){echo 'Sie sind angemeldet.';} else {echo 'Sie sind nicht angemeldet.';}"]];
 
         return $form;
     }
@@ -1722,25 +1517,13 @@ class AmazonEchoIO extends IPSModule
     {
         $form = [
             [
-                'code' => 210,
-                'icon' => 'error',
-                'caption' => 'user name must not be empty.'],
-            [
-                'code' => 211,
-                'icon' => 'error',
-                'caption' => 'password must not be empty.'],
-            [
-                'code' => 212,
-                'icon' => 'error',
-                'caption' => 'cookie must not be empty.'],
-            [
-                'code' => 213,
-                'icon' => 'error',
-                'caption' => 'cookie without csrf.'],
-            [
                 'code' => 214,
                 'icon' => 'error',
-                'caption' => 'not authenticated.']];
+                'caption' => 'not authenticated.'],
+            [
+                'code' => 215,
+                'icon' => 'error',
+                'caption' => 'refresh token must not be empty']];
 
         return $form;
     }
