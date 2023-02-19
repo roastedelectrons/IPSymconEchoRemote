@@ -23,7 +23,7 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 4. Der Token wird nun in der Kommandozeile angezeigt. Diesen kopieren und im Konfigurationsformular der EchoIO-Instanz in IP-Symcon einfügen.
 
 #### MacOS
-1. Im Finder den Ordner öffnen, in den die Datei heruntergeladen wurde. Rechts-Klick auf die Datei `alexa-cookie-cli-macos-x64`, `control`-Taste drücken und halten halten und `"alexa-cookie-cli-macos-x64" als Pfadname kopieren` aufwählen.
+1. Im Finder den Ordner öffnen, in den die Datei heruntergeladen wurde. Rechts-Klick auf die Datei `alexa-cookie-cli-macos-x64`, `option`-Taste drücken und halten halten und `"alexa-cookie-cli-macos-x64" als Pfadname kopieren` aufwählen.
 2. Terminal.app öffenen, den folgenden Befehl eingeben `chmod 755 ` und den Pfadnamen dahinter einfügen. Durch Bestätigen mit `ENTER`-Taste wird die Datei ausführbar gemacht. Z.B.
 ```
 chmod 755 /User/<USERNAME>/Downloads/alexa-cookie-cli-macos-x64
