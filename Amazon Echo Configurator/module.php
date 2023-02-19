@@ -15,6 +15,7 @@ class AmazonEchoConfigurator extends IPSModule
         'ADVBD696BHNV5'    => ['name' => 'Fire TV Stick (1.Gen)'],
         'A2GFL5ZMWNE0PX'   => ['name' => 'Fire TV Stick 4K (1.Gen)'],
         'AKPGW064GI9HE'    => ['name' => 'Fire TV Stick 4K'],
+        'A3EVMLQTU6WL1W'   => ['name' => 'Fire TV Stick 4K Max'],
         'A2LWARUGJLBYEW'   => ['name' => 'Fire TV Stick (2.Gen)'],
         'A21Z3CGI8UIP0F'   => ['name' => 'Denon&Marantz (HEOS)'],
         'AVE5HX13UR5NO'    => ['name' => 'Zero Touch (Logitech)'],
@@ -33,7 +34,9 @@ class AmazonEchoConfigurator extends IPSModule
         'A1NL4BVLQ4L3N3'   => ['name' => 'Echo Show'],
         'AWZZ5CVHX2CD'     => ['name' => 'Echo Show (2.Gen)'],
         'A4ZP7ZC4PI6TO'    => ['name' => 'Echo Show 5'],
+        'A1XWJRHALS1REP'   => ['name' => 'Echo Show 5 (2.Gen, 2021)'],  
         'A1Z88NGR2BK6A2'   => ['name' => 'Echo Show 8'],
+        'A15996VY63BQ2D'   => ['name' => 'Echo Show 8 (2.Gen)'],
         'A30YDR2MK8HMRV'   => ['name' => 'Echo Dot (3.Gen with Clock)'],
         'A2H4LV5GIZ1JFT'   => ['name' => 'Echo Dot (4.Gen with Clock)'],
         'A1J16TEDOYCZTN'   => ['name' => 'Amazon Tablet'],
@@ -83,7 +86,10 @@ class AmazonEchoConfigurator extends IPSModule
         'A27VEYGQBW3YR5'   => ['name' => 'Echo Link'],
         'AO50AHDYKXRFG'    => ['name' => 'Bose Noise Cancelling Headphones 700'],
         'A1Q7QCGNMXAKYW'   => ['name' => 'Fire 7 Tablet'],
-        'A17KNHDVUO2UVP'   => ['name' => 'Audi Alexa Integration']];
+        'A17KNHDVUO2UVP'   => ['name' => 'Audi Alexa Integration'],
+        'A93SQJNJQLDSS'    => ['name' => 'Grundig Fire TV '],
+        'A1OECNXBQCC1P9'   => ['name' => 'Samsung Tizen']
+    ];
 
     public function Create()
     {
@@ -211,7 +217,8 @@ class AmazonEchoConfigurator extends IPSModule
                 $device_type_name = $this->Translate(self::DEVICETYPES[$deviceType]['name']);
             } else {
                 $device_type_name = 'unknown: ' . $deviceType;
-                $this->LogMessage('Unknown DeviceType: ' . $deviceType, KL_WARNING);
+                //$this->LogMessage('Unknown DeviceType: ' . $deviceType, KL_WARNING);
+                $this->SendDebug('Unknown DeviceType', $deviceType, 0);
             }
             $this->SendDebug('Echo Device', 'device type: ' . $deviceType . ', device type name: ' . $device_type_name, 0);
 
