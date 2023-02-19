@@ -618,9 +618,7 @@ class EchoRemote extends IPSModule
             'deviceType'         => $this->GetDevicetype()];
 
         $postfields = [
-            'contentType'          => 'station',
-            'guideId'              => $guideId,
-            'mediaOwnerCustomerId' => $this->GetCustomerID()];
+            'contentToken'          => 'music:' . base64_encode(base64_encode('["music/tuneIn/stationId","' . $guideId .'"]|{"previousPageId":"TuneIn_SEARCH"}'))];
 
         $result = $this->SendData('TuneinQueueandplay', $getfields, $postfields);
 

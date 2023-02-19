@@ -583,7 +583,8 @@ class AmazonEchoIO extends IPSModule
             'Accept-Language:  de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
             'Accept: application/json, text/javascript, */*; q=0.01',
             'Referer: http://alexa.' . $this->GetAmazonURL() . '/spa/index.html',
-            'Connection: keep-alive'];
+            'Connection: keep-alive',
+            'Content-Type: application/json; charset=UTF-8'];
         //'Content-Type: application/x-www-form-urlencoded; charset=UTF-8']; //todo: experimentell auskommentiert, damit Capabilities abgefragt werden können
 
         if ($csrf) {
@@ -1290,11 +1291,11 @@ class AmazonEchoIO extends IPSModule
 
     private function TuneinQueueandplay(array $getfields, array $postfields)
     {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/tunein/queue-and-play?' . http_build_query($getfields);
+        $url = 'https://' . $this->GetAlexaURL() . '/api/entertainment/v1/player/queue?' . http_build_query($getfields);
 
         $header = $this->GetHeader();
 
-        return $this->SendEcho($url, $header, $postfields);
+        return $this->SendEcho($url, $header, $postfields, null, 'PUT');
     }
 
     private function MediaState($getfields)
