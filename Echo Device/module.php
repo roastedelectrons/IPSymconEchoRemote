@@ -17,7 +17,6 @@ class EchoRemote extends IPSModule
     private const STATUS_INST_DEVICENUMBER_IS_EMPTY = 211; // devicenumber must not be empty
 
     private $customerID = '';
-    private $update_counter = 0;
 
     private $ParentID = 0;
     private int $position = 0;
@@ -279,8 +278,8 @@ class EchoRemote extends IPSModule
         $this->SetValue('lastAlarmTime', $oldAlarmTime);
         $this->SendDebug(__FUNCTION__, 'lastAlarmTime set to ' . $oldAlarmTime . ' (' . date(DATE_RSS, $oldAlarmTime) . ')', 0);
 
-        //Timer deaktivieren
-        $this->SetTimerInterval('EchoAlarm', 0);
+        //Nächsten Timer abrufen
+        $this->UpdateAlarm();
 
         //alte Zeit wird nicht gelöscht, da Alexa den Wecker erst deaktiviert, wenn er abgelaufen ist
     }
@@ -1093,7 +1092,6 @@ class EchoRemote extends IPSModule
      */
     public function UpdateStatus(): bool
     {
-        $this->update_counter = $this->update_counter + 1;
         if (!$result = $this->GetPlayerInformation()) {
             return false;
         }
@@ -1172,16 +1170,8 @@ class EchoRemote extends IPSModule
         }
 
         //update Alarm
-        if ($this->update_counter > 20) {
-            $this->update_counter = 0;
-            if ($this->ReadPropertyBoolean('AlarmInfo')) {
-                $notifications = $this->GetNotifications();
-                if ($notifications === null) {
-                    return false;
-                }
-
-                $this->SetAlarm($notifications);
-            }
+        if ($this->ReadPropertyBoolean('AlarmInfo')) {
+            $this->UpdateAlarm();
         }
 
         //update ShoppingList
@@ -2128,21 +2118,28 @@ class EchoRemote extends IPSModule
         IPS_SendMediaEvent($this->GetIDForIdent('MediaImageCover')); //aktualisieren
     }
 
-    private function SetAlarm(array $notifications): void
+    public function UpdateAlarm(): bool
     {
-        $alarmTime = 0;
-        $nextAlarm = $this->GetValue('nextAlarmTime');
 
-        // if the alarm time has already passed, it is set to 0
-        if ($nextAlarm < (time() - 2 * 60)) {
-            $nextAlarm = 0;
+        $notifications = $this->GetNotifications();
+        if ($notifications === null) {
+            return false;
         }
+
+        $alarmTime = 0;
+        $nextAlarm = 0; 
+        $now = time();
 
         foreach ($notifications as $notification) {
             if (($notification['type'] === 'Alarm')
                 && ($notification['status'] === 'ON')
                 && ($notification['deviceSerialNumber'] === IPS_GetProperty($this->InstanceID, 'Devicenumber'))) {
                 $alarmTime = strtotime($notification['originalDate'] . 'T' . $notification['originalTime']);
+
+                // In case the alarm is just running and not yet switched off we have to skip it
+                if ( $alarmTime <= $now){
+                    break;
+                }
 
                 if ($nextAlarm === 0) {
                     $nextAlarm = $alarmTime;
@@ -2152,11 +2149,10 @@ class EchoRemote extends IPSModule
             }
         }
 
-        if ($alarmTime === 0) {
-            $nextAlarm = 0;
+        if ($nextAlarm === 0) {
             $timerIntervalSec = 0;
         } else {
-            $timerIntervalSec = $nextAlarm - time();
+            $timerIntervalSec = $nextAlarm - $now;
         }
 
         if ($nextAlarm !== $this->GetValue('nextAlarmTime')) {
@@ -2167,6 +2163,15 @@ class EchoRemote extends IPSModule
             $this->SetTimerInterval('EchoAlarm', $timerIntervalSec * 1000);
             $this->SendDebug(__FUNCTION__, 'Timer EchoAlarm is set to ' . $timerIntervalSec . 's', 0);
         }
+
+        // Set the timer in case of a restart of symcon
+        if ( $this->GetTimerInterval("EchoAlarm") === 0 && $timerIntervalSec > 0 )
+        {
+            $this->SetTimerInterval('EchoAlarm', $timerIntervalSec * 1000);
+            $this->SendDebug(__FUNCTION__, 'Timer EchoAlarm is set to ' . $timerIntervalSec . 's', 0);           
+        }
+
+        return true;
     }
 
     private function GetListPage(array $Items): string
