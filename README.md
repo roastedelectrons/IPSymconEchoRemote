@@ -32,7 +32,7 @@ chmod 755 /User/<USERNAME>/Downloads/alexa-cookie-cli-macos-x64
 ```
 /User/<USERNAME>/Downloads/alexa-cookie-cli-macos-x64
 ```
-Im Terminal wird nun wahrscheinlich folgende Meldung angezeigt:
+  Im Terminal wird nun wahrscheinlich folgende Meldung angezeigt:
 ```
 Error: You can try to get the cookie manually by opening http://localhost:8080/ with yout browser.  / null
 ```
@@ -55,17 +55,17 @@ Module Store öffenen und unter *Installiert > Echo Remote* auf *Entfernen* klic
 
 Version 2.0 (2023-02-19)
 
-BREAKING-CHANGE: Authentifizierung erfolgt ausschließlich mittel Token, der über ein externes Tool erzeugt werden muss (kein Benutzername/Passwort, 2FA oder Cookie Anmeldung mehr möglich)
-Neu: Automatischer Reconnect
-Neu: weitere DeviceTypes
-Fix: TuneIn Sender können gestartet werden
-Fix: Zeiten für nächsten Alarm (Wecker) werden korrekt ausgewertet
-Change: Unknown DeviceType-Meldung wird nicht mehr im Message-Log, sondern im Debug ddes Konfigurators angezeigt
+* BREAKING-CHANGE: Authentifizierung erfolgt ausschließlich mittel Token, der über ein externes Tool erzeugt werden muss (kein Benutzername/Passwort, 2FA oder Cookie Anmeldung mehr möglich)
+* Neu: Automatischer Reconnect
+* Neu: weitere DeviceTypes
+* Fix: TuneIn Sender können gestartet werden
+* Fix: Zeiten für nächsten Alarm (Wecker) werden korrekt ausgewertet
+* Change: Unknown DeviceType-Meldung wird nicht mehr im Message-Log, sondern im Debug ddes Konfigurators angezeigt
 
 ## Quellen
-[1] Alexa-Cookie-CLI: https://github.com/adn77/alexa-cookie-cli
-[2] Anleitung für alexa_remote_control.sh und Alexa-Cookie-CLI: https://blog.loetzimmer.de/2021/09/alexa-remote-control-shell-script.html
-[3] alexa_remote_control.sh: https://github.com/adn77/alexa-remote-control
+1. Alexa-Cookie-CLI: https://github.com/adn77/alexa-cookie-cli
+2. Anleitung für alexa_remote_control.sh und Alexa-Cookie-CLI: https://blog.loetzimmer.de/2021/09/alexa-remote-control-shell-script.html
+3. alexa_remote_control.sh: https://github.com/adn77/alexa-remote-control
 
 ## Dokumentation (nicht aktuell)
 
