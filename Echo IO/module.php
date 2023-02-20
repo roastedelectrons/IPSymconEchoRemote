@@ -137,11 +137,9 @@ class AmazonEchoIO extends IPSModule
     {
 
         $header = [
-            'Accept-Language: ' . $this->GetLanguage(),
-            'DNT: 1',
             'Connection: keep-alive',
-            'Upgrade-Insecure-Requests: 1',
-            'x-amzn-identity-auth-domain: api.'.$this->GetAmazonURL() ];
+            'x-amzn-identity-auth-domain: api.'.$this->GetAmazonURL() 
+        ];
 
         $url = "https://api.".$this->GetAmazonURL()."/ap/exchangetoken/cookies";
 
@@ -259,10 +257,9 @@ class AmazonEchoIO extends IPSModule
          */       
 
         $headers = [
-            'Accept-Language: ' . $this->GetLanguage(),
+            'User-Agent: ' . $this->ReadPropertyString('browser'),
             'DNT: 1',
             'Connection: keep-alive',
-            'Upgrade-Insecure-Requests: 1',
             'Referer: https://alexa.' . $this->GetAmazonURL() . '/spa/index.html',
             'Origin: https://alexa.' . $this->GetAmazonURL()
         ];
@@ -577,21 +574,20 @@ class AmazonEchoIO extends IPSModule
 
         $csrf = $this->getCsrfFromCookie();
 
-        $header = [
+        $headers = [
             'User-Agent: ' . $this->ReadPropertyString('browser'),
-            'Accept-Encoding: gzip, deflate, br',
-            'Accept-Language:  de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept: application/json, text/javascript, */*; q=0.01',
-            'Referer: http://alexa.' . $this->GetAmazonURL() . '/spa/index.html',
+            'DNT: 1',
             'Connection: keep-alive',
-            'Content-Type: application/json; charset=UTF-8'];
-        //'Content-Type: application/x-www-form-urlencoded; charset=UTF-8']; //todo: experimentell auskommentiert, damit Capabilities abgefragt werden können
+            'Content-Type: application/json; charset=UTF-8',            
+            'Referer: http://alexa.' . $this->GetAmazonURL() . '/spa/index.html',
+            'Origin: https://alexa.' . $this->GetAmazonURL()
+        ];
 
         if ($csrf) {
-            $header[] = 'csrf: ' . $csrf;
+            $headers[] = 'csrf: ' . $csrf;
         }
 
-        return $header;
+        return $headers;
     }
 
 
