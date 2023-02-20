@@ -2138,7 +2138,7 @@ class EchoRemote extends IPSModule
 
                 // In case the alarm is just running and not yet switched off we have to skip it
                 if ( $alarmTime <= $now){
-                    break;
+                    continue;
                 }
 
                 if ($nextAlarm === 0) {
