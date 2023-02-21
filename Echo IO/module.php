@@ -243,7 +243,6 @@ class AmazonEchoIO extends IPSModule
 
     private function GetCSRF()
     {
-        //######################################################
         // get CSRF
         //
         // ${CURL} ${OPTS} -s -c ${COOKIE} -b ${COOKIE} -A "${BROWSER}" -H "DNT: 1" -H "Connection: keep-alive" -L\
@@ -256,6 +255,14 @@ class AmazonEchoIO extends IPSModule
         => CSRF wird ins Cookie geschrieben
          */       
 
+        $urls = [
+            '/api/language',
+            '/spa/index.html',
+            '/api/devices-v2/device?cached=false',
+            '/templates/oobe/d-device-pick.handlebars',
+            '/api/strings'
+        ];
+
         $headers = [
             'User-Agent: ' . $this->ReadPropertyString('browser'),
             'DNT: 1',
@@ -265,33 +272,24 @@ class AmazonEchoIO extends IPSModule
         ];
 
 
+        foreach ( $urls as $path )
+        {
+            $url = 'https://' . $this->GetAlexaURL() . $path;
+            
+            $this->HttpRequestCookie($url, $headers);
+    
+            if ( $this->getCsrfFromCookie() !== false )
+            {
+                // CSRF found
+                $this->SendDebug(__FUNCTION__, 'Successfully got csrf from:  '.$url  , 0);
+                return true;
+            }
+            $this->SendDebug(__FUNCTION__, 'Failed to get csrf from: ' . $url , 0);
+        }
         
-        $url = 'https://' . $this->GetAlexaURL() . '/api/language';
-        $this->SendDebug(__FUNCTION__, 'url: ' . $url , 0);
+        $this->LogMessage('Failed to get CSRF', KL_ERROR);
 
-        $this->HttpRequestCookie($url, $headers);
-
-        if ( $this->getCsrfFromCookie() == false )
-        {
-            $url = 'https://' . $this->GetAlexaURL() . '/api/devices-v2/device?cached=false';
-            $this->SendDebug(__FUNCTION__, 'url: ' . $url , 0);
-
-            $this->HttpRequestCookie($url, $headers);
-        }
-
-
-        if ( $this->getCsrfFromCookie() == false )
-        {
-            $url = 'https://' . $this->GetAlexaURL() . '/templates/oobe/d-device-pick.handlebars';
-            $this->SendDebug(__FUNCTION__, 'url: ' . $url , 0);
-
-            $this->HttpRequestCookie($url, $headers);
-        }
-
-        if ( $this->getCsrfFromCookie() == false )
-            die('Failed to get CSRF');
-
-        return true;
+        die('Failed to get CSRF');
 
     }
 
