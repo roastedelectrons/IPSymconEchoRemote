@@ -225,12 +225,20 @@ class AmazonEchoIO extends IPSModule
             {
                 $entry['Secure'] = "FALSE";
             }
+
+            // Workaround on 32-bit systems for cookie expiration dates after 2038
+            if ( PHP_INT_SIZE == 4 &&  explode( " ", $entry['Expires'] )[2] >= 2038 )
+            {
+                $expires = 2147483647;
+            } else {
+                $expires = strtotime( $entry['Expires']  );
+            }
         
             $cookie[0] = $entry['Domain'];
             $cookie[1] = "TRUE";
             $cookie[2] = $entry['Path'];
             $cookie[3] = $entry['Secure'];
-            $cookie[4] = strtotime( $entry['Expires']) ;
+            $cookie[4] = $expires;
             $cookie[5] = $entry['Name'];
             $cookie[6] = $entry['Value'];
         
