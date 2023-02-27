@@ -153,10 +153,9 @@ class EchoRemote extends IPSModule
         if ($last_timestamp != $creationTimestamp) {
             $this->WriteAttributeInteger('creationTimestamp', $creationTimestamp);
             $summary = $payload->summary;
-            $timestamp = time();
             if(@$this->GetIDForIdent('last_action') > 0)
             {
-                $this->SetValue('last_action', $timestamp);
+                $this->SetValue('last_action', $creationTimestamp);
             }
             if(@$this->GetIDForIdent('summary') > 0)
             {

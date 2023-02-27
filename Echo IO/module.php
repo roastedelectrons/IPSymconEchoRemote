@@ -35,6 +35,7 @@ class AmazonEchoIO extends IPSModule
 
         $this->RegisterAttributeString('devices', '[]');
         $this->RegisterAttributeString('CookiesFileName', IPS_GetKernelDir() . 'alexa_cookie.txt');
+        $this->RegisterAttributeInteger('LastDeviceTimeStamp', 0);
 
         $this->RegisterTimer('TimerLastDevice', 0, 'ECHOIO_GetLastDevice(' . $this->InstanceID . ');');
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
@@ -876,7 +877,7 @@ class AmazonEchoIO extends IPSModule
                         if ($state == 'SUCCESS') {
                             $sourceDeviceIds = $activity['sourceDeviceIds'][0];
                             $serialNumber = $sourceDeviceIds['serialNumber'];
-                            $creationTimestamp = $activity['creationTimestamp'];
+                            $creationTimestamp = intval( $activity['creationTimestamp'] / 1000);
                             $description = $activity['description'];
                             $summary = json_decode($description)->summary;
                             break;
@@ -902,10 +903,15 @@ class AmazonEchoIO extends IPSModule
                         $payload = json_encode(['DataID' => '{E41E38AC-30D7-CA82-DEF5-9561A5B06CD7}', 'Buffer' => $last_device]);
                         $this->SendDataToChildren($payload);
                         $this->SendDebug('Forward Data Last Device', $payload, 0);
-                        $current_serial = GetValue($this->GetIDForIdent('last_device'));
-                        if ($current_serial != $key + 1) {
+
+                        $this->SendDebug('Echo LastDevice', 'LastDeviceTimeStamp: ' . $this->ReadAttributeInteger( 'LastDeviceTimeStamp' ), 0);
+                        $this->SendDebug('Echo LastDevice', 'creationTimestamp: ' . $creationTimestamp, 0);
+                        
+                        if ( $creationTimestamp != $this->ReadAttributeInteger( 'LastDeviceTimeStamp' ))
+                        {
                             $this->SetValue('last_device', $key + 1);
-                        }
+                            $this->WriteAttributeInteger( 'LastDeviceTimeStamp', $creationTimestamp);
+                        }  
                     }
                 }
             }
