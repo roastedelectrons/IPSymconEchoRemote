@@ -471,9 +471,9 @@ class AmazonEchoIO extends IPSModule
 
         if ( $this->GetStatus() != 102 )
         {
-            $this->SendDebug(__FUNCTION__, 'canceled: EchoID error', 0);
+            $this->SendDebug(__FUNCTION__, 'EchoIO not active. Status: ' $this->GetStatus(), 0);
             //Workaroud since the Echo Device Instances expext an array response to load the Configurationform properly
-            return ['http_code' => 505, 'header' => '', 'body' => ''];;
+            return ['http_code' => 502, 'header' => '', 'body' => ''];;
         }
 
         $ch = curl_init();
@@ -523,7 +523,8 @@ class AmazonEchoIO extends IPSModule
         if (curl_errno($ch)) {
             $this->SendDebug(__FUNCTION__, 'Error: (' . curl_errno($ch) . ') ' . curl_error($ch), 0);
             $this->LogMessage('Error: (' . curl_errno($ch) . ') ' . curl_error($ch), KL_ERROR);
-            return false;
+            //Workaroud since the Echo Device Instances expext an array response to load the Configurationform properly
+            return ['http_code' => 502, 'header' => '', 'body' => ''];;
         }
 
         $info = curl_getinfo($ch);
