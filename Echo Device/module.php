@@ -867,7 +867,10 @@ class EchoRemote extends IPSModule
                     $this->SendDebug('do not disturb state', strval($dnd), 0);
                     if(@$this->GetIDForIdent('DND') > 0)
                     {
-                        $this->SetValue('DND', $dnd);
+                        if ($this->GetValue('DND') != $dnd )
+                        {
+                            $this->SetValue('DND', $dnd);
+                        }
                     }
                 }
             }
@@ -1090,82 +1093,90 @@ class EchoRemote extends IPSModule
      * @return bool
      */
     public function UpdateStatus(): bool
-    {
-        if (!$result = $this->GetPlayerInformation()) {
-            return false;
-        }
-        $this->GetDoNotDisturbState();
-        $playerInfo = $result['playerInfo'];
-        $this->SendDebug('Playerinfo', json_encode($playerInfo), 0);
-        switch ($playerInfo['state']) {
-            case 'PLAYING':
-                $this->SetValue('EchoRemote', 3);
-                break;
+    {     
 
-            case null:
-            case 'PAUSED':
-            case 'IDLE':
-                $this->SetValue('EchoRemote', 2);
-                break;
+        // Update player information
+        $result = $this->GetPlayerInformation();
 
-            default:
-                trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected state: ' . $playerInfo['state']);
-        }
-
-        $imageurl = $playerInfo['mainArt']['url'] ?? null;
-        $infotext = $playerInfo['infoText'];
-        if (is_null($infotext)) {
-            $this->SendDebug('Playerinfo Infotext', 'no information found', 0);
-        } else {
-            $this->SetStatePage(
-                $imageurl, $playerInfo['infoText']['title'], $playerInfo['infoText']['subText1'], $playerInfo['infoText']['subText2']
-            );
-        }
-
-        if (isset($playerInfo['transport']['repeat'])) {
-            switch ($playerInfo['transport']['repeat']) {
+        if ($result !== false) {
+            
+            $playerInfo = $result['playerInfo'];
+            $this->SendDebug('Playerinfo', json_encode($playerInfo), 0);
+            switch ($playerInfo['state']) {
+                case 'PLAYING':
+                    $this->SetValue('EchoRemote', 3);
+                    break;
+    
                 case null:
+                case 'PAUSED':
+                case 'IDLE':
+                    $this->SetValue('EchoRemote', 2);
                     break;
-                case 'HIDDEN':
-                case 'ENABLED':
-                case 'DISABLED':
-                    $this->SetValue('EchoRepeat', false);
-                    break;
-
-                case 'SELECTED':
-                    $this->SetValue('EchoRepeat', true);
-                    break;
-
+    
                 default:
-                    trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected repeat value: ' . $playerInfo['transport']['repeat']);
+                    trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected state: ' . $playerInfo['state']);
+            }
+    
+            $imageurl = $playerInfo['mainArt']['url'] ?? null;
+            $infotext = $playerInfo['infoText'];
+            if (is_null($infotext)) {
+                $this->SendDebug('Playerinfo Infotext', 'no information found', 0);
+            } else {
+                $this->SetStatePage(
+                    $imageurl, $playerInfo['infoText']['title'], $playerInfo['infoText']['subText1'], $playerInfo['infoText']['subText2']
+                );
+            }
+    
+            if (isset($playerInfo['transport']['repeat'])) {
+                switch ($playerInfo['transport']['repeat']) {
+                    case null:
+                        break;
+                    case 'HIDDEN':
+                    case 'ENABLED':
+                    case 'DISABLED':
+                        $this->SetValue('EchoRepeat', false);
+                        break;
+    
+                    case 'SELECTED':
+                        $this->SetValue('EchoRepeat', true);
+                        break;
+    
+                    default:
+                        trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected repeat value: ' . $playerInfo['transport']['repeat']);
+                }
+            }
+    
+            if (isset($playerInfo['transport']['shuffle'])) {
+                switch ($playerInfo['transport']['shuffle']) {
+                    case null:
+                        break;
+                    case 'HIDDEN':
+                    case 'ENABLED':
+                    case 'DISABLED':
+                        $this->SetValue('EchoShuffle', false);
+                        break;
+    
+                    case 'SELECTED':
+                        $this->SetValue('EchoShuffle', true);
+                        break;
+    
+                    default:
+                        trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected shuffle value: ' . $playerInfo['transport']['shuffle']);
+                }
+            }
+            $volume = $playerInfo['volume'];
+            if (is_null($volume)) {
+                $this->SendDebug('Playerinfo Volume', 'no volume information found', 0);
+            } else {
+                if ($playerInfo['volume']['volume'] !== null) {
+                    $this->SetValue('EchoVolume', $playerInfo['volume']['volume']);
+                }
             }
         }
 
-        if (isset($playerInfo['transport']['shuffle'])) {
-            switch ($playerInfo['transport']['shuffle']) {
-                case null:
-                    break;
-                case 'HIDDEN':
-                case 'ENABLED':
-                case 'DISABLED':
-                    $this->SetValue('EchoShuffle', false);
-                    break;
-
-                case 'SELECTED':
-                    $this->SetValue('EchoShuffle', true);
-                    break;
-
-                default:
-                    trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected shuffle value: ' . $playerInfo['transport']['shuffle']);
-            }
-        }
-        $volume = $playerInfo['volume'];
-        if (is_null($volume)) {
-            $this->SendDebug('Playerinfo Volume', 'no volume information found', 0);
-        } else {
-            if ($playerInfo['volume']['volume'] !== null) {
-                $this->SetValue('EchoVolume', $playerInfo['volume']['volume']);
-            }
+        // Update do-not-disturb-state
+        if ($this->ReadPropertyBoolean('DND')) {
+            $this->GetDoNotDisturbState();
         }
 
         //update Alarm
