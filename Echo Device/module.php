@@ -1351,10 +1351,6 @@ class EchoRemote extends IPSModule
         );
     }
 
-    protected function HasActiveParent(): bool
-    {
-        return ($this->ParentID > 0) && (IPS_GetInstance($this->ParentID)['InstanceStatus'] === IS_ACTIVE);
-    }
 
     /**
      * Ermittelt den Parent und verwaltet die Einträge des Parent im MessageSink
@@ -1690,6 +1686,12 @@ class EchoRemote extends IPSModule
             $Data['Buffer']['additionalData'] = $additionalData;
         }
 
+        if (!$this->HasActiveParent())
+        {
+            $this->SendDebug(__FUNCTION__, 'No active parent', 0);
+            return ['http_code' => 502, 'header' => '', 'body' => 'No active parent'];
+        }
+
         $ResultJSON = $this->SendDataToParent(json_encode($Data));
         if ($ResultJSON) {
             $this->SendDebug(__FUNCTION__, 'Result: ' . json_encode($ResultJSON), 0);
@@ -1700,14 +1702,13 @@ class EchoRemote extends IPSModule
             }
         }
 
-        IPS_LogMessage(
-            __CLASS__ . '::' . __FUNCTION__, sprintf(
+        $this->SendDebug( __FUNCTION__, sprintf(
                                                '\'%s\' (#%s): SendDataToParent returned with %s. $Data = %s', IPS_GetName($this->InstanceID),
                                                $this->InstanceID, json_encode($ResultJSON), json_encode($Data)
-                                           )
+                                        ), 0
         );
 
-        return null;
+        return ['http_code' => 502, 'header' => '', 'body' => ''];
     }
 
     /** register profiles

@@ -28,6 +28,7 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterPropertyInteger('language', 0);
         $this->RegisterPropertyString('refresh_token', '');    
         $this->RegisterPropertyBoolean('TimerLastAction', true);
+        $this->RegisterPropertyBoolean('LogMessageEx', false);
         
         $this->RegisterPropertyString(
             'browser', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gecko/20100101 Firefox/58.0'
@@ -445,11 +446,16 @@ class AmazonEchoIO extends IPSModule
         if (!$authenticated) {
             //$this->WriteAttributeString('customerID', ''); //TEST
             $this->SetBuffer('customerID', '');
-            $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
+            $statusCode = self::STATUS_INST_NOT_AUTHENTICATED;
         } else 
         {
-            $this->SetStatus(IS_ACTIVE);
+            $statusCode = IS_ACTIVE;
             $this->setCookieRefreshTimer();
+        }
+
+        if ( $this->GetStatus() != $statusCode)
+        {
+            $this->SetStatus( $statusCode );
         }
 
         return $authenticated;
@@ -474,7 +480,7 @@ class AmazonEchoIO extends IPSModule
         {
             $this->SendDebug(__FUNCTION__, 'EchoIO not active. Status: '.$this->GetStatus(), 0);
             //Workaroud since the Echo Device Instances expext an array response to load the Configurationform properly
-            return ['http_code' => 502, 'header' => '', 'body' => ''];
+            return ['http_code' => 502, 'header' => '', 'body' => 'EchoIO not active. Status: '.$this->GetStatus() ];
         }
 
         $ch = curl_init();
@@ -523,9 +529,12 @@ class AmazonEchoIO extends IPSModule
 
         if (curl_errno($ch)) {
             $this->SendDebug(__FUNCTION__, 'Error: (' . curl_errno($ch) . ') ' . curl_error($ch), 0);
-            $this->LogMessage('Error: (' . curl_errno($ch) . ') ' . curl_error($ch), KL_ERROR);
-            //Workaroud since the Echo Device Instances expext an array response to load the Configurationform properly
-            return ['http_code' => 502, 'header' => '', 'body' => ''];
+            if ($this->ReadPropertyBoolean('LogMessageEx') )
+            {
+                $this->LogMessage('Error: (' . curl_errno($ch) . ') ' . curl_error($ch), KL_ERROR);
+            }  
+            //Workaroud since the Echo Device Instances expext an array response
+            return ['http_code' => 502, 'header' => '', 'body' => 'Error: (' . curl_errno($ch) . ') ' . curl_error($ch) ];
         }
 
         $info = curl_getinfo($ch);
@@ -569,6 +578,7 @@ class AmazonEchoIO extends IPSModule
         $result = curl_exec($ch);
         if (curl_errno($ch)) {
             trigger_error('Error:' . curl_error($ch));
+            return ['http_code' => 502, 'header' => '', 'body' => 'Error:' . curl_error($ch)];
         }
         $info = curl_getinfo($ch);
         curl_close($ch);
@@ -1462,7 +1472,7 @@ class AmazonEchoIO extends IPSModule
                 'options' => $this->GetEchoLanguageList()],
             [
                 'name' => 'refresh_token',
-                'type' => 'ValidationTextBox',
+                'type' => 'PasswordTextBox',
                 'caption' => 'Refresh-Token'],
             [
                 'type' => 'Label',
@@ -1471,7 +1481,11 @@ class AmazonEchoIO extends IPSModule
             [
                 'name' => 'TimerLastAction',
                 'type' => 'CheckBox',
-                'caption' => 'Get last action']
+                'caption' => 'Get last action'],
+            [
+                'name' => 'LogMessageEx',
+                'type' => 'CheckBox',
+                'caption' => 'Extented log messages']
 
         ];
     }
