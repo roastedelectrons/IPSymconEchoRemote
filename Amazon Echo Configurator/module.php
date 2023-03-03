@@ -17,6 +17,7 @@ class AmazonEchoConfigurator extends IPSModule
         'AKPGW064GI9HE'    => ['name' => 'Fire TV Stick 4K'],
         'A3EVMLQTU6WL1W'   => ['name' => 'Fire TV Stick 4K Max'],
         'A2LWARUGJLBYEW'   => ['name' => 'Fire TV Stick (2.Gen)'],
+        'A31DTMEEVDDOIV'   => ['name' => 'Fire TV Stick Lite'],
         'A21Z3CGI8UIP0F'   => ['name' => 'Denon&Marantz (HEOS)'],
         'AVE5HX13UR5NO'    => ['name' => 'Zero Touch (Logitech)'],
         'AKOAGQTKAS9YB'    => ['name' => 'Amazon Echo Connect'],
@@ -37,6 +38,7 @@ class AmazonEchoConfigurator extends IPSModule
         'A1XWJRHALS1REP'   => ['name' => 'Echo Show 5 (2.Gen, 2021)'],  
         'A1Z88NGR2BK6A2'   => ['name' => 'Echo Show 8'],
         'A15996VY63BQ2D'   => ['name' => 'Echo Show 8 (2.Gen)'],
+        'AIPK7MM90V7TB'    => ['name' => 'Echo Show 10'],   
         'A30YDR2MK8HMRV'   => ['name' => 'Echo Dot (3.Gen with Clock)'],
         'A2H4LV5GIZ1JFT'   => ['name' => 'Echo Dot (4.Gen with Clock)'],
         'A2DS1Q2TPDJ48U'   => ['name' => 'Echo Dot (5.Gen with Clock)'],
@@ -89,7 +91,8 @@ class AmazonEchoConfigurator extends IPSModule
         'A1Q7QCGNMXAKYW'   => ['name' => 'Fire 7 Tablet'],
         'A17KNHDVUO2UVP'   => ['name' => 'Audi Alexa Integration'],
         'A93SQJNJQLDSS'    => ['name' => 'Grundig Fire TV '],
-        'A1OECNXBQCC1P9'   => ['name' => 'Samsung Tizen']
+        'A1OECNXBQCC1P9'   => ['name' => 'Samsung Tizen'],
+        'AOL0WUO16289B'    => ['name' => 'Teufel Holist S']
     ];
 
     public function Create()
@@ -127,7 +130,7 @@ class AmazonEchoConfigurator extends IPSModule
         $Form['actions'][] = [
             'type'     => 'Configurator',
             'name'     => 'AmazonEchoConfiguration',
-            'rowCount' => 20,
+            'rowCount' => 15,
             'add'      => false,
             'delete'   => true,
             'sort'     => [
