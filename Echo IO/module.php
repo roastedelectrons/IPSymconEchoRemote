@@ -37,6 +37,8 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterAttributeString('devices', '[]');
         $this->RegisterAttributeString('CookiesFileName', IPS_GetKernelDir() . 'alexa_cookie.txt');
         $this->RegisterAttributeInteger('LastDeviceTimeStamp', 0);
+        $this->RegisterAttributeInteger('LastCookieRefresh', 0);
+        $this->RegisterAttributeInteger('CookieExpirationDate', 0);
 
         $this->RegisterTimer('TimerLastDevice', 0, 'ECHOIO_GetLastDevice(' . $this->InstanceID . ');');
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
@@ -362,6 +364,8 @@ class AmazonEchoIO extends IPSModule
             return false;
         
         $this->SetValue('cookie_expiration_date', $this->getExpirationDateFromCookie() );
+        $this->WriteAttributeInteger('CookieExpirationDate', $this->getExpirationDateFromCookie() );
+        $this->WriteAttributeInteger('LastCookieRefresh', time() );
 
         return $this->CheckLoginStatus();
 
@@ -380,6 +384,7 @@ class AmazonEchoIO extends IPSModule
 
         if ($return['http_code'] === 200) { //OK
             $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
+            $this->WriteAttributeInteger('CookieExpirationDate', 0); 
             return $this->deleteFile($this->ReadAttributeString('CookiesFileName'));
         }
 
@@ -774,17 +779,52 @@ class AmazonEchoIO extends IPSModule
 
     private function setCookieRefreshTimer()
     {
-        $refreshInterval = $this->getExpirationDateFromCookie() - time();
+        
+        $cookieRefreshDate = $this->ReadAttributeInteger('CookieExpirationDate');
 
-        $this->SendDebug(__FUNCTION__, 'RefreshCookie in: '.$refreshInterval.' s', 0);
-    
-        // Invlid Cookie
-        if ( $refreshInterval < 0) $refreshInterval = 0;
+        // For backward compatibility, if attribute CookieExpirationDate is not set yet
+        if ( $cookieRefreshDate <= 0 )
+        {
+            $cookieRefreshDate = $this->getExpirationDateFromCookie();
+        }
 
+        // Invalid or no cookie found
+        if ( $cookieRefreshDate <= 0 )
+        {
+            // IP-Symcon watchdog will handle reconnect
+            $this->SendDebug(__FUNCTION__, 'No valid cookie found. RefreshCookie disabled', 0);
+            $this->SetTimerInterval('RefreshCookie', 0);
+            return;
+        }        
+            
+        $refreshInterval = $cookieRefreshDate - time();
 
-        if ( $refreshInterval > 3600) $refreshInterval = $refreshInterval - 3600;
-    
-        $this->SetTimerInterval('RefreshCookie', $refreshInterval*1000);
+        if ( $refreshInterval > 3600) 
+        {
+            // Cookie expires in more than 1 houre
+            $this->SetTimerInterval('RefreshCookie', ( $refreshInterval - 3600) *1000);
+            $this->SendDebug(__FUNCTION__, 'RefreshCookie in: '. ($refreshInterval-3600) .' s', 0);
+            
+        }
+        else 
+        {
+            // Cookie is expired or expires in less than 1 houre, refresh now
+            // Last cookie refresh should be more than 1 houre ago to avoid endless login loop
+            if ( $this->ReadAttributeInteger('LastCookieRefresh') < time() - 3600 )
+            {
+                $this->SendDebug(__FUNCTION__, 'RefreshCookie now', 0);
+                $this->SetTimerInterval('RefreshCookie', 1000);
+            }
+            else
+            {
+                // IP-Symcon watchdog will handle reconnect
+                $this->SendDebug(__FUNCTION__, 'RefreshCookie disabled', 0);
+                $this->SetTimerInterval('RefreshCookie', 0);
+            }
+        }
+
+        
+        
     }
 
     /**
