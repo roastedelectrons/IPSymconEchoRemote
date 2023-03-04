@@ -63,9 +63,9 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.0 (2023-03-01)
+Version 2.0 (2023-03-04)
 
-* **BREAKING-CHANGE: Authentifizierung erfolgt ausschließlich mittel Token, der über ein externes Tool erzeugt werden muss (keine Benutzername/Passwort/2FA oder Cookie Anmeldung mehr möglich)**
+* **BREAKING-CHANGE: Authentifizierung erfolgt ausschließlich mittels Token, der über ein externes Tool erzeugt werden muss (keine Benutzername/Passwort/2FA oder Cookie Anmeldung mehr möglich)**
 * Neu: Automatischer Reconnect
 * Neu: weitere DeviceTypes
 * Neu: Schalter in EchoIO-Instanz für erweiterte Fehlermeldungen im MessageLog
@@ -73,8 +73,11 @@ Version 2.0 (2023-03-01)
 * Fix: Zeiten für nächsten Alarm (Wecker) werden korrekt ausgewertet
 * Fix: Variablen für *letzte Aktion* und *letzter Befehl* (Echo Device) werden nun nur noch aktualisiert, wenn eine Aktion ausgeführt wurde
 * Fix: Variable für *letztes Gerät* (EchoIO) wird nun bei jeder neuen Aktion aktualisiert (auch wenn zwei oder mehr Aktionen hintereinander vom selben Gerät ausgingen)
+* Fix: Mehrere EchoIO-Instanzen mit unterschiedlichen Amazon-Accounts funktionieren nun korrekt
+* Fix: Konfigurator zeigt nun alle Echo Remote Device Instanzen an, auch wenn diese falsch konfiguriert oder nicht im Amazon Account vorhanden sind
 * Change: Unknown DeviceType-Meldung wird nicht mehr im Message-Log, sondern im Debug des Konfigurators angezeigt
 * Change: Fehlerbehandlung optimiert
+* Change: Erfordert mindestens IP-Symcon Version 5.5 oder neuer 
 
 ## Quellen
 1. Alexa-Cookie-CLI: https://github.com/adn77/alexa-cookie-cli
