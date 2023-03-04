@@ -35,7 +35,7 @@ class AmazonEchoIO extends IPSModule
         );
 
         $this->RegisterAttributeString('devices', '[]');
-        $this->RegisterAttributeString('CookiesFileName', IPS_GetKernelDir() . 'alexa_cookie.txt');
+        $this->RegisterAttributeString('CookiesFileName', IPS_GetKernelDir() . 'alexa_cookie_'. $this->InstanceID .'.txt');
         $this->RegisterAttributeInteger('LastDeviceTimeStamp', 0);
         $this->RegisterAttributeInteger('LastCookieRefresh', 0);
         $this->RegisterAttributeInteger('CookieExpirationDate', 0);
@@ -78,6 +78,21 @@ class AmazonEchoIO extends IPSModule
 
         if (IPS_GetKernelRunlevel() !== KR_READY) {
             return;
+        }
+
+        // Migration of cookie file name
+        if ( $this->ReadAttributeString('CookiesFileName') == IPS_GetKernelDir() . 'alexa_cookie.txt' )
+        {
+            $oldFileName = $this->ReadAttributeString('CookiesFileName');
+            $newFileName = IPS_GetKernelDir() . 'alexa_cookie_'. $this->InstanceID .'.txt'; 
+
+            $this->WriteAttributeString('CookiesFileName', $newFileName);
+
+            if ( file_exists($oldFileName) )
+            {
+                rename($oldFileName, $newFileName);
+            }
+            
         }
 
         $this->RegisterVariableInteger('cookie_expiration_date', $this->Translate('Cookie expiration date'), '~UnixTimestamp', 0);
