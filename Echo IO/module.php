@@ -386,7 +386,13 @@ class AmazonEchoIO extends IPSModule
         $this->WriteAttributeInteger('CookieExpirationDate', $this->getExpirationDateFromCookie() );
         $this->WriteAttributeInteger('LastCookieRefresh', time() );
 
-        return $this->CheckLoginStatus();
+        if ( !$this->CheckLoginStatus() )
+            return false;
+
+        //Update device list
+        $this->GetDevices();
+
+        return true;
 
     }
 
