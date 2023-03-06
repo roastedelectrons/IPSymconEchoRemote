@@ -127,7 +127,11 @@ class AmazonEchoIO extends IPSModule
         
         $TimerLastAction = $this->ReadPropertyBoolean('TimerLastAction');
 
+        // Update devices and get DeviceList
+        $this->GetDevices();
+
         $devices = $this->GetDeviceList();
+
         if (empty($devices)) {
             $this->SendDebug(__FUNCTION__, 'no devices found', 0);
         } else {
@@ -791,6 +795,43 @@ class AmazonEchoIO extends IPSModule
         return $result;
     }
 
+    private function getClusterMembers( $serialNumber )
+    {
+        
+        $devices = $this->GetDeviceList();
+
+        $clusterMembers = array();
+        $clusterMembersSerials = array();
+
+        foreach ( $devices as $device )
+        {
+            if ($device['serialNumber' ] == $serialNumber )
+            {
+                if ($device['deviceFamily'] == 'WHA' && $device['clusterMembers'] != array() )
+                {
+                    $clusterMembersSerials = $device['clusterMembers'];
+                    break;
+                }
+            }
+        }
+
+        // Get DeviceType of each clusterMember
+        foreach( $clusterMembersSerials as $serial)
+        {
+            foreach( $devices as $device )
+            {
+                if ($device['serialNumber' ] == $serial )
+                {
+                    $clusterMembers[] = [
+                        'deviceSerialNumber' => $device['serialNumber' ],
+                        'deviceType'   => $device['deviceType' ]
+                    ];
+                }
+            }
+        }
+
+        return $clusterMembers;
+    }
 
     private function setCookieRefreshTimer()
     {
@@ -1207,50 +1248,23 @@ class AmazonEchoIO extends IPSModule
         return $this->SendEcho($url, $header, $postfields, false, 'PUT');
     }
 
+    
     private function BehaviorsPreview(array $postfields)
     {
         $url = 'https://alexa.' . $this->GetAmazonURL() . '/api/behaviors/preview';
         $locale = $this->GetLanguage();
-        if ($postfields['type'] == 'AlexaAnnouncement') {
-            $operationPayload = [
-                'expireAfter' => 'PT5S',
-                'content' => [
-                    0 => [
-                        'display' => [
-                            'title' => $this->Translate('Message from Symcon'),
-                            'body' => $postfields['textToSpeak']
-                        ],
-                        'speak' => [
-                            'type' => 'ssml',
-                            'value' => $postfields['textToSpeak']
-                        ],
-                        'locale' => $locale,
-                    ]
-                ],
-                'target' => [
-                    'customerId' => $postfields['customerId'],
-                    'devices' => [
-                        0 => [
-                            'deviceSerialNumber' => $postfields['deviceSerialNumber'],
-                            'deviceTypeId' => $postfields['deviceType'],
-                        ]
-                    ],
-                    'locale' => $locale,
+        $type = $postfields['type'];
 
-                ],
-                'customerId' => $postfields['customerId']
-            ];
-        } else {
-            $operationPayload = [
-                'deviceType' => $postfields['deviceType'],
-                'deviceSerialNumber' => $postfields['deviceSerialNumber'],
-                'locale' => $locale,
-                'customerId' => $postfields['customerId']];
-        }
+        // build operation Payload
+
+        $operationPayload = [
+            'locale' => $locale,
+            'customerId' => $postfields['customerId']
+        ];
 
         if (isset($postfields['textToSpeak'])) {
             $tts = $postfields['textToSpeak'];
-            if($postfields['type'] == 'Alexa.TextCommand')
+            if($type == 'Alexa.TextCommand')
             {
                 if ($tts == '{DISPLAY_OFF}' || $tts == '{DISPLAY_ON}') {
                     if ($locale == 'de-DE') {
@@ -1285,18 +1299,77 @@ class AmazonEchoIO extends IPSModule
             }
         }
 
-        if ($postfields['type'] == 'Alexa.TextCommand') {
-            $startNode = [
-                '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
-                'type' => $postfields['type'],
-                'skillId' => 'amzn1.ask.1p.tellalexa',
-                'operationPayload' => $operationPayload];
-        } else {
-            $startNode = [
-                '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
-                'type' => $postfields['type'],
-                'operationPayload' => $operationPayload];
+        // Get requested devices, e.g. single device, multiroom-group members or announcements members
+        $clusterMembers = array();
+
+        if ( $type == 'Symcon.Announcement' )
+        {
+            foreach (IPS_GetInstanceListByModuleID('{496AB8B5-396A-40E4-AF41-32F4C48AC90D}') as $instanceID)  // Echo Remote Devices
+            {
+                if (IPS_GetInstance($instanceID)['ConnectionID'] === $this->InstanceID ) // Get only children of this IO
+                {
+                    $varID = @IPS_GetObjectIDByIdent( 'Announcements',  $instanceID);
+                    if ( $varID !== false && GetValue($varID)  )
+                    {
+                        $clusterMembers[] = [
+                            'deviceType'          => IPS_GetProperty($instanceID, 'Devicetype'),
+                            'deviceSerialNumber'  => IPS_GetProperty($instanceID, 'Devicenumber'),
+                        ];
+                    }
+                }
+            }
+
+            $type = 'Alexa.Speak';
         }
+        else
+        {
+            // Check for Multiroom group
+            $clusterMembers = $this->getClusterMembers( $postfields['deviceSerialNumber'] );
+
+            // Single device
+            if (  $clusterMembers === array() )
+            { 
+                $clusterMembers[] = [
+                    'deviceType' => $postfields['deviceType'],
+                    'deviceSerialNumber' => $postfields['deviceSerialNumber'],
+                ];
+            }
+        }
+
+        // Build nodes
+        $nodes = array();
+
+        foreach( $clusterMembers as $clusterMember )
+        {
+            $node = array();
+            $nodeOperationPayload = $operationPayload;
+            $nodeOperationPayload['deviceType'] = $clusterMember['deviceType'];
+            $nodeOperationPayload['deviceSerialNumber'] = $clusterMember['deviceSerialNumber'];
+
+            $node = [
+                '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
+                'type' => $type,
+                'operationPayload' => $nodeOperationPayload
+            ];
+
+            if ($type == 'Alexa.TextCommand')
+            {
+                $node['skillId'] = 'amzn1.ask.1p.tellalexa';
+            }
+            
+            $nodes[] = $node;
+        }
+
+        if ($nodes == array() )
+        {
+            return ['http_code' => 400, 'header' => '', 'body' => 'BehaviorsPreview: no target device' ];
+        }
+
+        // Build payload
+        $startNode = [
+            '@type' => 'com.amazon.alexa.behaviors.model.ParallelNode',
+            'nodesToExecute' => $nodes
+        ];        
 
         $sequence = [
             '@type' => 'com.amazon.alexa.behaviors.model.Sequence',
@@ -1304,13 +1377,12 @@ class AmazonEchoIO extends IPSModule
 
         $postfields = [
             'behaviorId' => 'PREVIEW',
-            //'sequenceJson' => $sequence,
             'sequenceJson' => json_encode($sequence),
             'status' => 'ENABLED'];
 
         $header = $this->GetHeader();
 
-        return $this->SendEcho($url, $header, $postfields);
+        return  $this->SendEcho($url, $header, $postfields);
     }
 
     /** V2 Routine

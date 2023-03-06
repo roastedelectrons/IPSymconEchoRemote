@@ -264,6 +264,9 @@ class EchoRemote extends IPSModule
         if ($Ident === 'Automation') {
             $this->StartAlexaRoutineByKey($Value);
         }
+        if ($Ident === 'Announcements') {
+            $this->SetValue('Announcements', $Value);
+        }
     }
 
     /**
@@ -741,7 +744,7 @@ class EchoRemote extends IPSModule
      */
     public function Announcement(string $tts): bool
     {
-        return $this->PlaySequenceCmd('AlexaAnnouncement', '<speak>' . $tts . '</speak>');
+        return $this->PlaySequenceCmd('Symcon.Announcement',  $tts);
     }
 
     /**
@@ -1476,6 +1479,15 @@ class EchoRemote extends IPSModule
             $this->RegisterVariableString('EchoTTS', $this->Translate('Text to Speech'), '', $this->_getPosition());
             $this->EnableAction('EchoTTS');
         }
+
+        //Announcement Variable
+        $maintain = in_array('FLASH_BRIEFING', $caps, true);
+        $this->MaintainVariable('Announcements', $this->Translate('Announcements'), 0, '~Switch', $this->_getPosition(), $maintain );
+        if ($maintain)
+        {
+            $this->EnableAction('Announcements');
+        }
+
 
         //TuneIn Variable
         if (in_array('TUNE_IN', $caps, true)) {

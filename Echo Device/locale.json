@@ -78,7 +78,8 @@
       "setup variable for Alexa routines": "Variable für Alexa Routinen anlegen",
       "routine id": "Routinen ID",
       "routine name": "Routinen Name",
-      "routine utterance": "Routine Sprechweise (utterance)"
+      "routine utterance": "Routine Sprechweise (utterance)",
+      "Announcements": "Ankündigungen"
     }
   }
 }
