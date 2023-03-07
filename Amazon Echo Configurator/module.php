@@ -196,7 +196,7 @@ class AmazonEchoConfigurator extends IPSModule
             $this->SendDebug('Response IO:', $devices_JSON, 0);
             $this->SetBuffer($this->InstanceID . '-alexa_devices', $devices_JSON);
             if ($devices_JSON) {
-                $devices = json_decode($devices_JSON, true)['devices'];
+                $devices = json_decode($devices_JSON, true);
                 $this->SendDebug('Echo Devices:', json_encode($devices), 0);
             }
         }

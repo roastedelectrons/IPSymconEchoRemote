@@ -79,7 +79,11 @@
       "routine id": "Routinen ID",
       "routine name": "Routinen Name",
       "routine utterance": "Routine Sprechweise (utterance)",
-      "Announcements": "Ankündigungen"
+      "Announcements": "Ankündigungen",
+      "display on" : "Bildschirm an",
+      "display off" : "Bildschirm aus",
+      "show alarm clock" : "Wecker anzeigen",
+      "Message from Symcon": "Nachricht von Symcon"
     }
   }
 }

@@ -724,7 +724,13 @@ class EchoRemote extends IPSModule
      */
     public function TextToSpeech(string $tts): bool
     {
-        return $this->PlaySequenceCmd('Alexa.Speak', $tts);
+        $operationPayload = [
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType' => $this->GetDevicetype(),
+            'customerId' => $this->GetCustomerID(),            
+            'textToSpeak' => $tts
+        ];
+        return $this->PlaySequenceCmd('Alexa.Speak', $operationPayload);
     }
 
     /** Send a text Command to an echo device
@@ -733,7 +739,14 @@ class EchoRemote extends IPSModule
      */
     public function TextCommand(string $command): bool
     {
-        return $this->PlaySequenceCmd('Alexa.TextCommand', $command);
+        $operationPayload = [
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType' => $this->GetDevicetype(),
+            'customerId' => $this->GetCustomerID(),
+            'text' => $command,
+            'skillId' => 'amzn1.ask.1p.tellalexa'
+        ];
+        return $this->PlaySequenceCmd('Alexa.TextCommand', $operationPayload);
     }
 
     /** Announcement
@@ -744,7 +757,56 @@ class EchoRemote extends IPSModule
      */
     public function Announcement(string $tts): bool
     {
-        return $this->PlaySequenceCmd('Symcon.Announcement',  $tts);
+        $operationPayload = [
+            'customerId' => $this->GetCustomerID(),            
+            'textToSpeak' => $tts
+        ];
+        return $this->PlaySequenceCmd('SymconAnnouncement',  $operationPayload);
+    }
+
+    public function AlexaAnnouncement(string $tts): bool
+    {
+        $tts = '<speak>'.$tts.'</speak>';
+
+        $operationPayload = [
+            'expireAfter' => 'PT5S',
+            'content' => [
+                0 => [
+                    'display' => [
+                        'title' => $this->Translate('Message from Symcon'),
+                        'body' => $tts
+                    ],
+                    'speak' => [
+                        'type' => 'ssml',
+                        'value' => $tts
+                    ],
+                    'locale' => $this->GetLanguage()
+                ]
+            ],
+            'skillId' => 'amzn1.ask.1p.routines.messaging',
+            'locale' => $this->GetLanguage(),
+            'customerId' => $this->GetCustomerID()
+        ];        
+
+        return $this->PlaySequenceCmd('AlexaAnnouncement',  $operationPayload);
+    }
+
+    /** Send a Mobile Push Notification to Alexa App
+     * @param string $command
+     * @return bool
+     */
+    public function SendMobilePush(string $title , string $message ): bool
+    {
+        if ($title == "") $title = "Symcon";
+
+        $operationPayload = [
+            'title'                 => $title,
+            'notificationMessage'   => $message,
+            'alexaUrl'              => '#v2/behaviors',
+            'skillId'               => 'amzn1.ask.1p.routines.messaging',
+            'customerId'            => $this->GetCustomerID()
+        ];
+        return $this->PlaySequenceCmd('Alexa.Notifications.SendMobilePush', $operationPayload);
     }
 
     /**
@@ -935,7 +997,15 @@ class EchoRemote extends IPSModule
      */
     public function DisplayOff(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.TextCommand', '{DISPLAY_OFF}');
+        $operationPayload = [
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType' => $this->GetDevicetype(),
+            'customerId' => $this->GetCustomerID(),            
+            'text'      => $this->Translate('display off'),
+            'skillId'   => 'amzn1.ask.1p.tellalexa'
+        ];
+        
+        return $this->PlaySequenceCmd('Alexa.TextCommand', $operationPayload);
     }
 
     /** Echo Show Display on
@@ -944,7 +1014,15 @@ class EchoRemote extends IPSModule
      */
     public function DisplayOn(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.TextCommand', '{DISPLAY_ON}');
+        $operationPayload = [
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType' => $this->GetDevicetype(),
+            'customerId' => $this->GetCustomerID(),            
+            'text'      => $this->Translate('display on'),
+            'skillId'   => 'amzn1.ask.1p.tellalexa'
+        ];
+
+        return $this->PlaySequenceCmd('Alexa.TextCommand', $operationPayload);
     }
 
     /** Show Alarm Clock
@@ -953,7 +1031,15 @@ class EchoRemote extends IPSModule
      */
     public function ShowAlarmClock(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.TextCommand', '{SHOW_ALARM_CLOCK}');
+        $operationPayload = [
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType' => $this->GetDevicetype(),
+            'customerId' => $this->GetCustomerID(),            
+            'text'      => $this->Translate('show alarm clock'),
+            'skillId'   => 'amzn1.ask.1p.tellalexa'
+        ];
+
+        return $this->PlaySequenceCmd('Alexa.TextCommand', $operationPayload);
     }
 
     /** Set do not disturb
@@ -1640,10 +1726,9 @@ class EchoRemote extends IPSModule
             return false;
         }
 
-        $devices_arr = json_decode($result['body'], true)['devices'];
+        $devices_arr = json_decode($result['body'], true);
 
         //search device with my type and serial number
-        $myDevice = null;
         foreach ($devices_arr as $key => $device) {
             if (($device['deviceType'] === $this->GetDevicetype()) && ($device['serialNumber'] === $this->GetDevicenumber())) {
                 return $device;
@@ -1923,23 +2008,26 @@ class EchoRemote extends IPSModule
 
     /** PlaySequenceCmd
      *
-     * @param string $SEQUENCECMD
+     * @param string $sequenceCmd
      * @param string $tts
      *
      * @return bool
      */
-    private function PlaySequenceCmd(string $SEQUENCECMD, string $tts = null): bool
+    private function PlaySequenceCmd(string $sequenceCmd, array $operationPayload = null): bool
     {
-        $postfields = [
-            'deviceSerialNumber' => $this->GetDevicenumber(),
-            'deviceType'         => $this->GetDevicetype(),
-            'customerId'         => $this->GetCustomerID(),
-            'type'               => $SEQUENCECMD];
-
-        if ($tts !== null) {
-            $postfields['textToSpeak'] = $tts;
+        //Set default values, if no payload is given
+        if ($operationPayload === null)
+        {
+            $operationPayload['deviceSerialNumber'] = $this->GetDevicenumber();
+            $operationPayload['deviceType'] = $this->GetDevicetype();
+            $operationPayload['customerId'] = $this->GetCustomerID();
         }
 
+        $postfields = [
+            'type' => $sequenceCmd,
+            'operationPayload' => $operationPayload
+        ];
+        
         $result = (array) $this->SendData('BehaviorsPreview', null, $postfields);
 
         return $result['http_code'] === 200;
@@ -2372,6 +2460,21 @@ class EchoRemote extends IPSModule
         }
 
         return $this->customerID;
+    }
+
+    /** GetLanguage
+     *
+     * @return string
+     */
+    private function GetLanguage(): string
+    {
+        $result = (array) $this->SendData('GetLanguage');
+
+        if ($result['http_code'] === 200) {
+            return $result['body'];
+        } else {
+            return '';
+        }
     }
 
     /**

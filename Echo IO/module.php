@@ -737,20 +737,23 @@ class AmazonEchoIO extends IPSModule
 
     public function GetDeviceList()
     {
-        $devices = $this->ReadAttributeString('devices');
-        if ($devices == '[]') {
-            $devices_info = $this->GetDevices();
-            if ($devices_info['http_code'] === 200) {
-                $devices_JSON = $devices_info['body'];
-                $this->SendDebug('Response IO:', $devices_JSON, 0);
-                if ($devices_JSON) {
-                    $devices = json_decode($devices_JSON, true)['devices'];
-                    $this->SendDebug('Echo Devices:', json_encode($devices), 0);
+        $devices = json_decode( $this->ReadAttributeString('devices'), true);
+        if ($devices == array() ) {
+
+            $result = $this->GetDevices();
+
+            if ($result['http_code'] === 200) {
+                $this->SendDebug('Response IO:', $result['body'], 0);
+
+                $devices = json_decode($result['body'], true);
+                if ($devices === false) {
+                    $devices = array();
                 }
             } else {
-                $devices = null;
+                $devices = array();
             }
         }
+        $this->SendDebug('Echo Devices:', json_encode($devices), 0);
         return $devices;
     }
 
@@ -762,7 +765,7 @@ class AmazonEchoIO extends IPSModule
      *
      * @return mixed
      */
-    private function GetDevices(string $deviceType = null, string $serialNumber = null, bool $cached = null)
+    public function GetDevices(string $deviceType = null, string $serialNumber = null, bool $cached = null)
     {
         if (!isset($cached)) {
             $cached = false;
@@ -780,23 +783,36 @@ class AmazonEchoIO extends IPSModule
         if ($result['http_code'] !== 200) {
             return $result;
         }
-        //print_r($result);
+
+        $devices_arr = json_decode($result['body'], true);
+        
+        if ($devices_arr === false)
+        {
+            $result['http_code'] = 502;
+            return $result;
+        }
+
+        $devices = $devices_arr['devices'];
+
+        // Save device list to attribute
+        $this->WriteAttributeString('devices', json_encode($devices));
+
         //if the info is needed for a single device
-        if (($deviceType !== null) && ($serialNumber !== null)) {
-            $devices_arr = json_decode($result['body'], true);
+        if (($deviceType !== null) && ($serialNumber !== null)) 
+        {
+            
             $myDevice = null;
-            foreach ($devices_arr['devices'] as $key => $device) {
+            foreach ($devices as $key => $device) {
                 if (($device['deviceType'] === $deviceType) && ($device['serialNumber'] === $serialNumber)) {
                     $myDevice = $device;
-                    //                    print_r($myDevice);
-
                     break;
                 }
             }
-            $devices_arr['devices'] = [$myDevice];
-            $this->WriteAttributeString('devices', json_encode($devices_arr));
-            $result['body'] = json_encode($devices_arr);
+            $devices = [$myDevice];
+
         }
+
+        $result['body'] = json_encode($devices);
 
         return $result;
     }
@@ -1205,6 +1221,10 @@ class AmazonEchoIO extends IPSModule
 
                 break;
 
+            case 'GetLanguage':
+                $result = ['http_code' => 200, 'header' => '', 'body' => $this->GetLanguage() ];
+                break;
+
             default:
                 trigger_error('Method \'' . $data->method . '\' not yet supported');
                 return false;
@@ -1255,60 +1275,43 @@ class AmazonEchoIO extends IPSModule
     }
 
     
-    private function BehaviorsPreview(array $postfields)
+    private function BehaviorsPreview( array $postfields)
     {
         $url = 'https://alexa.' . $this->GetAmazonURL() . '/api/behaviors/preview';
         $locale = $this->GetLanguage();
         $type = $postfields['type'];
 
-        // build operation Payload
+        $operationPayload = $postfields['operationPayload'];
+        
+        // Extend operation Payload
+        $operationPayload['locale'] =  $locale;
 
-        $operationPayload = [
-            'locale' => $locale,
-            'customerId' => $postfields['customerId']
-        ];
 
-        if (isset($postfields['textToSpeak'])) {
-            $tts = $postfields['textToSpeak'];
-            if($type == 'Alexa.TextCommand')
-            {
-                if ($tts == '{DISPLAY_OFF}' || $tts == '{DISPLAY_ON}') {
-                    if ($locale == 'de-DE') {
-                        if ($tts == '{DISPLAY_OFF}') {
-                            $operationPayload['text'] = str_replace('{DISPLAY_OFF}', 'Bildschirm ausschalten', $tts);
-                        }
-                        if ($tts == '{DISPLAY_ON}') {
-                            $operationPayload['text'] = str_replace('{DISPLAY_ON}', 'Bildschirm einschalten', $tts);
-                        }
-                        if ($tts == '{SHOW_ALARM_CLOCK}') {
-                            $operationPayload['text'] = str_replace('{DISPLAY_ON}', 'Wecker anzeigen', $tts);
-                        }
-                    }
-                    if ($locale == 'en-us') {
-                        if ($tts == '{DISPLAY_OFF}') {
-                            $operationPayload['text'] = str_replace('{DISPLAY_OFF}', 'display off', $tts);
-                        }
-                        if ($tts == '{DISPLAY_ON}') {
-                            $operationPayload['text'] = str_replace('{DISPLAY_ON}', 'display on', $tts);
-                        }
-                        if ($tts == '{SHOW_ALARM_CLOCK}') {
-                            $operationPayload['text'] = str_replace('{DISPLAY_ON}', 'show alarm clock', $tts);
-                        }
-                    }
-                }
-                else{
-                    $operationPayload['text'] = $tts;
-                }
-            }
-            else {
-                $operationPayload['textToSpeak'] = $postfields['textToSpeak'];
-            }
-        }
-
-        // Get requested devices, e.g. single device, multiroom-group members or announcements members
+        // Get target devices, e.g. single device, multiroom-group members or announcements members
         $clusterMembers = array();
 
-        if ( $type == 'Symcon.Announcement' )
+        if ( $type == 'AlexaAnnouncement' )
+        {
+            // Send announcement to all devices in this account
+            $devices = $this->GetDeviceList();
+
+            $targetDevices = array();
+            foreach($devices as $device )
+            {
+                $targetDevices[] = [
+                    'deviceSerialNumber' => $device['serialNumber'],
+                    'deviceTypeId' => $device['deviceType']                  
+                ];
+            }
+
+            $operationPayload['target'] = [
+                'customerId' => $operationPayload['customerId'],
+                'devices' => $targetDevices,
+                'locale' =>  $locale
+            ];
+
+        }
+        elseif ( $type == 'SymconAnnouncement' )
         {
             foreach (IPS_GetInstanceListByModuleID('{496AB8B5-396A-40E4-AF41-32F4C48AC90D}') as $instanceID)  // Echo Remote Devices
             {
@@ -1327,49 +1330,47 @@ class AmazonEchoIO extends IPSModule
 
             $type = 'Alexa.Speak';
         }
-        else
+        elseif ( $type == 'Alexa.Speak' )
         {
             // Check for Multiroom group
-            $clusterMembers = $this->getClusterMembers( $postfields['deviceSerialNumber'] );
-
-            // Single device
-            if (  $clusterMembers === array() )
-            { 
-                $clusterMembers[] = [
-                    'deviceType' => $postfields['deviceType'],
-                    'deviceSerialNumber' => $postfields['deviceSerialNumber'],
-                ];
+            if (isset( $operationPayload['deviceSerialNumber'] ))
+            {
+                $clusterMembers = $this->getClusterMembers( $operationPayload['deviceSerialNumber'] );
             }
+
         }
 
         // Build nodes
         $nodes = array();
-
-        foreach( $clusterMembers as $clusterMember )
+     
+        if ($clusterMembers == array() )
         {
-            $node = array();
-            $nodeOperationPayload = $operationPayload;
-            $nodeOperationPayload['deviceType'] = $clusterMember['deviceType'];
-            $nodeOperationPayload['deviceSerialNumber'] = $clusterMember['deviceSerialNumber'];
-
-            $node = [
+            //Single device
+            $nodes[] = [
                 '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
                 'type' => $type,
-                'operationPayload' => $nodeOperationPayload
+                'operationPayload' => $operationPayload
             ];
-
-            if ($type == 'Alexa.TextCommand')
-            {
-                $node['skillId'] = 'amzn1.ask.1p.tellalexa';
-            }
-            
-            $nodes[] = $node;
         }
-
-        if ($nodes == array() )
+        else
         {
-            return ['http_code' => 400, 'header' => '', 'body' => 'BehaviorsPreview: no target device' ];
+            //Multiple nodes to execute in parallel
+            foreach( $clusterMembers as $clusterMember )
+            {
+
+                $nodeOperationPayload = $operationPayload;
+                //Replace device 
+                $nodeOperationPayload['deviceType'] = $clusterMember['deviceType'];
+                $nodeOperationPayload['deviceSerialNumber'] = $clusterMember['deviceSerialNumber'];
+    
+                $nodes[] = [
+                    '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
+                    'type' => $type,
+                    'operationPayload' => $nodeOperationPayload
+                ];
+            }
         }
+
 
         // Build payload
         $startNode = [
@@ -1381,6 +1382,7 @@ class AmazonEchoIO extends IPSModule
             '@type' => 'com.amazon.alexa.behaviors.model.Sequence',
             'startNode' => $startNode];
 
+        unset($postfields);
         $postfields = [
             'behaviorId' => 'PREVIEW',
             'sequenceJson' => json_encode($sequence),
