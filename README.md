@@ -63,6 +63,19 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
+Version 2.1 (2023-03-07) [Branch: development]
+
+* Neu: TextToSpeech() für Multiroom-Gruppen (Ansagen laufen parallen, aber nicht immer synchron)
+* Neu: AlexaAnnouncement()
+   * Nutzt die Standard Alexa Announcements: Empfänger-Einstellungen erfolgen in der Alexa-App.
+   * Empfänger werden über Alexa-App de-/aktiviert (Geräte > Echo und Alexa > Echo Gerät auswählen > Geräteeinstellungen (Zahnrad) > Kommunikation > Ankündigungen)
+   * Wenn *Do-not-Disturb* aktiviert ist, erfolgen auf dem jeweiligen Gerät keine Ansagen
+* Neu: Announcements()
+   * Symcon-interne Implementierung: Empfänger-Einstellungen erfolgen in IP-Symcon.
+   * Ansagen werden an alle Echo-Geräte versandt, für die eine EchoRemoteDevice-Instanz in Symcon existiert und die Textansagen unterstützen
+   * Mit der Variable *Ankündigungen* können je EchoRemoteDevice-Instanz die Ansagen de-/aktiviert werden
+* Neu: SendMobilePush( $title, $message) sendet Push Nachrichten an die Alexa-App
+
 Version 2.0 (2023-03-04)
 
 * **BREAKING-CHANGE: Authentifizierung erfolgt ausschließlich mittels Token, der über ein externes Tool erzeugt werden muss (keine Benutzername/Passwort/2FA oder Cookie Anmeldung mehr möglich)**
@@ -83,7 +96,7 @@ Version 2.0 (2023-03-04)
 1. Alexa-Cookie-CLI: https://github.com/adn77/alexa-cookie-cli
 2. Dieses Modul implementiert die Funktionalität des Shell-Scripts alexa_remote_control.sh: https://github.com/adn77/alexa-remote-control
 3. Anleitung für alexa_remote_control.sh und Alexa-Cookie-CLI: https://blog.loetzimmer.de/2021/09/alexa-remote-control-shell-script.html
-
+4. Python Library alexapy (genutzt für Announcements, SendMobilePush) https://gitlab.com/keatontaylor/alexapy/-/blob/dev/alexapy/alexaapi.py 
 
 ## Dokumentation (nicht aktuell)
 
