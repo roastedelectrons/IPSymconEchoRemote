@@ -765,7 +765,7 @@ class AmazonEchoIO extends IPSModule
      *
      * @return mixed
      */
-    public function GetDevices(string $deviceType = null, string $serialNumber = null, bool $cached = null)
+    private function GetDevices(string $deviceType = null, string $serialNumber = null, bool $cached = null)
     {
         if (!isset($cached)) {
             $cached = false;

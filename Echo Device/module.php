@@ -792,7 +792,8 @@ class EchoRemote extends IPSModule
     }
 
     /** Send a Mobile Push Notification to Alexa App
-     * @param string $command
+     * @param string $title
+     * @param string $message
      * @return bool
      */
     public function SendMobilePush(string $title , string $message ): bool
@@ -2242,7 +2243,7 @@ class EchoRemote extends IPSModule
         $now = time();
 
         foreach ($notifications as $notification) {
-            if (($notification['type'] === 'Alarm')
+            if (($notification['type'] === 'Alarm' || $notification['type'] === 'MusicAlarm')
                 && ($notification['status'] === 'ON')
                 && ($notification['deviceSerialNumber'] === IPS_GetProperty($this->InstanceID, 'Devicenumber'))) {
                 $alarmTime = strtotime($notification['originalDate'] . 'T' . $notification['originalTime']);
