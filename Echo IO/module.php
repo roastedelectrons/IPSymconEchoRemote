@@ -1288,54 +1288,65 @@ class AmazonEchoIO extends IPSModule
 
 
         // Get target devices, e.g. single device, multiroom-group members or announcements members
-        $clusterMembers = array();
 
         if ( $type == 'AlexaAnnouncement' )
         {
-            // Send announcement to all devices in this account
-            $devices = $this->GetDeviceList();
-
-            $targetDevices = array();
-            foreach($devices as $device )
+            // Check for Multiroom-groups and replace them with their clusterMembers
+            
+            $devices = array();
+            foreach ( $operationPayload['target']['devices'] as $device )
             {
-                $targetDevices[] = [
-                    'deviceSerialNumber' => $device['serialNumber'],
-                    'deviceTypeId' => $device['deviceType']                  
-                ];
-            }
-
-            $operationPayload['target'] = [
-                'customerId' => $operationPayload['customerId'],
-                'devices' => $targetDevices,
-                'locale' =>  $locale
-            ];
-
-        }
-        elseif ( $type == 'SymconAnnouncement' )
-        {
-            foreach (IPS_GetInstanceListByModuleID('{496AB8B5-396A-40E4-AF41-32F4C48AC90D}') as $instanceID)  // Echo Remote Devices
-            {
-                if (IPS_GetInstance($instanceID)['ConnectionID'] === $this->InstanceID ) // Get only children of this IO
+                $members = $this->getClusterMembers( $device['deviceSerialNumber'] );
+                if ( $members === array() )
                 {
-                    $varID = @IPS_GetObjectIDByIdent( 'Announcements',  $instanceID);
-                    if ( $varID !== false && GetValue($varID)  )
+                    //Singel device
+                    $devices[] = $device;
+                }
+                else
+                {
+                    // Add clusterMembers of multiroom-group
+                    foreach ($members as $member)
                     {
-                        $clusterMembers[] = [
-                            'deviceType'          => IPS_GetProperty($instanceID, 'Devicetype'),
-                            'deviceSerialNumber'  => IPS_GetProperty($instanceID, 'Devicenumber'),
+                        // it is important to rename deviceType to deviceTypeId for announcements to work properly
+                        $devices[] = [
+                            'deviceSerialNumber'    => $member['deviceSerialNumber'],
+                            'deviceTypeId'          => $member['deviceType'],                               
                         ];
                     }
+                    
                 }
             }
 
-            $type = 'Alexa.Speak';
+            if ($devices !== array() )
+            {
+                $operationPayload['target']['devices'] = $devices;
+            }
+            
+
         }
         elseif ( $type == 'Alexa.Speak' )
         {
-            // Check for Multiroom group
-            if (isset( $operationPayload['deviceSerialNumber'] ))
+            // Check for Multiroom-groups and replace them with their clusterMembers
+
+            $devices = array();
+            foreach ( $operationPayload['_devices'] as $device )
             {
-                $clusterMembers = $this->getClusterMembers( $operationPayload['deviceSerialNumber'] );
+                $members = $this->getClusterMembers( $device['deviceSerialNumber'] );
+                if ( $members === array() )
+                {
+                    //Singel device
+                    $devices[] = $device;
+                }
+                else
+                {
+                    // Add clusterMembers of multiroom-group
+                    $devices = array_merge( $devices, $members);
+                }
+            }
+
+            if ($devices !== array() )
+            {
+                $operationPayload['_devices'] = $devices;
             }
 
         }
@@ -1343,25 +1354,19 @@ class AmazonEchoIO extends IPSModule
         // Build nodes
         $nodes = array();
      
-        if ($clusterMembers == array() )
-        {
-            //Single device
-            $nodes[] = [
-                '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
-                'type' => $type,
-                'operationPayload' => $operationPayload
-            ];
-        }
-        else
+        if ( isset($operationPayload['_devices']) && $operationPayload['_devices'] != array() )
         {
             //Multiple nodes to execute in parallel
-            foreach( $clusterMembers as $clusterMember )
+            $devices = $operationPayload['_devices'];
+            unset($operationPayload['_devices']);
+
+            foreach( $devices as $device )
             {
 
                 $nodeOperationPayload = $operationPayload;
-                //Replace device 
-                $nodeOperationPayload['deviceType'] = $clusterMember['deviceType'];
-                $nodeOperationPayload['deviceSerialNumber'] = $clusterMember['deviceSerialNumber'];
+                //Set target device 
+                $nodeOperationPayload['deviceType']         = $device['deviceType'];
+                $nodeOperationPayload['deviceSerialNumber'] = $device['deviceSerialNumber'];
     
                 $nodes[] = [
                     '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
@@ -1370,7 +1375,16 @@ class AmazonEchoIO extends IPSModule
                 ];
             }
         }
-
+        else
+        {
+            //Single device
+            $nodes[] = [
+                '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
+                'type' => $type,
+                'operationPayload' => $operationPayload
+            ];
+        }
+        
 
         // Build payload
         $startNode = [

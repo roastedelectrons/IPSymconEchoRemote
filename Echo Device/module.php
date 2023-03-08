@@ -264,9 +264,6 @@ class EchoRemote extends IPSModule
         if ($Ident === 'Automation') {
             $this->StartAlexaRoutineByKey($Value);
         }
-        if ($Ident === 'Announcements') {
-            $this->SetValue('Announcements', $Value);
-        }
     }
 
     /**
@@ -724,12 +721,44 @@ class EchoRemote extends IPSModule
      */
     public function TextToSpeech(string $tts): bool
     {
+        return $this->TextToSpeechEx( $tts, [] );
+    }
+
+    /** TextToSpeechEx
+     *
+     * @param string $tts
+     * @param string $instanceIDList
+     * @return array|string
+     */
+    public function TextToSpeechEx(string $tts, array $instanceIDList = [] ): bool
+    {
+        if ( $instanceIDList == array())
+        {
+            $targetDevices[] = [
+                'deviceSerialNumber'    => $this->GetDevicenumber(),
+                'deviceType'            => $this->GetDevicetype(),                
+            ];
+        } 
+        else
+        {
+            foreach($instanceIDList as $instanceID )
+            {
+                if (IPS_GetInstance($instanceID)['ConnectionID'] === IPS_GetInstance($this->InstanceID)['ConnectionID']) 
+                {
+                    $targetDevices[] = [
+                        'deviceSerialNumber'    => IPS_GetProperty( $instanceID, 'Devicenumber'),
+                        'deviceType'          => IPS_GetProperty( $instanceID, 'Devicetype')                 
+                    ];
+                }
+            }
+        }
+
         $operationPayload = [
-            'deviceSerialNumber' => $this->GetDevicenumber(),
-            'deviceType' => $this->GetDevicetype(),
-            'customerId' => $this->GetCustomerID(),            
-            'textToSpeak' => $tts
+            '_devices'      => $targetDevices,
+            'customerId'    => $this->GetCustomerID(),            
+            'textToSpeak'   => $tts
         ];
+
         return $this->PlaySequenceCmd('Alexa.Speak', $operationPayload);
     }
 
@@ -757,16 +786,44 @@ class EchoRemote extends IPSModule
      */
     public function Announcement(string $tts): bool
     {
-        $operationPayload = [
-            'customerId' => $this->GetCustomerID(),            
-            'textToSpeak' => $tts
-        ];
-        return $this->PlaySequenceCmd('SymconAnnouncement',  $operationPayload);
+        return $this->AnnouncementEx( $tts, [] , [] );
     }
 
-    public function AlexaAnnouncement(string $tts): bool
+    /** AnnouncementEx
+     *
+     * @param string $tts
+     * @param string $instanceIDList
+     * @param string $options
+     * @return array|string
+     */
+    public function AnnouncementEx(string $tts, array $instanceIDList = [] , array $options = [] ): bool
     {
+        $language = $this->GetLanguage();
+        $customerID = $this->GetCustomerID();
+
         $tts = '<speak>'.$tts.'</speak>';
+
+        if ( $instanceIDList == array())
+        {
+            $targetDevices[] = [
+                'deviceSerialNumber'    => $this->GetDevicenumber(),
+                'deviceTypeId'            => $this->GetDevicetype(),                
+            ];
+        } 
+        else
+        {
+            foreach($instanceIDList as $instanceID )
+            {
+                if (IPS_GetInstance($instanceID)['ConnectionID'] === IPS_GetInstance($this->InstanceID)['ConnectionID']) 
+                {
+                    $targetDevices[] = [
+                        'deviceSerialNumber'    => IPS_GetProperty( $instanceID, 'Devicenumber'),
+                        'deviceTypeId'          => IPS_GetProperty( $instanceID, 'Devicetype')                 
+                    ];
+                }
+            }
+        }
+
 
         $operationPayload = [
             'expireAfter' => 'PT5S',
@@ -780,16 +837,22 @@ class EchoRemote extends IPSModule
                         'type' => 'ssml',
                         'value' => $tts
                     ],
-                    'locale' => $this->GetLanguage()
+                    'locale' => $language
                 ]
             ],
             'skillId' => 'amzn1.ask.1p.routines.messaging',
-            'locale' => $this->GetLanguage(),
-            'customerId' => $this->GetCustomerID()
-        ];        
-
+            'locale' => $language,
+            'customerId' => $customerID,
+            'target' => [
+                'customerId' => $customerID,
+                'devices' => $targetDevices,
+                'locale' =>  $language
+            ]
+        ];   
+        
         return $this->PlaySequenceCmd('AlexaAnnouncement',  $operationPayload);
     }
+    
 
     /** Send a Mobile Push Notification to Alexa App
      * @param string $title
@@ -1565,14 +1628,6 @@ class EchoRemote extends IPSModule
 
             $this->RegisterVariableString('EchoTTS', $this->Translate('Text to Speech'), '', $this->_getPosition());
             $this->EnableAction('EchoTTS');
-        }
-
-        //Announcement Variable
-        $maintain = in_array('FLASH_BRIEFING', $caps, true);
-        $this->MaintainVariable('Announcements', $this->Translate('Announcements'), 0, '~Switch', $this->_getPosition(), $maintain );
-        if ($maintain)
-        {
-            $this->EnableAction('Announcements');
         }
 
 

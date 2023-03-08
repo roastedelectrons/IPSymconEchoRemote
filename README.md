@@ -63,18 +63,18 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.1 (2023-03-07) [Branch: development]
+Version 2.1 (2023-03-08) [Branch: development]
 
-* Neu: TextToSpeech() für Multiroom-Gruppen (Ansagen laufen parallen, aber nicht immer synchron)
-* Neu: AlexaAnnouncement()
-   * Nutzt die Standard Alexa Announcements: Empfänger-Einstellungen erfolgen in der Alexa-App.
-   * Empfänger werden über Alexa-App de-/aktiviert (Geräte > Echo und Alexa > Echo Gerät auswählen > Geräteeinstellungen (Zahnrad) > Kommunikation > Ankündigungen)
+* Announcement
+   * Neu: Announcement() für Einzelgeräte und Multiroom-Gruppen (Ansagen laufen parallen, aber nicht immer synchron)
+   * Neu: AnnouncementEx() für mehrere Einzelgeräte (InstanzID's als Array übergeben)
+   * Annoucements müssen pro Gerät in der Alexa-App de-/aktiviert werden (Geräte > Echo und Alexa > Echo Gerät auswählen > Geräteeinstellungen (Zahnrad) > Kommunikation > Ankündigungen)
    * Wenn *Do-not-Disturb* aktiviert ist, erfolgen auf dem jeweiligen Gerät keine Ansagen
-* Neu: Announcements()
-   * Symcon-interne Implementierung: Empfänger-Einstellungen erfolgen in IP-Symcon.
-   * Ansagen werden an alle Echo-Geräte versandt, für die eine EchoRemoteDevice-Instanz in Symcon existiert und die Textansagen unterstützen
-   * Mit der Variable *Ankündigungen* können je EchoRemoteDevice-Instanz die Ansagen de-/aktiviert werden
-* Neu: SendMobilePush( $title, $message) sendet Push Nachrichten an die Alexa-App
+* TextToSpeach
+   * Neu: TextToSpeech() für Einzelgeräte und Multiroom-Gruppen (Ansagen laufen parallen, aber nicht immer synchron)
+   * Neu: TextToSpeechEx() für mehrere Einzelgeräte (InstanzID's als Array übergeben)
+   * Ansagen werden im Gegensatz zu Announcements immer ausgegeben
+* Neu: SendMobilePush() sendet Push Nachrichten an die Alexa-App
 
 Version 2.0 (2023-03-04)
 
