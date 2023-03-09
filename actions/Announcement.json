@@ -1,0 +1,51 @@
+{
+    "id": "{6D1C050E-4F8D-BA6A-BAD8-45D5EE8ACE5A}",
+    "caption": "Annoucement to Echo Devices",
+    "category": "target",
+    "form": [
+        "$deviceList = [];",
+        "if ( isset( $_IPS['DEVICES']) )",
+        "{",
+        "   $deviceList = json_decode( $_IPS['DEVICES'], true ); ",
+        "   foreach ($deviceList as $index => $item) ",
+        "   {",
+        "       if ( !IPS_InstanceExists( $item['InstanceID'] ) || IPS_GetInstance($item['InstanceID'])['ConnectionID'] !== IPS_GetInstance( $_IPS['TARGET'] )['ConnectionID']) ",
+        "       {",
+        "          $deviceList[$index]['rowColor'] = '#FFC0C0';",
+        "       }",
+        "   }",
+        "}",
+        "$form = [",
+        "     [ 'type' => 'ValidationTextBox', 'name'=> 'MESSAGE', 'caption' => 'Message', 'width'=> '100%', 'multiline' => true ],",
+        "     [ 'type' => 'List', 'name' => 'DEVICES', 'caption' => 'Target devices', 'width'=> '100%', 'rowCount' => 10, 'add' => true, 'delete' => true, ",
+        "       'columns' => [",
+        "           ['name' => 'InstanceID', 'caption' => 'InstanceID', 'width' => 'auto', 'add' => 0, 'edit' => ['type' => 'SelectInstance', 'validModules' => ['{496AB8B5-396A-40E4-AF41-32F4C48AC90D}'] ]]",
+        "       ],",
+        "       'values' => $deviceList",
+        "     ]",
+        "];",
+        "return $form;"
+    ],
+    "action": [
+        "$targetIDs = [];",
+        "foreach ( json_decode($_IPS['DEVICES'], true) as $instances){ ",
+        "   if ( IPS_InstanceExists( $instances['InstanceID']) ) $targetIDs[] = $instances['InstanceID'];",
+        "}",
+        "ECHOREMOTE_AnnouncementEx($_IPS['TARGET'], $_IPS['MESSAGE'], $targetIDs, []);"
+    ],
+    "restrictions": {
+        "moduleID": [ "{496AB8B5-396A-40E4-AF41-32F4C48AC90D}" ]
+    },
+    "priority": 1,
+    "locale": {
+        "de": {
+            "Annoucement to Echo Devices": "Ankündigung auf Echo-Geräte",
+            "Message": "Nachricht",
+            "Value": "Wert",
+            "Active": "Aktiv",
+            "Target devices": "Zielgeräte",
+            "Annoucement to Echo Devices: {MESSAGE}": "Ankündigung auf Echo-Geräte: {MESSAGE}"
+        }
+    },
+    "format": "Annoucement to Echo Devices: {MESSAGE}"
+}
