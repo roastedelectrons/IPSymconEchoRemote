@@ -63,18 +63,22 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.1 (2023-03-08) [Branch: development]
+Version 2.1 (2023-03-10) [Branch: development]
 
 * Announcement
    * Neu: Announcement() für Einzelgeräte und Multiroom-Gruppen (Ansagen laufen parallen, aber nicht immer synchron)
    * Neu: AnnouncementEx() für mehrere Einzelgeräte (InstanzID's als Array übergeben)
    * Annoucements müssen pro Gerät in der Alexa-App de-/aktiviert werden (Geräte > Echo und Alexa > Echo Gerät auswählen > Geräteeinstellungen (Zahnrad) > Kommunikation > Ankündigungen)
    * Wenn *Do-not-Disturb* aktiviert ist, erfolgen auf dem jeweiligen Gerät keine Ansagen
-* TextToSpeach
+* TextToSpeech
    * Neu: TextToSpeech() für Einzelgeräte und Multiroom-Gruppen (Ansagen laufen parallen, aber nicht immer synchron)
    * Neu: TextToSpeechEx() für mehrere Einzelgeräte (InstanzID's als Array übergeben)
    * Ansagen werden im Gegensatz zu Announcements immer ausgegeben
 * Neu: SendMobilePush() sendet Push Nachrichten an die Alexa-App
+* Neu: PlayMusic() ersetzt die meisten anderen Funktionen zum Starten von Musik wie PlaySong, PlayAlbum, PlayPlaylist, etc.
+
+*Dokumentation zu neuen Funktionen siehe unten*
+
 
 Version 2.0 (2023-03-04)
 
@@ -98,15 +102,112 @@ Version 2.0 (2023-03-04)
 3. Anleitung für alexa_remote_control.sh und Alexa-Cookie-CLI: https://blog.loetzimmer.de/2021/09/alexa-remote-control-shell-script.html
 4. Python Library alexapy (genutzt für Announcements, SendMobilePush) https://gitlab.com/keatontaylor/alexapy/-/blob/dev/alexapy/alexaapi.py 
 
-## Dokumentation (nicht aktuell)
+## Dokumentation
+
+### Neue Funktionen
+**PlayMusic**
+
+```php
+ECHOREMOTE_PlayMusic(int $InstanceID, string $searchPhrase, string $musicProviderId);
+``` 
+| Parameter        |  Beschreibung | Wert |
+|------------------|---------------|------|
+|_$InstanceID_     | InstanzID des Echo Remote Devices| |
+|_$searchPhrase_   |  Suchanfrage |z.B. "_Songname_ von _Interpret_", "_Albumname_ von _Interpret_",  "_Playlistname_", "_Radiosender-Name_" |
+|_$musicProviderId_ | Anbieter |z.b. 'DEFAULT', 'TUNEIN', 'AMAZON_MUSIC', 'CLOUDPLAYER', 'SPOTIFY', 'APPLE_MUSIC', 'DEEZER', 'I_HEART_RADIO' |
+
+_Beispiele:_
+```php
+$InstanceID = 12345; // InstanzID des Echo Remote Devices
+
+// Song von Amazon Music abspielen (Amazon Music Unlimited notwendig, sonst wird irgendein Song abgespielt)
+ECHOREMOTE_PlayMusic( $InstanceID, 'Songname von Interpret', 'AMAZON_MUSIC');
+
+// Album von Spotify abspielen
+ECHOREMOTE_PlayMusic( $InstanceID, 'Ablumname von Interpret', 'SPOTIFY');
+
+// Playlist 'Mein Discovery Mix' von Amazon Music abspielen (für andere Playlisten ist Amazon Music Unlimited notwendig)
+ECHOREMOTE_PlayMusic( $InstanceID, 'Mein Discovery Mix', 'CLOUDPLAYER');
+
+// Radiosender abspielen
+ECHOREMOTE_PlayMusic( $InstanceID, 'NDR 2 Niedersachsen', 'TUNEIN');
+
+```
+**SendMobilePush**
+
+Sendet eine Push-Nachricht an die Alexa-App.
+
+```php
+ECHOREMOTE_SendMobilePush(int $InstanceID, string $title, string $message);
+``` 
+| Parameter        |  Beschreibung | Wert |
+|------------------|---------------|------|
+|_$InstanceID_     | InstanzID des Echo Remote Devices| |
+|_$title_   |  Titel | |
+|_$message_ | Nachricht | |
+
+_Beispiele:_
+```php
+$InstanceID = 12345; // InstanzID des Echo Remote Devices
+
+ECHOREMOTE_SendMobilePush( $InstanceID, 'IP-Symcon', 'Die Waschmaschine ist fertig');
+
+```
+
+**AnnouncementEx**
+
+Annoucements müssen pro Gerät in der Alexa-App de-/aktiviert werden (Geräte > Echo und Alexa > Echo Gerät auswählen > Geräteeinstellungen (Zahnrad) > Kommunikation > Ankündigungen).
+
+Wenn *Do-not-Disturb* aktiviert ist, erfolgen auf dem jeweiligen Gerät keine Ansagen.
+
+```php
+ECHOREMOTE_AnnouncementEx(int $InstanceID, string $tts, array $instanceIDList, array $options );
+``` 
+| Parameter        |  Beschreibung | Wert |
+|------------------|---------------|------|
+|_$InstanceID_     | InstanzID des Echo Remote Devices| |
+|_$instanceIDList_   |  Array mit InstanzID's auf denen die Ankündigung erfolgen soll. Wird ein leeres Array übergeben, erfolgt keine Ansage| `[ 12345, 23456, 34567]` |
+|_$tts_ | Ankündigung | `Text`|
+|_$options_ | Optionen (aktuell keine verfügbar) | `[]` |
+
+_Beispiel:_
+```php
+$InstanceID = 12345; // InstanzID des Echo Remote Devices
+$instanceIDList = [12345, 23456, 34567];
+
+ECHOREMOTE_AnnouncementEx( $InstanceID,  'Die Waschmaschine ist fertig', $instanceIDList, [] );
+
+```
+
+**TextToSpeechEx**
+
+```php
+ECHOREMOTE_TextToSpeechEx(int $InstanceID, string $tts, array $instanceIDList );
+``` 
+| Parameter        |  Beschreibung | Wert |
+|------------------|---------------|------|
+|_$InstanceID_     | InstanzID des Echo Remote Devices| |
+|_$instanceIDList_   |  Array mit InstanzID's auf denen die Ankündigung erfolgen soll. Wird ein leeres Array übergeben, erfolgt keine Ansage| `[ 12345, 23456, 34567]` |
+|_$tts_ | Ankündigung | `Text`|
+
+_Beispiel:_
+```php
+$InstanceID = 12345; // InstanzID des Echo Remote Devices
+$instanceIDList = [12345, 23456, 34567];
+
+ECHOREMOTE_TextToSpeechEx( $InstanceID,  'Die Waschmaschine ist fertig', $instanceIDList );
+
+```
+
+
 
 IP-Symcon PHP module for remote control of an Amazon Echo / Amazon Dot / Amazon Echo Show from IP-Symcon.
 
 Modul für IP-Symcon ab Version 5.0. Ermöglicht die Fernsteuerung mit einem Amazon Echo / Amazon Dot / Amazon Echo Show von IP-Symcon aus.
 
- - [Deutsche Dokumentation](docs/de/README.md "Deutsche Dokumentation")
+ - [Deutsche Dokumentation](docs/de/README.md "Deutsche Dokumentation") (Nicht Aktuell)
  
 Module for IP-Symcon from Version 5.0. With this module IP-Symcon can remote control an  Amazon Echo / Amazon Dot / Amazon Echo Show.
 
- - [English Documentation](docs/en/README.md "English documentation") 
+ - [English Documentation](docs/en/README.md "English documentation")  (Nicht Aktuell)
 
