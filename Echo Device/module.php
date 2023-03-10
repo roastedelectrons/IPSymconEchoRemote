@@ -361,6 +361,8 @@ class EchoRemote extends IPSModule
      */
     public function JumpToMediaId(string $mediaID)
     {
+        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
+
         $getfields = [
             'deviceSerialNumber' => $this->GetDevicenumber(),
             'deviceType'         => $this->GetDevicetype()];
@@ -873,6 +875,61 @@ class EchoRemote extends IPSModule
         return $this->PlaySequenceCmd('Alexa.Notifications.SendMobilePush', $operationPayload);
     }
 
+    /** PlayMusic
+     * @param string $searchPhrase
+     * @param string $musicProviderId ( DEFAULT, TUNEIN, AMAZON_MUSIC, CLOUDPLAYER, SPOTIFY, APPLE_MUSIC, DEEZER, I_HEART_RADIO )
+     */
+    public function PlayMusic(string $searchPhrase, string $musicProviderId = ""): bool
+    {
+
+        if ($musicProviderId == "") 
+        {
+            $musicProviderId = 'DEFAULT';
+        }
+
+        $operationPayload = [
+            'deviceSerialNumber'    => $this->GetDevicenumber(),
+            'deviceType'            => $this->GetDevicetype(),   
+            'customerId'            => $this->GetCustomerID(),            
+            'searchPhrase'          => $searchPhrase,
+            'sanitizedSearchPhrase' => $this->sanitizeSearchPhrase( $searchPhrase ),
+            'musicProviderId'       => $musicProviderId
+        ];
+
+        return $this->PlaySequenceCmd('Alexa.Music.PlaySearchPhrase', $operationPayload);
+    }
+
+    private function sanitizeSearchPhrase(  $searchPhrase )
+    {
+
+        $operationPayload = [
+            'searchPhrase' => $searchPhrase
+        ];
+
+        $postfields = [
+            'type' => 'Alexa.Music.PlaySearchPhrase',
+            'operationPayload' => json_encode($operationPayload )
+        ];
+
+        $result = (array) $this->SendData('ValidateBehaviorsOperation', null, $postfields, null, null, null);
+
+        if ( $result['http_code'] === 200)
+        {
+            $body = json_decode($result['body'], true);
+
+            if (isset($body['result']) && $body['result'] == 'VALID')
+            {
+                if ( isset($body['operationPayload']['sanitizedSearchPhrase'] ))
+                {
+                    return $body['operationPayload']['sanitizedSearchPhrase'];
+                }
+            }
+        }
+
+        return $searchPhrase;
+
+    }
+
     /**
      * Weather Forcast.
      */
@@ -1371,16 +1428,22 @@ class EchoRemote extends IPSModule
     public function PlayAlbum(string $album, string $artist, /** @noinspection ParameterDefaultValueIsNotNullInspection */
                               bool $shuffle = false): bool
     {
+        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
+
         return $this->PlayCloudplayer($shuffle, ['albumArtistName' => $artist, 'albumName' => $album]);
     }
 
     public function PlaySong(string $track_id): bool
     {
+        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
+
         return $this->PlayCloudplayer(false, ['trackId' => $track_id, 'playQueuePrime' => true]);
     }
 
     public function PlayPlaylist(string $playlist_id, /** @noinspection ParameterDefaultValueIsNotNullInspection */ bool $shuffle = false): bool
     {
+        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
+
         return $this->PlayCloudplayer($shuffle, ['playlistId' => $playlist_id, 'playQueuePrime' => true]);
     }
 
@@ -1408,6 +1471,8 @@ class EchoRemote extends IPSModule
      */
     public function PlayAmazonMusic(string $seedId, string $stationName)
     {
+        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
+
         $url = 'https://{AlexaURL}/api/gotham/queue-and-play?';
         $getfields = [
             'deviceSerialNumber'   => $this->GetDevicenumber(),
@@ -1419,6 +1484,8 @@ class EchoRemote extends IPSModule
 
     public function PlayAmazonPrimePlaylist(string $asin): bool
     {
+        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
+
         $url = 'https://{AlexaURL}/api/prime/prime-playlist-queue-and-play?';
         $getfields = [
             'deviceSerialNumber'   => $this->GetDevicenumber(),
@@ -2083,6 +2150,8 @@ class EchoRemote extends IPSModule
             'type' => $sequenceCmd,
             'operationPayload' => $operationPayload
         ];
+
+        $this->SendDebug(__FUNCTION__, json_encode($postfields), 0);
         
         $result = (array) $this->SendData('BehaviorsPreview', null, $postfields);
 

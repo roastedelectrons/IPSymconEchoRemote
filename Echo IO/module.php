@@ -1108,6 +1108,12 @@ class AmazonEchoIO extends IPSModule
                 $result = $this->DoNotDisturb($putfields);
                 break;
 
+            case 'ValidateBehaviorsOperation':
+                $postfields = $buffer['postfields'];
+
+                $result = $this->ValidateBehaviorsOperation($postfields);
+                break;
+
             case 'BehaviorsPreview':
                 $postfields = $buffer['postfields'];
 
@@ -1406,6 +1412,30 @@ class AmazonEchoIO extends IPSModule
 
         return  $this->SendEcho($url, $header, $postfields);
     }
+
+    /** ValidateBehaviorsOperation
+     * @return array|false|mixed
+     */
+    private function ValidateBehaviorsOperation( array $postfields )
+    {
+        /*
+        Postfields should contain the following
+
+        $postfields = [
+            'type' => $sequenceCmd,
+            'operationPayload' => json_encode($operationPayload)
+        ];
+
+        */
+        $this->SendDebug(__FUNCTION__, 'Postfields ' . json_encode($postfields), 0);
+
+        $header = $this->GetHeader();
+
+        $url = 'https://' . $this->GetAlexaURL() . '/api/behaviors/operation/validate';
+       
+        return $this->SendEcho($url, $header, $postfields);
+    }
+
 
     /** V2 Routine
      * @return array|false|mixed
