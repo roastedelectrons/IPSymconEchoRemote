@@ -723,7 +723,7 @@ class EchoRemote extends IPSModule
      */
     public function TextToSpeech(string $tts): bool
     {
-        return $this->TextToSpeechEx( $tts, [] );
+        return $this->TextToSpeechEx( $tts, [ $this->InstanceID ] );
     }
 
     /** TextToSpeechEx
@@ -736,10 +736,7 @@ class EchoRemote extends IPSModule
     {
         if ( $instanceIDList == array())
         {
-            $targetDevices[] = [
-                'deviceSerialNumber'    => $this->GetDevicenumber(),
-                'deviceType'            => $this->GetDevicetype(),                
-            ];
+            return false;
         } 
         else
         {
@@ -788,7 +785,7 @@ class EchoRemote extends IPSModule
      */
     public function Announcement(string $tts): bool
     {
-        return $this->AnnouncementEx( $tts, [] , [] );
+        return $this->AnnouncementEx( $tts, [ $this->InstanceID ] , [] );
     }
 
     /** AnnouncementEx
@@ -807,10 +804,7 @@ class EchoRemote extends IPSModule
 
         if ( $instanceIDList == array())
         {
-            $targetDevices[] = [
-                'deviceSerialNumber'    => $this->GetDevicenumber(),
-                'deviceTypeId'            => $this->GetDevicetype(),                
-            ];
+            return false;
         } 
         else
         {
