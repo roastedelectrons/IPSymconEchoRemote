@@ -63,7 +63,7 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.1 (2023-03-14) [Branch: development]
+Version 2.1 (2023-03-14)
 
 * Announcement
    * Neu: Announcement() für Einzelgeräte und Multiroom-Gruppen (Ansagen laufen parallel, aber nicht immer synchron)
