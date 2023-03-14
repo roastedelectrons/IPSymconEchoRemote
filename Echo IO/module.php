@@ -442,7 +442,7 @@ class AmazonEchoIO extends IPSModule
         $getfields = ['version' => $guiversion];
 
         $url = 'https://' . $this->GetAlexaURL() . '/api/bootstrap?' . http_build_query($getfields);
-        $return_data = $this->HttpRequestCookie($url, $this->GetHeader());
+        $return_data = $this->HttpRequest($url, $this->GetHeader());
 
         if ($return_data['body'] === null) {
             $return = null;
@@ -491,7 +491,6 @@ class AmazonEchoIO extends IPSModule
         return $authenticated;
     }
 
-
     /**  Send to Echo API
      *
      * @param string $url
@@ -504,7 +503,6 @@ class AmazonEchoIO extends IPSModule
      */
     private function SendEcho(string $url, array $header, array $postfields = null, bool $optpost = null, string $type = null)
     {
-        $this->SendDebug(__FUNCTION__, 'Header: ' . json_encode($header), 0);
 
         if ( $this->GetStatus() != 102 )
         {
@@ -512,6 +510,23 @@ class AmazonEchoIO extends IPSModule
             //Workaroud since the Echo Device Instances expext an array response to load the Configurationform properly
             return ['http_code' => 502, 'header' => '', 'body' => 'EchoIO not active. Status: '.$this->GetStatus() ];
         }
+
+        return $this->HttpRequest($url, $header, $postfields, $optpost, $type );
+    }
+
+    /**  Send http request
+     *
+     * @param string $url
+     * @param array $header
+     * @param array $postfields
+     * @param bool|null $optpost
+     * @param string $type
+     *
+     * @return mixed
+     */
+    private function HttpRequest(string $url, array $header, array $postfields = null, bool $optpost = null, string $type = null)
+    {
+        $this->SendDebug(__FUNCTION__, 'Header: ' . json_encode($header), 0);
 
         $ch = curl_init();
 
