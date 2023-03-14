@@ -1425,7 +1425,21 @@ class AmazonEchoIO extends IPSModule
 
         $header = $this->GetHeader();
 
-        return  $this->SendEcho($url, $header, $postfields);
+        if ( IPS_SemaphoreEnter ( 'BehaviorsPreview.'.$this->InstanceID , 5000) )
+        {
+
+            $result = $this->SendEcho($url, $header, $postfields);
+
+            // Rate limit for BehaviorsPreview requests: 1 request per 1.5 seconds
+            IPS_Sleep( 1500 );
+            IPS_SemaphoreLeave('BehaviorsPreview.'.$this->InstanceID );
+        }
+        else
+        {
+            $result = ['http_code' => 502, 'header' => '', 'body' => 'Too many parallel BehaviorsPreview requests.' ];
+        }
+
+        return $result;
     }
 
     /** ValidateBehaviorsOperation
