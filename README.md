@@ -63,19 +63,21 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.1 (2023-03-10) [Branch: development]
+Version 2.1 (2023-03-14) [Branch: development]
 
 * Announcement
-   * Neu: Announcement() für Einzelgeräte und Multiroom-Gruppen (Ansagen laufen parallen, aber nicht immer synchron)
-   * Neu: AnnouncementEx() für mehrere Einzelgeräte (InstanzID's als Array übergeben)
+   * Neu: Announcement() für Einzelgeräte und Multiroom-Gruppen (Ansagen laufen parallel, aber nicht immer synchron)
+   * Neu: AnnouncementEx() für mehrere Einzelgeräte
    * Annoucements müssen pro Gerät in der Alexa-App de-/aktiviert werden (Geräte > Echo und Alexa > Echo Gerät auswählen > Geräteeinstellungen (Zahnrad) > Kommunikation > Ankündigungen)
    * Wenn *Do-not-Disturb* aktiviert ist, erfolgen auf dem jeweiligen Gerät keine Ansagen
 * TextToSpeech
-   * Neu: TextToSpeech() für Einzelgeräte und Multiroom-Gruppen (Ansagen laufen parallen, aber nicht immer synchron)
-   * Neu: TextToSpeechEx() für mehrere Einzelgeräte (InstanzID's als Array übergeben)
+   * Neu: TextToSpeech() für Einzelgeräte und Multiroom-Gruppen (Ansagen laufen parallel, aber nicht immer synchron)
+   * Neu: TextToSpeechEx() für mehrere Einzelgeräte
    * Ansagen werden im Gegensatz zu Announcements immer ausgegeben
+* Neu: Aktionen zur einfachen Ausführung von Announcements und TextToSpeech auf mehreren Echo-Geräten
 * Neu: SendMobilePush() sendet Push Nachrichten an die Alexa-App
-* Neu: PlayMusic() ersetzt die meisten anderen Funktionen zum Starten von Musik wie PlaySong, PlayAlbum, PlayPlaylist, etc.
+* Change: PlayMusic() ersetzt die meisten anderen Funktionen zum Starten von Musik wie PlaySong, PlayAlbum, PlayPlaylist, etc.
+* Fix: MusicAlarm wird bei Auswertung der nächsten Alarmzeit auch berücksichtigt
 
 *Dokumentation zu neuen Funktionen siehe unten*
 
@@ -98,9 +100,13 @@ Version 2.0 (2023-03-04)
 
 ## Quellen
 1. Alexa-Cookie-CLI: https://github.com/adn77/alexa-cookie-cli
-2. Dieses Modul implementiert die Funktionalität des Shell-Scripts alexa_remote_control.sh: https://github.com/adn77/alexa-remote-control
-3. Anleitung für alexa_remote_control.sh und Alexa-Cookie-CLI: https://blog.loetzimmer.de/2021/09/alexa-remote-control-shell-script.html
-4. Python Library alexapy (genutzt für Announcements, SendMobilePush) https://gitlab.com/keatontaylor/alexapy/-/blob/dev/alexapy/alexaapi.py 
+2. Anleitung für alexa_remote_control.sh und Alexa-Cookie-CLI: https://blog.loetzimmer.de/2021/09/alexa-remote-control-shell-script.html
+3. alexa_remote_control.sh (Shell): Dieses Modul implementiert die Funktionalität des Shell-Scripts https://github.com/adn77/alexa-remote-control
+4. alexapy (Python): (genutzt für Announcements, SendMobilePush): https://gitlab.com/keatontaylor/alexapy/-/blob/dev/alexapy/alexaapi.py 
+5. alexa-cookie (NodeJS): Authentifizierung und Generierung Refresh-Token https://github.com/Apollon77/alexa-cookie
+6. alexa-remote (NodeJS): Echo Steuerung https://github.com/Apollon77/alexa-remote
+7. openhab-addon Amazon Echo Control (Java): https://github.com/openhab/openhab-addons/tree/main/bundles/org.openhab.binding.amazonechocontrol/src/main/java/org/openhab/binding/amazonechocontrol/internal
+8. Sequence Command Discovery: https://github.com/custom-components/alexa_media_player/wiki/Developers%3A-Sequence-Discovery
 
 ## Dokumentation
 
@@ -165,7 +171,7 @@ ECHOREMOTE_AnnouncementEx(int $InstanceID, string $tts, array $instanceIDList, a
 ``` 
 | Parameter        |  Beschreibung | Wert |
 |------------------|---------------|------|
-|_$InstanceID_     | InstanzID des Echo Remote Devices| |
+|_$InstanceID_     | InstanzID des ausführenden Echo Remote Devices| |
 |_$instanceIDList_   |  Array mit InstanzID's auf denen die Ankündigung erfolgen soll. Wird ein leeres Array übergeben, erfolgt keine Ansage| `[ 12345, 23456, 34567]` |
 |_$tts_ | Ankündigung | `Text`|
 |_$options_ | Optionen (aktuell keine verfügbar) | `[]` |
@@ -186,7 +192,7 @@ ECHOREMOTE_TextToSpeechEx(int $InstanceID, string $tts, array $instanceIDList );
 ``` 
 | Parameter        |  Beschreibung | Wert |
 |------------------|---------------|------|
-|_$InstanceID_     | InstanzID des Echo Remote Devices| |
+|_$InstanceID_     | InstanzID des ausführenden Echo Remote Devices| |
 |_$instanceIDList_   |  Array mit InstanzID's auf denen die Ankündigung erfolgen soll. Wird ein leeres Array übergeben, erfolgt keine Ansage| `[ 12345, 23456, 34567]` |
 |_$tts_ | Ankündigung | `Text`|
 
