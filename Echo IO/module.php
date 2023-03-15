@@ -174,7 +174,8 @@ class AmazonEchoIO extends IPSModule
 
         $this->SendDebug(__FUNCTION__, 'url: ' . $url, 0);
 
-        $ch = curl_init();
+        $ch = curl_init();   
+        curl_setopt($ch, CURLOPT_TIMEOUT, 6);   
         curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_USERAGENT, $this->ReadPropertyString('browser'));
@@ -604,6 +605,7 @@ class AmazonEchoIO extends IPSModule
         $this->SendDebug(__FUNCTION__, 'url: ' . $url, 0);
 
         $ch = curl_init();
+        curl_setopt($ch, CURLOPT_TIMEOUT, 6); 
         curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_COOKIEFILE, $this->ReadAttributeString('CookiesFileName')); //this file is read
