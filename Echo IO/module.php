@@ -174,7 +174,8 @@ class AmazonEchoIO extends IPSModule
 
         $this->SendDebug(__FUNCTION__, 'url: ' . $url, 0);
 
-        $ch = curl_init();   
+        $ch = curl_init(); 
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);    
         curl_setopt($ch, CURLOPT_TIMEOUT, 6);   
         curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -534,6 +535,7 @@ class AmazonEchoIO extends IPSModule
         $options = [
             CURLOPT_URL => $url,
             CURLOPT_HTTPHEADER => $header,
+            CURLOPT_CONNECTTIMEOUT => 3,
             CURLOPT_TIMEOUT => 6, //timeout after 6 seconds
             CURLOPT_HEADER => true,
             CURLINFO_HEADER_OUT => true,
@@ -605,6 +607,7 @@ class AmazonEchoIO extends IPSModule
         $this->SendDebug(__FUNCTION__, 'url: ' . $url, 0);
 
         $ch = curl_init();
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);  
         curl_setopt($ch, CURLOPT_TIMEOUT, 6); 
         curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -1006,7 +1009,16 @@ class AmazonEchoIO extends IPSModule
 
     public function GetLastDevice()
     {
-        $response_activities = $this->CustomCommand('https://{AlexaURL}/api/activities?startTime=&size=10&offset=1');
+        if ( IPS_SemaphoreEnter ( 'GetLastDevice.'.$this->InstanceID , 1000) )
+        {
+            $response_activities = $this->CustomCommand('https://{AlexaURL}/api/activities?startTime=&size=10&offset=1');
+            IPS_SemaphoreLeave ( 'GetLastDevice.'.$this->InstanceID );
+        } 
+        else
+        {
+            return [];
+        }
+
         $last_device = ['name' => '', 'serialnumber' => '', 'creationTimestamp' => '', 'summary' => ''];
         if ($response_activities != false) {
             $http_code = $response_activities['http_code'];
@@ -1427,13 +1439,13 @@ class AmazonEchoIO extends IPSModule
 
         $header = $this->GetHeader();
 
-        if ( IPS_SemaphoreEnter ( 'BehaviorsPreview.'.$this->InstanceID , 5000) )
+        if ( IPS_SemaphoreEnter ( 'BehaviorsPreview.'.$this->InstanceID , 6000) )
         {
 
             $result = $this->SendEcho($url, $header, $postfields);
 
-            // Rate limit for BehaviorsPreview requests: 1 request per 1.5 seconds
-            IPS_Sleep( 1500 );
+            // Rate limit for BehaviorsPreview requests: 1 request per 2 seconds
+            IPS_Sleep( 2000 );
             IPS_SemaphoreLeave('BehaviorsPreview.'.$this->InstanceID );
         }
         else
