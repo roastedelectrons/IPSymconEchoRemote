@@ -175,7 +175,7 @@ class AmazonEchoIO extends IPSModule
         $this->SendDebug(__FUNCTION__, 'url: ' . $url, 0);
 
         $ch = curl_init(); 
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);    
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);    
         curl_setopt($ch, CURLOPT_TIMEOUT, 6);   
         curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -535,7 +535,7 @@ class AmazonEchoIO extends IPSModule
         $options = [
             CURLOPT_URL => $url,
             CURLOPT_HTTPHEADER => $header,
-            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_TIMEOUT => 6, //timeout after 6 seconds
             CURLOPT_HEADER => true,
             CURLINFO_HEADER_OUT => true,
@@ -607,7 +607,7 @@ class AmazonEchoIO extends IPSModule
         $this->SendDebug(__FUNCTION__, 'url: ' . $url, 0);
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);  
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);  
         curl_setopt($ch, CURLOPT_TIMEOUT, 6); 
         curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
