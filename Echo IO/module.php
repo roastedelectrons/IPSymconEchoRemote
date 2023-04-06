@@ -1321,6 +1321,7 @@ class AmazonEchoIO extends IPSModule
         // Extend operation Payload
         $operationPayload['locale'] =  $locale;
 
+        $nodes = array();
 
         // Get target devices, e.g. single device, multiroom-group members or announcements members
 
@@ -1357,6 +1358,7 @@ class AmazonEchoIO extends IPSModule
                 $operationPayload['target']['devices'] = $devices;
             }
             
+            $nodes[] = $this->createNode( $type, $operationPayload);
 
         }
         elseif ( $type == 'Alexa.Speak' )
@@ -1375,57 +1377,83 @@ class AmazonEchoIO extends IPSModule
                 else
                 {
                     // Add clusterMembers of multiroom-group
-                    $devices = array_merge( $devices, $members);
+                    foreach($members as $member)
+                    {
+                        // in case device has additional keys (e.g. _setVolume), merge arrays (keys of member will overwrite identical keys in device) 
+                        $devices[] = array_merge( $device, $member);
+                    }
                 }
             }
-
-            if ($devices !== array() )
-            {
-                $operationPayload['_devices'] = $devices;
-            }
-
-        }
-
-        // Build nodes
-        $nodes = array();
-     
-        if ( isset($operationPayload['_devices']) && $operationPayload['_devices'] != array() )
-        {
-            //Multiple nodes to execute in parallel
-            $devices = $operationPayload['_devices'];
             unset($operationPayload['_devices']);
+
 
             foreach( $devices as $device )
             {
-
-                $nodeOperationPayload = $operationPayload;
-                //Set target device 
-                $nodeOperationPayload['deviceType']         = $device['deviceType'];
-                $nodeOperationPayload['deviceSerialNumber'] = $device['deviceSerialNumber'];
     
+                if ( isset ($device['_setVolume'] ))
+                {
+                    $payload = array();
+                    $payload['customerId']         = $operationPayload['customerId'];
+                    $payload['locale']             = $operationPayload['locale'];
+                    $payload['deviceType']         = $device['deviceType'];
+                    $payload['deviceSerialNumber'] = $device['deviceSerialNumber'];                    
+                    $payload['value']              = $device['_setVolume'];
+
+                    $nodesSetVolume[] = $this->createNode( 'Alexa.DeviceControls.Volume', $payload);
+                }
+
+                if ( isset ($device['_currentVolume'] ))
+                {
+                    $payload = array();
+                    $payload['customerId']         = $operationPayload['customerId'];
+                    $payload['locale']             = $operationPayload['locale'];
+                    $payload['deviceType']         = $device['deviceType'];
+                    $payload['deviceSerialNumber'] = $device['deviceSerialNumber'];                    
+                    $payload['value']              = $device['_currentVolume'];
+
+                    $nodesResetVolume[] = $this->createNode( 'Alexa.DeviceControls.Volume', $payload);
+                }
+
+                $payload = array();
+                $payload = $operationPayload;
+                //Set target device 
+                $payload['deviceType']         = $device['deviceType'];
+                $payload['deviceSerialNumber'] = $device['deviceSerialNumber'];
+
+                $nodesCmd[] = $this->createNode( $type, $payload);
+            }
+
+            if (isset($nodesSetVolume))
+            {
                 $nodes[] = [
-                    '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
-                    'type' => $type,
-                    'operationPayload' => $nodeOperationPayload
+                    'sequenceType' => 'ParallelNode',
+                    'nodes' => $nodesSetVolume
                 ];
             }
-        }
-        else
-        {
-            //Single device
-            $nodes[] = [
-                '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
-                'type' => $type,
-                'operationPayload' => $operationPayload
-            ];
-        }
-        
 
-        // Build payload
-        $startNode = [
-            '@type' => 'com.amazon.alexa.behaviors.model.ParallelNode',
-            'nodesToExecute' => $nodes
-        ];        
+            if (isset($nodesCmd))
+            {
+                $nodes[] = [
+                    'sequenceType' => 'ParallelNode',
+                    'nodes' => $nodesCmd
+                ];
+            }
+
+            if (isset($nodesResetVolume))
+            {
+                $nodes[] = [
+                    'sequenceType' => 'ParallelNode',
+                    'nodes' => $nodesResetVolume
+                ];
+            }
+        } 
+        else 
+        {
+            $nodes[] = $this->createNode( $type, $operationPayload);
+        }
+
+
+        $startNode = $this->buildSequenceNodeStructure($nodes); 
 
         $sequence = [
             '@type' => 'com.amazon.alexa.behaviors.model.Sequence',
@@ -1454,6 +1482,41 @@ class AmazonEchoIO extends IPSModule
         }
 
         return $result;
+    }
+
+    private function createNode( string $type, array $operationPayload)
+    {
+        $node = [
+            '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
+            'type' => $type,
+            'operationPayload' => $operationPayload
+        ];
+
+        return $node;
+    }
+
+    private function buildSequenceNodeStructure(array $nodes, string $sequenceType = 'SerialNode') 
+    {
+
+        $nodeStructure = [];
+        foreach ($nodes as $node)
+        {
+            if (isset($node['nodes']) && isset($node['sequenceType']) ) 
+            {
+                $nodeStructure[] = $this->buildSequenceNodeStructure($node['nodes'] , $node['sequenceType']) ;
+            } else {
+                $nodeStructure[] = $node;
+            }
+        }
+
+        $result = [
+            '@type' => 'com.amazon.alexa.behaviors.model.'. $sequenceType,
+            'name' => null,
+            'nodesToExecute' => $nodeStructure
+        ];
+
+        return $result;
+
     }
 
     /** ValidateBehaviorsOperation

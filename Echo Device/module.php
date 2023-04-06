@@ -723,7 +723,19 @@ class EchoRemote extends IPSModule
      */
     public function TextToSpeech(string $tts): bool
     {
-        return $this->TextToSpeechEx( $tts, [ $this->InstanceID ] );
+        return $this->TextToSpeechEx( $tts, [ $this->InstanceID ], [] );
+    }
+
+    /** TextToSpeechVolume
+     *
+     * @param string $tts
+     * @param int $volume
+     *
+     * @return array|string
+     */
+    public function TextToSpeechVolume(string $tts, int $volume): bool
+    {
+        return $this->TextToSpeechEx( $tts, [ $this->InstanceID ], ['volume' => $volume] );
     }
 
     /** TextToSpeechEx
@@ -732,7 +744,7 @@ class EchoRemote extends IPSModule
      * @param string $instanceIDList
      * @return array|string
      */
-    public function TextToSpeechEx(string $tts, array $instanceIDList = [] ): bool
+    public function TextToSpeechEx(string $tts, array $instanceIDList = [], array $options = [] ): bool
     {
         if ( $instanceIDList == array())
         {
@@ -744,10 +756,26 @@ class EchoRemote extends IPSModule
             {
                 if (IPS_GetInstance($instanceID)['ConnectionID'] === IPS_GetInstance($this->InstanceID)['ConnectionID']) 
                 {
-                    $targetDevices[] = [
+                    $device = array();
+
+                    $device = [
                         'deviceSerialNumber'    => IPS_GetProperty( $instanceID, 'Devicenumber'),
                         'deviceType'          => IPS_GetProperty( $instanceID, 'Devicetype')                 
                     ];
+
+                    if (isset($options['volume']) )
+                    {
+                        $device['_setVolume'] = $options['volume'];
+                        
+                        $volumeID = @IPS_GetObjectIDByIdent( 'EchoVolume', $instanceID );
+                        if ($volumeID)
+                        {
+                            $device['_currentVolume'] = GetValue( $volumeID);
+                        }
+                        
+                    }                  
+
+                    $targetDevices[] = $device;
                 }
             }
         }

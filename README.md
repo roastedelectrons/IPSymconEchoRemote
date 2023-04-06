@@ -63,6 +63,10 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
+Version 2.2 (development)
+* Neu: TextToSpeechVolume() kann die Lautstärke der Ansage anpassen
+* Change: TextToSpeechEx() zusätzlicher Parameter muss übergeben werden (ermöglicht Anpassung der Lautstärke)
+
 Version 2.1 (2023-03-14)
 
 * Announcement
@@ -188,23 +192,45 @@ ECHOREMOTE_AnnouncementEx( $InstanceID,  'Die Waschmaschine ist fertig', $instan
 **TextToSpeechEx**
 
 ```php
-ECHOREMOTE_TextToSpeechEx(int $InstanceID, string $tts, array $instanceIDList );
+ECHOREMOTE_TextToSpeechEx(int $InstanceID, string $tts, array $instanceIDList, array $options );
 ``` 
 | Parameter        |  Beschreibung | Wert |
 |------------------|---------------|------|
 |_$InstanceID_     | InstanzID des ausführenden Echo Remote Devices| |
 |_$instanceIDList_   |  Array mit InstanzID's auf denen die Ankündigung erfolgen soll. Wird ein leeres Array übergeben, erfolgt keine Ansage| `[ 12345, 23456, 34567]` |
 |_$tts_ | Ankündigung | `Text`|
+|_$options_ | Optionen als Array | `[]` |
+|_$options['volume']_ | Lautsärke während Ansage| `['volume' => 35]` |
 
 _Beispiel:_
 ```php
 $InstanceID = 12345; // InstanzID des Echo Remote Devices
 $instanceIDList = [12345, 23456, 34567];
 
-ECHOREMOTE_TextToSpeechEx( $InstanceID,  'Die Waschmaschine ist fertig', $instanceIDList );
+ECHOREMOTE_TextToSpeechEx( $InstanceID,  'Die Waschmaschine ist fertig', $instanceIDList, ['volume' => 50] );
 
 ```
 
+**TextToSpeechVolume**
+
+Wie TextToSpeech, jedoch kann die Lautstärke der Ansage übergeben werden. Nach der Ansage wird die Lautstärke wieder auf den vorherigen Wert zurückgesetzt.
+
+```php
+ECHOREMOTE_TextToSpeechVolume(int $InstanceID, string $tts, int $volume );
+``` 
+| Parameter        |  Beschreibung | Wert |
+|------------------|---------------|------|
+|_$InstanceID_     | InstanzID des ausführenden Echo Remote Devices| |
+|_$tts_ | Ankündigung | `Text`|
+|_$volume_ | Lautsärke der Ansage| `50` |
+
+_Beispiel:_
+```php
+$InstanceID = 12345; // InstanzID des Echo Remote Devices
+
+ECHOREMOTE_TextToSpeechVolume( $InstanceID,  'Die Waschmaschine ist fertig', 50 );
+
+```
 
 
 IP-Symcon PHP module for remote control of an Amazon Echo / Amazon Dot / Amazon Echo Show from IP-Symcon.
