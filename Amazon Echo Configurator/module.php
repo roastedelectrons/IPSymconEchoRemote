@@ -42,6 +42,7 @@ class AmazonEchoConfigurator extends IPSModule
         'A30YDR2MK8HMRV'   => ['name' => 'Echo Dot (3.Gen with Clock)'],
         'A2H4LV5GIZ1JFT'   => ['name' => 'Echo Dot (4.Gen with Clock)'],
         'A2DS1Q2TPDJ48U'   => ['name' => 'Echo Dot (5.Gen with Clock)'],
+        'A4ZXE0RM7LQ7A'    => ['name' => 'Echo Dot (5.Gen)'],
         'A1J16TEDOYCZTN'   => ['name' => 'Amazon Tablet'],
         'A38EHHIB10L47V'   => ['name' => 'Fire HD 8 Tablet'],
         'A112LJ20W14H95'   => ['name' => 'Media Display'],
@@ -92,7 +93,9 @@ class AmazonEchoConfigurator extends IPSModule
         'A17KNHDVUO2UVP'   => ['name' => 'Audi Alexa Integration'],
         'A93SQJNJQLDSS'    => ['name' => 'Grundig Fire TV '],
         'A1OECNXBQCC1P9'   => ['name' => 'Samsung Tizen'],
-        'AOL0WUO16289B'    => ['name' => 'Teufel Holist S']
+        'AOL0WUO16289B'    => ['name' => 'Teufel Holist S'],
+        'AF473ZSOIRKFJ'    => ['name' => 'Onkyo VC-PX30'],
+	    'A3QS1XP2U6UJX9'   => ['name' => 'Sony WF-1000XM4']
     ];
 
     public function Create()
