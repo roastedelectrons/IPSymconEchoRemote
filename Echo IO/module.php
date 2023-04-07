@@ -1057,9 +1057,11 @@ class AmazonEchoIO extends IPSModule
                         $this->SendDebug('Echo Device', 'serial number: ' . $device_serialNumber, 0);
                         $this->SendDebug('Echo Command', 'summary: ' . $summary, 0);
                         $last_device = ['name' => $accountName, 'serialnumber' => $device_serialNumber, 'creationTimestamp' => $creationTimestamp, 'summary' => $summary];
-                        $payload = json_encode(['DataID' => '{E41E38AC-30D7-CA82-DEF5-9561A5B06CD7}', 'Buffer' => $last_device]);
-                        $this->SendDataToChildren($payload);
-                        $this->SendDebug('Forward Data Last Device', $payload, 0);
+                        //$payload = json_encode(['DataID' => '{E41E38AC-30D7-CA82-DEF5-9561A5B06CD7}', 'Buffer' => $last_device]);
+                        //$this->SendDataToChildren($payload);
+                        $this->SendDataToChild($device_serialNumber, '', 'LastAction', $last_device);
+
+                        //$this->SendDebug('Forward Data Last Device', $payload, 0);
 
                         $this->SendDebug('Echo LastDevice', 'LastDeviceTimeStamp: ' . $this->ReadAttributeInteger( 'LastDeviceTimeStamp' ), 0);
                         $this->SendDebug('Echo LastDevice', 'creationTimestamp: ' . $creationTimestamp, 0);
@@ -1088,6 +1090,18 @@ class AmazonEchoIO extends IPSModule
 
         return $this->SendEcho($url, $header, $postfields, $optpost);
     }
+
+    private function SendDataToChild($deviceSerial, $deviceType, $type, $data)
+    {
+        $payload['DataID']          = '{E41E38AC-30D7-CA82-DEF5-9561A5B06CD7}';
+        $payload['DeviceSerial']    = $deviceSerial;
+        $payload['DeviceType']    = $deviceType;
+        $payload['Type']            = $type;
+        $payload['Payload']            = $data;
+
+        $this->SendDataToChildren( json_encode($payload) );
+    }
+
 
     /**
      * @param $JSONString
@@ -1297,6 +1311,74 @@ class AmazonEchoIO extends IPSModule
         return $this->SendEcho($url, $header);
     }
 
+    public function UpdateAllDeviceVolumes()
+    {
+        /*
+        Array
+        (
+            [alertVolume] => 
+            [deviceType] => XXXX
+            [dsn] => XXX
+            [error] => 
+            [speakerMuted] => 
+            [speakerVolume] => 30
+        )
+        */
+
+        $url = 'https://' . $this->GetAlexaURL() . '/api/devices/deviceType/dsn/audio/v1/allDeviceVolumes';
+
+        $header = $this->GetHeader();
+
+        $result = $this->SendEcho($url, $header); 
+        
+        if ($result['http_code'] == 200)
+        {
+            $volumes = json_decode( $result['body'], true );
+
+            if (isset($volumes['volumes']) && is_array($volumes['volumes']))
+            {
+                $this->SetBuffer('DeviceVolumes', json_encode($volumes['volumes'] ));
+
+                foreach($volumes['volumes'] as $device)
+                {
+                    $payload = [
+                        'EchoVolume' => $device['speakerVolume'],
+                        'Mute' => $device['speakerMuted'],
+                    ];
+                    $this->SendDataToChild($device['dsn'], $device['deviceType'], 'Volume', $payload );
+                }
+                
+                return $volumes['volumes'];
+            }
+        }
+        return [];
+    }
+
+    private function GetDeviceVolume( $deviceSerial, $deviceType )
+    {
+
+        $buffer = $this->GetBuffer('DeviceVolumes');
+
+        if ($buffer != '')
+        {
+            $deviceVolumes = json_decode ($buffer, true);
+        }
+        else
+        {
+            $deviceVolumes = $this->UpdateAllDeviceVolumes();
+        }
+            
+        foreach ($deviceVolumes as $device)
+        {
+            if ($device['dsn'] == $deviceSerial && $device['deviceType'] == $deviceType)
+            {
+                return $device['speakerVolume'];
+            }
+        }
+
+        return false;
+    }
+
     private function DoNotDisturb($putfields)
     {
         $url = 'https://alexa.' . $this->GetAmazonURL() . '/api/dnd/status';
@@ -1386,36 +1468,45 @@ class AmazonEchoIO extends IPSModule
             }
             unset($operationPayload['_devices']);
 
+            if ( isset($operationPayload['volume']))
+            {
+                $this->UpdateAllDeviceVolumes();
+            }
+
 
             foreach( $devices as $device )
             {
     
-                if ( isset ($device['_setVolume'] ))
+                if ( isset ($operationPayload['volume'] ))
                 {
+                    // Set new volume for tts
                     $payload = array();
                     $payload['customerId']         = $operationPayload['customerId'];
                     $payload['locale']             = $operationPayload['locale'];
                     $payload['deviceType']         = $device['deviceType'];
                     $payload['deviceSerialNumber'] = $device['deviceSerialNumber'];                    
-                    $payload['value']              = $device['_setVolume'];
+                    $payload['value']              = $operationPayload['volume'];
 
                     $nodesSetVolume[] = $this->createNode( 'Alexa.DeviceControls.Volume', $payload);
-                }
 
-                if ( isset ($device['_currentVolume'] ))
-                {
+                    // Reset volume to current value
                     $payload = array();
                     $payload['customerId']         = $operationPayload['customerId'];
                     $payload['locale']             = $operationPayload['locale'];
                     $payload['deviceType']         = $device['deviceType'];
-                    $payload['deviceSerialNumber'] = $device['deviceSerialNumber'];                    
-                    $payload['value']              = $device['_currentVolume'];
+                    $payload['deviceSerialNumber'] = $device['deviceSerialNumber'];  
+                    $payload['value']              = $this->GetDeviceVolume($device['deviceSerialNumber'], $device['deviceType']);
 
                     $nodesResetVolume[] = $this->createNode( 'Alexa.DeviceControls.Volume', $payload);
+
                 }
 
                 $payload = array();
                 $payload = $operationPayload;
+                //Cleanup payload
+                if ( isset($payload['volume'])) 
+                    unset( $payload['volume']) ;
+
                 //Set target device 
                 $payload['deviceType']         = $device['deviceType'];
                 $payload['deviceSerialNumber'] = $device['deviceSerialNumber'];

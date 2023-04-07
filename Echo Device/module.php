@@ -146,22 +146,44 @@ class EchoRemote extends IPSModule
     {
         $data = json_decode($JSONString);
         $this->SendDebug('Receive Data', $JSONString, 0);
-        $payload = $data->Buffer;
-        $creationTimestamp = $payload->creationTimestamp;
-        $this->SendDebug('Creation Timestamp', $creationTimestamp, 0);
-        $last_timestamp = $this->ReadAttributeInteger('creationTimestamp');
-        if ($last_timestamp != $creationTimestamp) {
-            $this->WriteAttributeInteger('creationTimestamp', $creationTimestamp);
-            $summary = $payload->summary;
-            if(@$this->GetIDForIdent('last_action') > 0)
-            {
-                $this->SetValue('last_action', $creationTimestamp);
-            }
-            if(@$this->GetIDForIdent('summary') > 0)
-            {
-                $this->SetValue('summary', $summary);
-            }
+
+        if ( $data->DeviceSerial != $this->ReadPropertyString('Devicenumber') )
+            return;
+
+        switch ($data->Type)
+        {
+            case 'Volume':
+                if(@$this->GetIDForIdent('EchoVolume') > 0)
+                {
+                    $this->SetValue('EchoVolume', $data->Payload->EchoVolume);
+                }
+                if(@$this->GetIDForIdent('Mute') > 0)
+                {
+                    $this->SetValue('Mute', $data->Payload->Mute);
+                }
+                break;
+            
+            case 'LastAction':
+                $payload = $data->Payload;
+                $creationTimestamp = $payload->creationTimestamp;
+                $this->SendDebug('Creation Timestamp', $creationTimestamp, 0);
+                $last_timestamp = $this->ReadAttributeInteger('creationTimestamp');
+                if ($last_timestamp != $creationTimestamp) 
+                {
+                    $this->WriteAttributeInteger('creationTimestamp', $creationTimestamp);
+                    $summary = $payload->summary;
+                    if(@$this->GetIDForIdent('last_action') > 0)
+                    {
+                        $this->SetValue('last_action', $creationTimestamp);
+                    }
+                    if(@$this->GetIDForIdent('summary') > 0)
+                    {
+                        $this->SetValue('summary', $summary);
+                    }
+                }
+                break;
         }
+
     }
 
     /** @noinspection PhpMissingParentCallCommonInspection */
@@ -761,19 +783,7 @@ class EchoRemote extends IPSModule
                     $device = [
                         'deviceSerialNumber'    => IPS_GetProperty( $instanceID, 'Devicenumber'),
                         'deviceType'          => IPS_GetProperty( $instanceID, 'Devicetype')                 
-                    ];
-
-                    if (isset($options['volume']) )
-                    {
-                        $device['_setVolume'] = $options['volume'];
-                        
-                        $volumeID = @IPS_GetObjectIDByIdent( 'EchoVolume', $instanceID );
-                        if ($volumeID)
-                        {
-                            $device['_currentVolume'] = GetValue( $volumeID);
-                        }
-                        
-                    }                  
+                    ];               
 
                     $targetDevices[] = $device;
                 }
@@ -785,6 +795,11 @@ class EchoRemote extends IPSModule
             'customerId'    => $this->GetCustomerID(),            
             'textToSpeak'   => $tts
         ];
+
+        if (isset($options['volume']) )
+        {
+            $operationPayload['volume'] = $options['volume'];
+        }
 
         return $this->PlaySequenceCmd('Alexa.Speak', $operationPayload);
     }
