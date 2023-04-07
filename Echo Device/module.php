@@ -799,6 +799,9 @@ class EchoRemote extends IPSModule
         } 
         else
         {
+            // Remove duplicates
+            $instanceIDList = array_unique($instanceIDList);
+
             foreach($instanceIDList as $instanceID )
             {
                 if (IPS_GetInstance($instanceID)['ConnectionID'] === IPS_GetInstance($this->InstanceID)['ConnectionID']) 
@@ -876,6 +879,9 @@ class EchoRemote extends IPSModule
         } 
         else
         {
+            // Remove duplicates
+            $instanceIDList = array_unique($instanceIDList);         
+               
             foreach($instanceIDList as $instanceID )
             {
                 if (IPS_GetInstance($instanceID)['ConnectionID'] === IPS_GetInstance($this->InstanceID)['ConnectionID']) 
