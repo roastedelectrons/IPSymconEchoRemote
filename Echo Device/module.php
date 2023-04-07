@@ -480,7 +480,32 @@ class EchoRemote extends IPSModule
             $this->SetValue('EchoVolume', $volume);
             return true;
         }
+        elseif($result['http_code'] === 400)
+        {
+            return $this->SetVolumeSequenceCmd( $volume );
+        }
+
         return false;
+    }
+
+    private function SetVolumeSequenceCmd( int $volume )
+    {
+        $operationPayload = [
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType' => $this->GetDevicetype(),
+            'customerId' => $this->GetCustomerID(),
+            'value' => $volume,
+        ];
+
+        $result = $this->PlaySequenceCmd('Alexa.DeviceControls.Volume', $operationPayload);
+
+        if ($result)
+        {
+            $this->SetValue('EchoVolume', $volume);
+        }
+        
+        return $result;
+
     }
 
     /** Mute / unmute
