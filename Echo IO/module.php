@@ -128,7 +128,7 @@ class AmazonEchoIO extends IPSModule
         $TimerLastAction = $this->ReadPropertyBoolean('TimerLastAction');
 
         // Update devices and get DeviceList
-        $this->GetDevices();
+        $this->UpdateDeviceList();
 
         $devices = $this->GetDeviceList();
 
@@ -392,7 +392,7 @@ class AmazonEchoIO extends IPSModule
             return false;
 
         //Update device list
-        $this->GetDevices();
+        $this->UpdateDeviceList();
 
         return true;
 
@@ -754,13 +754,25 @@ class AmazonEchoIO extends IPSModule
     }
 
 
+    public function GetDevice( $deviceSerial, $deviceType)
+    {
+        $devices = $this->GetDeviceList();
+
+        foreach($devices as $device)
+        {
+            if ($device['deviceType'] == $deviceType && $device['serialNumber'] == $deviceSerial)
+                return $device;
+        }
+
+        return false;
+    }
 
     public function GetDeviceList()
     {
         $devices = json_decode( $this->ReadAttributeString('devices'), true);
         if ($devices == array() ) {
 
-            $result = $this->GetDevices();
+            $result = $this->UpdateDeviceList();
 
             if ($result['http_code'] === 200) {
                 $this->SendDebug('Response IO:', $result['body'], 0);
@@ -779,17 +791,14 @@ class AmazonEchoIO extends IPSModule
 
     /** get JSON device list
      *
-     * @param string|null $deviceType
-     * @param string|null $serialNumber
-     * @param bool $cached
      *
      * @return mixed
      */
-    private function GetDevices(string $deviceType = null, string $serialNumber = null, bool $cached = null)
+    public function UpdateDeviceList()
     {
-        if (!isset($cached)) {
-            $cached = false;
-        }
+        
+        $cached = false;
+
 
         $header = $this->GetHeader();
 
@@ -816,21 +825,6 @@ class AmazonEchoIO extends IPSModule
 
         // Save device list to attribute
         $this->WriteAttributeString('devices', json_encode($devices));
-
-        //if the info is needed for a single device
-        if (($deviceType !== null) && ($serialNumber !== null)) 
-        {
-            
-            $myDevice = null;
-            foreach ($devices as $key => $device) {
-                if (($device['deviceType'] === $deviceType) && ($device['serialNumber'] === $serialNumber)) {
-                    $myDevice = $device;
-                    break;
-                }
-            }
-            $devices = [$myDevice];
-
-        }
 
         $result['body'] = json_encode($devices);
 
@@ -1246,7 +1240,7 @@ class AmazonEchoIO extends IPSModule
                 break;
 
             case 'GetDevices':
-                $result = $this->GetDevices();
+                $result = $this->UpdateDeviceList();
                 break;
 
             case 'GetDNDState':
@@ -1410,6 +1404,7 @@ class AmazonEchoIO extends IPSModule
         if ( $type == 'AlexaAnnouncement' )
         {
             // Check for Multiroom-groups and replace them with their clusterMembers
+            $this->UpdateDeviceList();
             
             $devices = array();
             foreach ( $operationPayload['target']['devices'] as $device )
@@ -1446,6 +1441,7 @@ class AmazonEchoIO extends IPSModule
         elseif ( $type == 'Alexa.Speak' )
         {
             // Check for Multiroom-groups and replace them with their clusterMembers
+            $this->UpdateDeviceList();
 
             $devices = array();
             foreach ( $operationPayload['_devices'] as $device )
@@ -1477,6 +1473,9 @@ class AmazonEchoIO extends IPSModule
             foreach( $devices as $device )
             {
     
+                if ( $this->GetDevice($device['deviceSerialNumber'], $device['deviceType'] )['online'] == false )
+                    continue;
+
                 if ( isset ($operationPayload['volume'] ))
                 {
                     // Set new volume for tts
