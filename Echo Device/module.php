@@ -2173,9 +2173,13 @@ class EchoRemote extends IPSModule
         {
             $Content = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Transparent png 1x1 Base64
         }
-        $this->SetBuffer('CoverURL', $imageurl);
-        IPS_SetMediaContent($this->GetIDForIdent('MediaImageCover'), $Content);  // Base64 codiertes Bild ablegen
-        IPS_SendMediaEvent($this->GetIDForIdent('MediaImageCover')); //aktualisieren
+
+        $mediaID = $this->GetIDForIdent('MediaImageCover');
+        if ($mediaID > 0)
+        {
+            IPS_SetMediaContent($this->GetIDForIdent('MediaImageCover'), $Content);  // Base64 codiertes Bild ablegen
+            IPS_SendMediaEvent($this->GetIDForIdent('MediaImageCover')); //aktualisieren
+        }
     }
 
     /** GetTuneInStationID
@@ -2440,6 +2444,7 @@ class EchoRemote extends IPSModule
             $this->SetValue('Subtitle_1', $subtitle_1);
             $this->SetValue('Subtitle_2', $subtitle_2);
             if ($this->GetBuffer('CoverURL') != $imageurl) {
+                $this->SetBuffer('CoverURL', $imageurl);
                 $this->RefreshCover($imageurl);
             }
         }
