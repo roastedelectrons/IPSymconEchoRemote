@@ -64,8 +64,12 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 ## Changelog
 
 Version 2.2 (development)
-* Neu: TextToSpeechVolume() kann die Lautstärke der Ansage anpassen
-* Change: TextToSpeechEx() zusätzlicher Parameter muss übergeben werden (ermöglicht Anpassung der Lautstärke)
+* Neu: TextToSpeechVolume() ändert die Lautstärke der Ansage und setzt sie danach wieder zurück
+* Change: TextToSpeechEx() zusätzlicher options-Parameter muss übergeben werden (ermöglicht Anpassung der Lautstärke)
+* Neu: Variable für Online-Status
+* Neu: Variablen für Player-Steuerung können de-/aktiviert werden
+* Fix: Variablen, die in der Instanz-Konfiguration deaktiviert werden, werden nun korrekt gelöscht
+* Change: Neues Profil für Mute-Variable (invertiert zum vorherigen Profil)
 
 Version 2.1 (2023-03-14)
 
