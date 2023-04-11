@@ -159,6 +159,9 @@ class EchoRemote extends IPSModule
                 if(@$this->GetIDForIdent('EchoVolume') > 0)
                 {
                     $this->SetValue('EchoVolume', $data->Payload->EchoVolume);
+                    // Save current volume for mute function
+                    if ($data->Payload->EchoVolume > 0)
+                        $this->SetBuffer('Volume', $data->Payload->EchoVolume);
                 }
                 if(@$this->GetIDForIdent('Mute') > 0)
                 {
@@ -230,6 +233,7 @@ class EchoRemote extends IPSModule
             $this->Repeat($Value);
         }
         if ($Ident === 'EchoVolume') {
+            $this->SetValue('EchoVolume', $Value); // To avoid flickering of the slider set volume variable now.
             $this->SetVolume($Value);
         }
         if ($Ident === 'EchoTuneInRemote_' . $devicenumber) {
@@ -280,11 +284,7 @@ class EchoRemote extends IPSModule
             $this->TextToSpeech($Value);
         }
         if ($Ident === 'Mute') {
-            if ($Value) {
-                $this->Mute(false);
-            } else {
-                $this->Mute(true);
-            }
+            $this->Mute($Value);
         }
         if ($Ident === 'DND') {
             if ($Value) {
@@ -486,13 +486,30 @@ class EchoRemote extends IPSModule
             'volumeLevel' => $volume];
 
         $result = $this->SendData('NpCommand', $getfields, $postfields);
-        if ($result['http_code'] === 200) {
-            $this->SetValue('EchoVolume', $volume);
-            return true;
-        }
-        elseif($result['http_code'] === 404)
+
+        
+        if ($result['http_code'] === 200) 
         {
-            return $this->SetVolumeSequenceCmd( $volume );
+            $result = true;
+        }
+        elseif( $result['http_code'] == 404 ||  $result['http_code'] == 400)
+        {
+            // Try SequenceComand in case of unsuccessful request
+            $result = $this->SetVolumeSequenceCmd( $volume );
+        }
+
+        if ($result) {
+            $this->SetValue('EchoVolume', $volume);
+            if ($volume > 0)
+            {
+                // save current volume for mute function
+                $this->SetBuffer('Volume', $volume);
+
+                if (@$this->GetValue('Mute'))
+                    $this->SetValue('Mute', false);
+            }
+                
+            return true;
         }
 
         return false;
@@ -507,15 +524,7 @@ class EchoRemote extends IPSModule
             'value' => $volume,
         ];
 
-        $result = $this->PlaySequenceCmd('Alexa.DeviceControls.Volume', $operationPayload);
-
-        if ($result)
-        {
-            $this->SetValue('EchoVolume', $volume);
-        }
-        
-        return $result;
-
+        return $this->PlaySequenceCmd('Alexa.DeviceControls.Volume', $operationPayload);
     }
 
     /** Mute / unmute
@@ -527,46 +536,25 @@ class EchoRemote extends IPSModule
     public function Mute(bool $mute): bool
     {
         $volume = 0;
-        $this->SendDebug('Echo Remote:', 'Mute: ' . json_encode($mute), 0);
-        if ($mute) {
-            $this->SetValue('Mute', false);
-        } else {
-            $this->SetValue('Mute', true);
-        }
 
-        if ($mute) {
-            $current_volume = $this->GetValue('EchoVolume');
-            /** @noinspection UnnecessaryCastingInspection */
-            $this->SetBuffer('Volume', (string) $current_volume);
-            $this->SendDebug('Echo Remote:', 'Volume Buffer ' . $current_volume, 0);
-            $volume = 0;
-        }
-        if (!$mute) {
-            $last_volume = $this->GetBuffer('Volume');
-            if ($last_volume === '') {
-                $volume = 30;
+        $this->SetValue('Mute', $mute);
+
+        $last_volume = $this->GetBuffer('Volume');
+        // if volume buffer is empty, try to get volume from variable
+        if ($last_volume === '') {
+            $last_volume = $this->GetValue('EchoVolume');
+            if ($last_volume > 0)
+                $this->SetBuffer('Volume', $last_volume);
+            else
                 $this->SetBuffer('Volume', '30');
-                $this->SendDebug('Echo Remote:', 'Volume Buffer 30', 0);
-            } else {
-                $volume = (int) $last_volume;
-                $this->SendDebug('Echo Remote:', 'Volume Buffer ' . $last_volume, 0);
-            }
         }
 
-        $getfields = [
-            'deviceSerialNumber' => $this->GetDevicenumber(),
-            'deviceType'         => $this->GetDevicetype()];
-
-        $postfields = [
-            'type'        => 'VolumeLevelCommand',
-            'volumeLevel' => $volume];
-
-        $result = $this->SendData('NpCommand', $getfields, $postfields);
-        if ($result['http_code'] === 200) {
-            $this->SetValue('EchoVolume', $volume);
-            return true;
+        if (!$mute) 
+        {
+            $volume = (int) $last_volume;
         }
-        return false;
+
+        return $this->SetVolume($volume);
     }
 
     /** Get Player Status Information
@@ -1770,11 +1758,11 @@ class EchoRemote extends IPSModule
         if ( !IPS_VariableProfileExists($profile) )
         {
             $this->RegisterProfileAssociation(
-                'Echo.Remote.Mute', 'Speaker', '', '', 0, 1, 0, 0, VARIABLETYPE_BOOLEAN, [
-                    [false, $this->Translate('Off'), 'Speaker', 0],
-                    [true, $this->Translate('On'), 'Speaker', 0x00ff00]]
+                'Echo.Mute', 'Speaker', '', '', 0, 1, 0, 0, VARIABLETYPE_BOOLEAN, [
+                    [false, $this->Translate('Off'), '', -1],
+                    [true, $this->Translate('On'), '', 0x00ff00]]
             );            
-            $profile = 'Echo.Remote.Mute';
+            $profile = 'Echo.Mute';
         }
 
         $this->MaintainVariable('Mute', $this->Translate('Mute'), 0, $profile, $this->_getPosition(), $keep);
