@@ -5,6 +5,7 @@
       "device number": "Geräte Nummer",
       "update interval": "Aktualisierungsintervall",
       "seconds": "Sekunden",
+      "setup variables for media player control": "Variablen für Mediaplayer-Steuerung anlegen",
       "setup variables for extended info (title, subtitle_1, subtitle_2, cover)": "Variablen für erweiterte Informationen anlegen (Titel, Untertitel 1, Untertitel 2, Cover)",
       "setup variables for alarm info (nextAlarmTime, lastAlarmTime)": "Variablen für Weckzeiten anlegen (nächste Weckzeit, letzte Weckzeit)",
       "setup variable for a shopping list": "Variable für eine Einkaufsliste anlegen",

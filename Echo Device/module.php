@@ -1813,7 +1813,8 @@ class EchoRemote extends IPSModule
 
         $this->MaintainVariable('Subtitle_2', $this->Translate('Subtitle 2'), 3, '', $this->_getPosition(), $keep);
         if ($keep) {
-            $this->CreateMediaImage('MediaImageCover', $this->_getPosition());
+            $this->CreateMediaImage('MediaImageCover', 'Cover',  $this->_getPosition());
+            $this->RefreshCover( $this->GetBuffer('CoverURL') );
         } else {
             $this->DeleteMediaImage('MediaImageCover');
         }
@@ -2134,42 +2135,22 @@ class EchoRemote extends IPSModule
         $this->SetTimerInterval('EchoUpdate', $interval);
     }
 
-    private function Covername(): string
-    {
-        return 'cover.' . $this->InstanceID;
-    }
 
-    private function CreateMediaImage(string $ident, int $position): void
+    private function CreateMediaImage(string $ident, string $name, int $position): void
     {
-        $covername = $this->Covername();
-        $picurl = $this->GetBuffer('CoverURL'); // Cover URL
-        $ImageFile = IPS_GetKernelDir() . 'media' . DIRECTORY_SEPARATOR . $covername . '.png';  // Image-Datei
+        $ImageFile = IPS_GetKernelDir() . 'media' . DIRECTORY_SEPARATOR . 'cover.' . $this->InstanceID. '.png';  // Image-Datei
 
         $MediaID = @$this->GetIDForIdent($ident);
         if ($MediaID === false) {
-            if ($picurl) {
-                $Content = base64_encode(file_get_contents($picurl)); // Bild Base64 codieren
-                // convert to png
-                imagepng(imagecreatefromstring(file_get_contents($picurl)), $ImageFile); // save PNG
-            } else {
-                // set transparent image
-                $Content =
-                    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Transparent png 1x1 Base64
-                $data = base64_decode($Content);
-                file_put_contents($ImageFile, $data); // save PNG
-            }
             $MediaID = IPS_CreateMedia(1);                  // Image im MedienPool anlegen
             IPS_SetParent($MediaID, $this->InstanceID); // Medienobjekt einsortieren unter der Sonos Instanz
             IPS_SetIdent($MediaID, $ident);
             IPS_SetPosition($MediaID, $position);
-            IPS_SetMediaCached($MediaID, true);
-            // Das Cachen für das Mediaobjekt wird aktiviert.
-            // Beim ersten Zugriff wird dieses von der Festplatte ausgelesen
-            // und zukünftig nur noch im Arbeitsspeicher verarbeitet.
+            IPS_SetName($MediaID, $name); // Medienobjekt benennen
+            IPS_SetMediaCached($MediaID, true); // Das Cachen für das Mediaobjekt wird aktiviert (Verarbeitung im Arbeitsspeicher)
+            file_put_contents($ImageFile, ''); // leere Media Datei anlegen
             IPS_SetMediaFile($MediaID, $ImageFile, false);    // Image im MedienPool mit Image-Datei verbinden
-            IPS_SetName($MediaID, 'Cover'); // Medienobjekt benennen
-            //IPS_SetInfo($MediaID, $name);
-            IPS_SetMediaContent($MediaID, $Content);  // Base64 codiertes Bild ablegen
+            IPS_SetMediaContent($MediaID, '');  // Base64 codiertes Bild ablegen
             IPS_SendMediaEvent($MediaID); //aktualisieren
         }
     }
@@ -2184,8 +2165,15 @@ class EchoRemote extends IPSModule
 
     private function RefreshCover(string $imageurl): void
     {
-        $Content = base64_encode(file_get_contents($imageurl)); // Bild Base64 codieren
-        //$this->SendDebug("Image URL", $imageurl, 0);
+        if ($imageurl != '')
+        {
+            $Content = base64_encode(file_get_contents($imageurl)); // Bild Base64 codieren
+        } 
+        else 
+        {
+            $Content = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Transparent png 1x1 Base64
+        }
+        $this->SetBuffer('CoverURL', $imageurl);
         IPS_SetMediaContent($this->GetIDForIdent('MediaImageCover'), $Content);  // Base64 codiertes Bild ablegen
         IPS_SendMediaEvent($this->GetIDForIdent('MediaImageCover')); //aktualisieren
     }
@@ -2451,8 +2439,7 @@ class EchoRemote extends IPSModule
             $this->SetValue('Title', $title);
             $this->SetValue('Subtitle_1', $subtitle_1);
             $this->SetValue('Subtitle_2', $subtitle_2);
-            $this->SetBuffer('CoverURL', $imageurl);
-            if ($imageurl !== null) {
+            if ($this->GetBuffer('CoverURL') != $imageurl) {
                 $this->RefreshCover($imageurl);
             }
         }
