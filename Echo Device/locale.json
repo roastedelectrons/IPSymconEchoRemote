@@ -9,6 +9,7 @@
       "setup variables for alarm info (nextAlarmTime, lastAlarmTime)": "Variablen für Weckzeiten anlegen (nächste Weckzeit, letzte Weckzeit)",
       "setup variable for a shopping list": "Variable für eine Einkaufsliste anlegen",
       "setup variable for a task list": "Variable für eine Aufgabenliste anlegen",
+      "setup variable for online status": "Variable für Online-Status anlegen",
       "setup variable for mute": "Variable für Mute anlegen",
       "TuneIn stations": "TuneIn Stationen",
       "Last Action": "Letzte Aktion",
@@ -83,7 +84,10 @@
       "display on" : "Bildschirm an",
       "display off" : "Bildschirm aus",
       "show alarm clock" : "Wecker anzeigen",
-      "Message from Symcon": "Nachricht von Symcon"
+      "Message from Symcon": "Nachricht von Symcon",
+      "Online status": "Online Status",
+      "On": "An",
+      "Off": "Aus"
     }
   }
 }

@@ -42,6 +42,7 @@ class AmazonEchoIO extends IPSModule
 
         $this->RegisterTimer('TimerLastDevice', 0, 'ECHOIO_GetLastDevice(' . $this->InstanceID . ');');
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
+        $this->RegisterTimer('UpdateStatus', 0, 'ECHOIO_UpdateStatus(' . $this->InstanceID . ');');
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -104,6 +105,7 @@ class AmazonEchoIO extends IPSModule
             $this->LogOff();
             $this->SetTimerInterval('TimerLastDevice', 0);
             $this->SetTimerInterval('RefreshCookie', 0);
+            $this->SetTimerInterval('UpdateStatus', 0);
             $this->SetStatus(IS_INACTIVE);
             return;
         }
@@ -153,6 +155,8 @@ class AmazonEchoIO extends IPSModule
                 $this->SetTimerInterval('TimerLastDevice', 0);
             }
         }
+
+        $this->SetTimerInterval('UpdateStatus', 60000);
     }
 
 
@@ -754,7 +758,13 @@ class AmazonEchoIO extends IPSModule
     }
 
 
-    public function GetDevice( $deviceSerial, $deviceType)
+    public function UpdateStatus()
+    {
+        $this->UpdateDeviceList();
+        $this->UpdateAllDeviceVolumes();
+    }
+
+    public function GetDevice( string $deviceSerial, string $deviceType)
     {
         $devices = $this->GetDeviceList();
 
@@ -826,6 +836,11 @@ class AmazonEchoIO extends IPSModule
         // Save device list to attribute
         $this->WriteAttributeString('devices', json_encode($devices));
 
+        foreach($devices as $device)
+        {
+            $this->SendDataToChild($device['serialNumber'], $device['deviceType'], 'DeviceInfo', $device );
+        }
+        
         $result['body'] = json_encode($devices);
 
         return $result;
@@ -1852,7 +1867,7 @@ class AmazonEchoIO extends IPSModule
             [
                 'type' => 'Label',
                 'link' => 'true',
-                'caption' => 'To generate the refresh token, download the following tool and follow the instructions: https://github.com/adn77/alexa-cookie-cli/releases'],              
+                'caption' => 'To generate the refresh token, follow the instructions from: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung'],              
             [
                 'name' => 'TimerLastAction',
                 'type' => 'CheckBox',

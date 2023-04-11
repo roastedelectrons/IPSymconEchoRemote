@@ -69,8 +69,9 @@ class EchoRemote extends IPSModule
 
         //        $this->RegisterPropertyString('TuneInStations', '');
         $this->RegisterPropertyInteger('updateinterval', 0);
-        $this->RegisterPropertyBoolean('DND', false);
+        $this->RegisterPropertyBoolean('PlayerControl', true);
         $this->RegisterPropertyBoolean('ExtendedInfo', false);
+        $this->RegisterPropertyBoolean('DND', false);
         $this->RegisterPropertyBoolean('AlarmInfo', false);
         $this->RegisterPropertyBoolean('ShoppingList', false);
         $this->RegisterPropertyBoolean('TaskList', false);
@@ -85,6 +86,7 @@ class EchoRemote extends IPSModule
         $this->RegisterPropertyInteger('Subtitle1Size', 0);
         $this->RegisterPropertyInteger('Subtitle2Color', 0);
         $this->RegisterPropertyInteger('Subtitle2Size', 0);
+        $this->RegisterPropertyBoolean('OnlineStatus', false);
 
         $this->SetBuffer('CoverURL', '');
         $this->SetBuffer('Volume', '');
@@ -93,6 +95,7 @@ class EchoRemote extends IPSModule
         $this->RegisterAttributeInteger('creationTimestamp', 0);
         $this->RegisterAttributeString('routines', '[]');
         $this->RegisterPropertyBoolean('routines_wf', false);
+        $this->RegisterAttributeString('DeviceInfo', '');
 
         $this->ConnectParent('{C7F853A4-60D2-99CD-A198-2C9025E2E312}');
 
@@ -181,6 +184,13 @@ class EchoRemote extends IPSModule
                         $this->SetValue('summary', $summary);
                     }
                 }
+                break;
+            case 'DeviceInfo':
+                $this->WriteAttributeString('DeviceInfo', json_encode( $data->Payload) );
+                if(@$this->GetIDForIdent('OnlineStatus') > 0)
+                {
+                    $this->SetValue('OnlineStatus', $data->Payload->online);
+                }                
                 break;
         }
 
@@ -480,7 +490,7 @@ class EchoRemote extends IPSModule
             $this->SetValue('EchoVolume', $volume);
             return true;
         }
-        elseif($result['http_code'] === 400)
+        elseif($result['http_code'] === 404)
         {
             return $this->SetVolumeSequenceCmd( $volume );
         }
@@ -1703,10 +1713,12 @@ class EchoRemote extends IPSModule
             return;
         }
 
-        $this->SendDebug(__FUNCTION__, 'Device Info: ' . print_r($device_info, true), 0);
         $caps = $device_info['capabilities'];
 
         //Remote Variable
+        $playerControl =  $this->ReadPropertyBoolean('PlayerControl');
+
+        $keep = $playerControl && in_array('AMAZON_MUSIC', $caps, true);
         $this->RegisterProfileAssociation(
             'Echo.Remote', 'Move', '', '', 0, 5, 0, 0, VARIABLETYPE_INTEGER, [
                 [0, $this->Translate('Rewind 30s'), 'HollowDoubleArrowLeft', -1],
@@ -1716,33 +1728,95 @@ class EchoRemote extends IPSModule
                 [4, $this->Translate('Next'), 'HollowLargeArrowRight', -1],
                 [5, $this->Translate('Forward 30s'), 'HollowDoubleArrowRight', -1]]
         );
-        $this->RegisterVariableInteger('EchoRemote', $this->Translate('Remote'), 'Echo.Remote', $this->_getPosition());
-        $this->EnableAction('EchoRemote');
-
-        //Shuffle Variable
-        if (in_array('AMAZON_MUSIC', $caps, true)) {
-            $exist_shuffle = $this->CheckExistence('EchoShuffle');
-            $this->RegisterVariableBoolean('EchoShuffle', $this->Translate('Shuffle'), '~Switch', $this->_getPosition());
-            $this->SetIcon('EchoShuffle', 'Shuffle', $exist_shuffle);
-            $this->EnableAction('EchoShuffle');
+        $this->MaintainVariable('EchoRemote', $this->Translate('Remote'), 1, 'Echo.Remote', $this->_getPosition(), $keep );
+        if ($keep) {
+            $this->EnableAction('EchoRemote');
         }
 
+        //Shuffle Variable
+        $keep = $playerControl && in_array('AMAZON_MUSIC', $caps, true);
+        if ( IPS_VariableProfileExists('~Shuffle') ) $profile = '~Shuffle'; else $profile = '~Switch';
+        $this->MaintainVariable('EchoShuffle', $this->Translate('Shuffle'), 0, $profile, $this->_getPosition(), $keep);
+        if ($keep) {
+            $exist_shuffle = $this->CheckExistence('EchoShuffle');
+            $this->SetIcon('EchoShuffle', 'Shuffle', $exist_shuffle);
+            $this->EnableAction('EchoShuffle');
+        } 
+
         //Repeat Variable
-        if (in_array('AMAZON_MUSIC', $caps, true)) {
+        $keep = $playerControl && in_array('AMAZON_MUSIC', $caps, true);
+        $this->MaintainVariable('EchoRepeat', $this->Translate('Repeat'), 0, '~Switch', $this->_getPosition(), $keep);
+        if ($keep) {
             $exist_repeat = $this->CheckExistence('EchoRepeat');
-            $this->RegisterVariableBoolean('EchoRepeat', $this->Translate('Repeat'), '~Switch', $this->_getPosition());
             $this->SetIcon('EchoRepeat', 'Repeat', $exist_repeat);
             $this->EnableAction('EchoRepeat');
         }
 
         //Volume Variable
-        if (in_array('VOLUME_SETTING', $caps, true)) {
-            $this->RegisterVariableInteger('EchoVolume', $this->Translate('Volume'), '~Intensity.100', $this->_getPosition());
+        $keep = $playerControl && in_array('AMAZON_MUSIC', $caps, true);
+        $profile = '~Volume';
+        if ( !IPS_VariableProfileExists($profile) )
+        {
+            $profile = '~Intensity.100';
+        }
+        $this->MaintainVariable('EchoVolume', $this->Translate('Volume'), 1, '~Volume', $this->_getPosition(), $keep);
+        if ($keep) {
             $this->EnableAction('EchoVolume');
         }
 
+        //Mute
+        $keep = $this->ReadPropertyBoolean('Mute') && in_array('AMAZON_MUSIC', $caps, true);
+        $profile = '~Mute';
+        if ( !IPS_VariableProfileExists($profile) )
+        {
+            $this->RegisterProfileAssociation(
+                'Echo.Remote.Mute', 'Speaker', '', '', 0, 1, 0, 0, VARIABLETYPE_BOOLEAN, [
+                    [false, $this->Translate('Off'), 'Speaker', 0],
+                    [true, $this->Translate('On'), 'Speaker', 0x00ff00]]
+            );            
+            $profile = 'Echo.Remote.Mute';
+        }
+
+        $this->MaintainVariable('Mute', $this->Translate('Mute'), 0, $profile, $this->_getPosition(), $keep);
+        if ($keep) { 
+            $this->EnableAction('Mute');
+        }
+
         //Info Variable
-        $this->RegisterVariableString('EchoInfo', $this->Translate('Info'), '~HTMLBox', $this->_getPosition());
+        $keep = $playerControl && in_array('AMAZON_MUSIC', $caps, true);
+        $this->MaintainVariable('EchoInfo', $this->Translate('Info'), 3, '~HTMLBox', $this->_getPosition(), $keep);
+
+        //TuneIn Variable
+        $keep = $playerControl && in_array('TUNE_IN', $caps, true);
+        if ($keep) {
+            $devicenumber = $this->ReadPropertyString('Devicenumber');
+            if ($devicenumber !== '') {
+                $associations = [];
+                foreach (json_decode($this->ReadPropertyString('TuneInStations'), true) as $tuneInStation) {
+                    $associations[] = [$tuneInStation['position'], $tuneInStation['station'], '', -1];
+                }
+                $profileName = 'Echo.TuneInStation.' . $devicenumber;
+                $this->RegisterProfileAssociation($profileName, 'Music', '', '', 0, 0, 0, 0, VARIABLETYPE_INTEGER, $associations);
+                $this->MaintainVariable('EchoTuneInRemote_' . $devicenumber, 'TuneIn Radio', 1, $profileName, $this->_getPosition(), $keep );
+                $this->EnableAction('EchoTuneInRemote_' . $devicenumber);
+            } 
+        }
+        
+
+        //Extended Info
+        $keep = $this->ReadPropertyBoolean('ExtendedInfo') && in_array('AMAZON_MUSIC', $caps, true);
+        if ( IPS_VariableProfileExists('~Song') ) $profile = '~Song'; else $profile = '';
+        $this->MaintainVariable('Title', $this->Translate('Title'), 3, $profile, $this->_getPosition(),$keep );
+
+        if ( IPS_VariableProfileExists('~Artist') ) $profile = '~Artist'; else $profile = '';
+        $this->MaintainVariable('Subtitle_1', $this->Translate('Subtitle 1'), 3, $profile, $this->_getPosition(), $keep);
+
+        $this->MaintainVariable('Subtitle_2', $this->Translate('Subtitle 2'), 3, '', $this->_getPosition(), $keep);
+        if ($keep) {
+            $this->CreateMediaImage('MediaImageCover', $this->_getPosition());
+        } else {
+            $this->DeleteMediaImage('MediaImageCover');
+        }
 
         //Actions and TTS Variables
         if (in_array('FLASH_BRIEFING', $caps, true)) {
@@ -1765,88 +1839,38 @@ class EchoRemote extends IPSModule
             $this->EnableAction('EchoTTS');
         }
 
-
-        //TuneIn Variable
-        if (in_array('TUNE_IN', $caps, true)) {
-            $devicenumber = $this->ReadPropertyString('Devicenumber');
-            if ($devicenumber !== '') {
-                $associations = [];
-                foreach (json_decode($this->ReadPropertyString('TuneInStations'), true) as $tuneInStation) {
-                    $associations[] = [$tuneInStation['position'], $tuneInStation['station'], '', -1];
-                }
-                $profileName = 'Echo.TuneInStation.' . $devicenumber;
-                $this->RegisterProfileAssociation($profileName, 'Music', '', '', 0, 0, 0, 0, VARIABLETYPE_INTEGER, $associations);
-                $this->RegisterVariableInteger('EchoTuneInRemote_' . $devicenumber, 'TuneIn Radio', $profileName, $this->_getPosition());
-                $this->EnableAction('EchoTuneInRemote_' . $devicenumber);
-            }
-        }
-
-        //Extended Info
-        if ($this->ReadPropertyBoolean('ExtendedInfo')) {
-            $this->RegisterVariableString('Title', $this->Translate('Title'), '', $this->_getPosition());
-            $this->RegisterVariableString('Subtitle_1', $this->Translate('Subtitle 1'), '', $this->_getPosition());
-            $this->RegisterVariableString('Subtitle_2', $this->Translate('Subtitle 2'), '', $this->_getPosition());
-            $this->CreateMediaImage('MediaImageCover', 11);
-        }
-
         // Do not disturb
+        $this->RegisterProfileAssociation(
+            'Echo.Remote.DND', 'Speaker', '', '', 0, 1, 0, 0, VARIABLETYPE_BOOLEAN, [
+                [false, $this->Translate('Do not disturb off'), 'Speaker', 0x00ff55],
+                [true, $this->Translate('Do not disturb'), 'Speaker', 0xff3300]]
+        );
+        $this->MaintainVariable('DND', $this->Translate('Do not disturb'), 0, 'Echo.Remote.DND', $this->_getPosition(), $this->ReadPropertyBoolean('DND') );
         if ($this->ReadPropertyBoolean('DND')) {
-            $this->RegisterProfileAssociation(
-                'Echo.Remote.DND', 'Speaker', '', '', 0, 1, 0, 0, VARIABLETYPE_BOOLEAN, [
-                    [false, $this->Translate('Do not disturb off'), 'Speaker', 0x00ff55],
-                    [true, $this->Translate('Do not disturb'), 'Speaker', 0xff3300]]
-            );
-            $this->RegisterVariableBoolean('DND', $this->Translate('Do not disturb'), 'Echo.Remote.DND', $this->_getPosition());
             $this->EnableAction('DND');
         }
 
-        //Mute
-        if ($this->ReadPropertyBoolean('Mute')) {
-            //Mute Variable
-            $this->RegisterProfileAssociation(
-                'Echo.Remote.Mute', 'Speaker', '', '', 0, 1, 0, 0, VARIABLETYPE_BOOLEAN, [
-                    [false, $this->Translate('Mute'), 'Speaker', 0xff3300],
-                    [true, $this->Translate('Unmute'), 'Speaker', 0x00ff55]]
-            );
-            $this->RegisterVariableBoolean('Mute', $this->Translate('Mute'), 'Echo.Remote.Mute', $this->_getPosition());
-            $this->EnableAction('Mute');
-        }
-
         //support of alarm
-        if ($this->ReadPropertyBoolean('AlarmInfo')) {
-            $this->RegisterVariableInteger('nextAlarmTime', $this->Translate('next Alarm'), '~UnixTimestamp', $this->_getPosition());
-            $this->RegisterVariableInteger('lastAlarmTime', $this->Translate('last Alarm'), '~UnixTimestamp', $this->_getPosition());
-        }
+        $this->MaintainVariable('nextAlarmTime', $this->Translate('next Alarm'), 1, '~UnixTimestamp', $this->_getPosition(), $this->ReadPropertyBoolean('AlarmInfo'));
+        $this->MaintainVariable('lastAlarmTime', $this->Translate('last Alarm'), 1, '~UnixTimestamp', $this->_getPosition(), $this->ReadPropertyBoolean('AlarmInfo'));
 
         //support of ShoppingList
-        if ($this->ReadPropertyBoolean('ShoppingList')) {
-            $this->RegisterVariableString('ShoppingList', $this->Translate('ShoppingList'), '~HTMLBox', $this->_getPosition());
-        }
+        $this->MaintainVariable('ShoppingList', $this->Translate('ShoppingList'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('ShoppingList'));
 
         //support of TaskList
-        if ($this->ReadPropertyBoolean('TaskList')) {
-            $this->RegisterVariableString('TaskList', $this->Translate('TaskList'), '~HTMLBox', $this->_getPosition());
-        }
+        $this->MaintainVariable('TaskList', $this->Translate('TaskList'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('TaskList'));
 
         // Cover as HTML image
-        if ($this->ReadPropertyBoolean('Cover')) {
-            $this->RegisterVariableString('Cover_HTML', $this->Translate('Cover'), '~HTMLBox', $this->_getPosition());
-        }
+        $this->MaintainVariable('Cover_HTML', $this->Translate('Cover'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('Cover'));
 
         // Title as HTML
-        if ($this->ReadPropertyBoolean('Title')) {
-            $this->RegisterVariableString('Title_HTML', $this->Translate('Title'), '~HTMLBox', $this->_getPosition());
-        }
+        $this->MaintainVariable('Title_HTML', $this->Translate('Title'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('Title'));
 
         // Subtitle 1 as HTML
-        if ($this->ReadPropertyBoolean('Subtitle1')) {
-            $this->RegisterVariableString('Subtitle_1_HTML', $this->Translate('Subtitle 1'), '~HTMLBox', $this->_getPosition());
-        }
+        $this->MaintainVariable('Subtitle_1_HTML', $this->Translate('Subtitle 1'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('Subtitle1'));
 
         // Subtitle 2 as HTML
-        if ($this->ReadPropertyBoolean('Subtitle2')) {
-            $this->RegisterVariableString('Subtitle_2_HTML', $this->Translate('Subtitle 2'), '~HTMLBox', $this->_getPosition());
-        }
+        $this->MaintainVariable('Subtitle_2_HTML', $this->Translate('Subtitle 2'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('Subtitle2'));
 
         if ($this->ReadPropertyBoolean('routines_wf')) {
             $automations = $this->GetAllAutomations();
@@ -1881,8 +1905,12 @@ class EchoRemote extends IPSModule
             $this->EnableAction('Automation');
         }
 
-        $this->RegisterVariableInteger('last_action', $this->Translate('Last Action'), '~UnixTimestamp', $this->_getPosition());
-        $this->RegisterVariableString('summary', $this->Translate('Last Command'), '', $this->_getPosition());
+        $keep = in_array('FLASH_BRIEFING', $caps, true);
+        $this->MaintainVariable('last_action', $this->Translate('Last Action'), 1, '~UnixTimestamp', $this->_getPosition(), $keep);
+        $this->MaintainVariable('summary', $this->Translate('Last Command'), 3, '', $this->_getPosition(), $keep);
+
+        $this->MaintainVariable('OnlineStatus', $this->Translate('Online status'), 0, '~Switch', $this->_getPosition(), $this->ReadPropertyBoolean('OnlineStatus'));
+
     }
 
     private function CheckExistence($ident)
@@ -1907,6 +1935,25 @@ class EchoRemote extends IPSModule
     }
 
     private function GetDeviceInfo()
+    {
+        
+        $deviceInfo = $this->ReadAttributeString('DeviceInfo');
+
+        if ($deviceInfo == '')
+        {
+            $deviceInfo = $this->RequestDeviceInfo();
+            if ($deviceInfo !== false)
+            {
+                $this->WriteAttributeString('DeviceInfo', json_encode($deviceInfo));
+                return $deviceInfo;
+            }
+        }
+
+        return json_decode($deviceInfo, true);
+
+    }
+
+    private function RequestDeviceInfo()
     {
         $this->SendDebug(__FUNCTION__, 'started', 0);
 
@@ -2089,10 +2136,7 @@ class EchoRemote extends IPSModule
 
     private function Covername(): string
     {
-        $name = IPS_GetName($this->InstanceID);
-        $search = ['ä', 'ö', 'ü', 'Ä', 'Ö', 'Ü', 'ß', ' '];
-        $replace = ['ae', 'oe', 'ue', 'Ae', 'Oe', 'Ue', 'ss', '_'];
-        return 'echocover' . str_replace($search, $replace, $name);
+        return 'cover.' . $this->InstanceID;
     }
 
     private function CreateMediaImage(string $ident, int $position): void
@@ -2128,6 +2172,22 @@ class EchoRemote extends IPSModule
             IPS_SetMediaContent($MediaID, $Content);  // Base64 codiertes Bild ablegen
             IPS_SendMediaEvent($MediaID); //aktualisieren
         }
+    }
+
+    private function DeleteMediaImage( string $ident )
+    {
+        $MediaID = @$this->GetIDForIdent($ident);
+
+        if ($MediaID !== false)
+            IPS_DeleteMedia($MediaID , true);
+    }
+
+    private function RefreshCover(string $imageurl): void
+    {
+        $Content = base64_encode(file_get_contents($imageurl)); // Bild Base64 codieren
+        //$this->SendDebug("Image URL", $imageurl, 0);
+        IPS_SetMediaContent($this->GetIDForIdent('MediaImageCover'), $Content);  // Base64 codiertes Bild ablegen
+        IPS_SendMediaEvent($this->GetIDForIdent('MediaImageCover')); //aktualisieren
     }
 
     /** GetTuneInStationID
@@ -2414,13 +2474,6 @@ class EchoRemote extends IPSModule
         }
     }
 
-    private function RefreshCover(string $imageurl): void
-    {
-        $Content = base64_encode(file_get_contents($imageurl)); // Bild Base64 codieren
-        //$this->SendDebug("Image URL", $imageurl, 0);
-        IPS_SetMediaContent($this->GetIDForIdent('MediaImageCover'), $Content);  // Base64 codiertes Bild ablegen
-        IPS_SendMediaEvent($this->GetIDForIdent('MediaImageCover')); //aktualisieren
-    }
 
     public function UpdateAlarm(): bool
     {
@@ -2693,9 +2746,9 @@ class EchoRemote extends IPSModule
                 'suffix'  => 'seconds',
                 'minimum' => 0],
             [
-                'name'    => 'DND',
+                'name'    => 'PlayerControl',
                 'type'    => 'CheckBox',
-                'caption' => 'setup variable for Do not disturb'],
+                'caption' => 'setup variables for media player control'],
             [
                 'name'    => 'ExtendedInfo',
                 'type'    => 'CheckBox',
@@ -2704,6 +2757,10 @@ class EchoRemote extends IPSModule
                 'name'    => 'Mute',
                 'type'    => 'CheckBox',
                 'caption' => 'setup variable for mute'],
+            [
+                'name'    => 'DND',
+                'type'    => 'CheckBox',
+                'caption' => 'setup variable for Do not disturb'],
             [
                 'name'    => 'AlarmInfo',
                 'type'    => 'CheckBox',
@@ -2716,6 +2773,10 @@ class EchoRemote extends IPSModule
                 'name'    => 'TaskList',
                 'type'    => 'CheckBox',
                 'caption' => 'setup variable for a task list'],
+            [
+                'name'    => 'OnlineStatus',
+                'type'    => 'CheckBox',
+                'caption' => 'setup variable for online status'],
             [
                 'type'    => 'ExpansionPanel',
                 'caption' => 'Alexa Routines',
