@@ -64,12 +64,18 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 ## Changelog
 
 Version 2.2 (development)
-* Neu: TextToSpeechVolume() ändert die Lautstärke der Ansage und setzt sie danach wieder zurück
-* Change: TextToSpeechEx() zusätzlicher options-Parameter muss übergeben werden (ermöglicht Anpassung der Lautstärke)
-* Neu: Variable für Online-Status
-* Neu: Variablen für Player-Steuerung können de-/aktiviert werden
-* Fix: Variablen, die in der Instanz-Konfiguration deaktiviert werden, werden nun korrekt gelöscht
-* Change: Neues Profil für Mute-Variable (invertiert zum vorherigen Profil)
+* Neu: 
+   * TextToSpeechVolume() und TextToSpeechEx() ändern die Lautstärke der Ansage und setzen sie danach wieder zurück
+   * Variable für Online-Status
+   * Variablen für Player-Steuerung können de-/aktiviert werden
+* Change: 
+   * TextToSpeechEx() zusätzlicher options-Parameter muss übergeben werden (siehe Funktions-Doku)
+   * Neues Profil für Mute-Variable (invertiert zum vorherigen Profil)
+   * Interner Datenfluss vereinheitlicht
+   * Nicht-unterstützte Funktionen entfernt (PlayAlbum, PlaySong, PlayPlaylist, PlayAmazonMusic, PlayAmazonPrimePlaylist, GetAmazonPrimeStationSectionList, SendDelete)
+* Fix: 
+   * Variablen, die in der Instanz-Konfiguration deaktiviert wurden, werden nun korrekt gelöscht
+   * SetVolume() nutzt alternative Methode, sofern der Aufruf fehlgeschlagen ist
 
 Version 2.1 (2023-03-14)
 

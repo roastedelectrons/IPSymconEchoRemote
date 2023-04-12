@@ -500,14 +500,12 @@ class AmazonEchoIO extends IPSModule
     /**  Send to Echo API
      *
      * @param string $url
-     * @param array $header
      * @param array $postfields
-     * @param bool|null $optpost
      * @param string $type
      *
      * @return mixed
      */
-    private function SendEcho(string $url, array $header, array $postfields = null, bool $optpost = null, string $type = null)
+    private function SendEcho(string $url, array $postfields = null, string $method = null)
     {
 
         if ( $this->GetStatus() != 102 )
@@ -517,7 +515,9 @@ class AmazonEchoIO extends IPSModule
             return ['http_code' => 502, 'header' => '', 'body' => 'EchoIO not active. Status: '.$this->GetStatus() ];
         }
 
-        return $this->HttpRequest($url, $header, $postfields, $optpost, $type );
+        $header = $this->GetHeader();
+
+        return $this->HttpRequest($url, $header, $postfields, null, $method );
     }
 
     /**  Send http request
@@ -551,19 +551,10 @@ class AmazonEchoIO extends IPSModule
         $options[CURLOPT_COOKIEFILE] = $this->ReadAttributeString('CookiesFileName'); //this file is read
 
 
-        if ($postfields !== null) {
-            if (isset($postfields['type'])) {
-                if($postfields['type'] === 'DELETE'){
-                    $this->SendDebug(__FUNCTION__, 'Type: DELETE', 0);
-                    $options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
-                }else {
-                    $this->SendDebug(__FUNCTION__, 'Postfields: ' . json_encode($postfields), 0);
-                    $options[CURLOPT_POSTFIELDS] = json_encode($postfields);
-                }
-            }else {
-                $this->SendDebug(__FUNCTION__, 'Postfields: ' . json_encode($postfields), 0);
-                $options[CURLOPT_POSTFIELDS] = json_encode($postfields);
-            }
+        if ($postfields !== null) 
+        {
+            $this->SendDebug(__FUNCTION__, 'Postfields: ' . json_encode($postfields), 0);
+            $options[CURLOPT_POSTFIELDS] = json_encode($postfields);
         }
 
         if ($optpost !== null && $type == null) {
@@ -572,6 +563,9 @@ class AmazonEchoIO extends IPSModule
 
         if ($type == 'PUT') {
             $options[CURLOPT_CUSTOMREQUEST] = 'PUT';
+        }
+        if ($type == 'DELETE') {
+            $options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
         }
 
         $this->SendDebug(__FUNCTION__, 'Options: ' . json_encode($options), 0);
@@ -809,15 +803,12 @@ class AmazonEchoIO extends IPSModule
         
         $cached = false;
 
-
-        $header = $this->GetHeader();
-
         $getfields = [
             'cached' => $cached ? 'true' : 'false'];
 
         $url = 'https://' . $this->GetAlexaURL() . '/api/devices-v2/device?' . http_build_query($getfields);
 
-        $result = $this->SendEcho($url, $header);
+        $result = $this->SendEcho($url);
 
         if ($result['http_code'] !== 200) {
             return $result;
@@ -1087,17 +1078,11 @@ class AmazonEchoIO extends IPSModule
         return $last_device;
     }
 
-    private function CustomCommand(string $url, array $postfields = null, bool $optpost = null)
+    private function CustomCommand(string $url, array $postfields = null, string $method = 'GET')
     {
         $url = str_replace(['{AlexaURL}', '{AmazonURL}'], [$this->GetAlexaURL(), $this->GetAmazonURL()], $url);
 
-        $header = $this->GetHeader();
-
-        if ($postfields === null) {
-            return $this->SendEcho($url, $header, null, $optpost);
-        }
-
-        return $this->SendEcho($url, $header, $postfields, $optpost);
+        return $this->SendEcho($url, $postfields, $method);
     }
 
     private function SendDataToChild($deviceSerial, $deviceType, $type, $data)
@@ -1122,136 +1107,60 @@ class AmazonEchoIO extends IPSModule
     {
         $this->SendDebug(__FUNCTION__, 'Incoming: ' . $JSONString, 0);
         // Empfangene Daten von der Device Instanz
-        $data = json_decode($JSONString, false)->Buffer;
+        $data = json_decode($JSONString, true);
 
-        if (!property_exists($data, 'method')) {
-            trigger_error('Property \'method\' is missing');
+        if (!isset($data['Type'])) {
+            trigger_error('Property \'Type\' is missing');
             return false;
         }
 
-        $this->SendDebug(__FUNCTION__, '== started == (Method \'' . $data->method . '\')', 0);
+        $this->SendDebug(__FUNCTION__, '== started == (Type \'' . $data['Type'] . '\')', 0);
         //$this->SendDebug(__FUNCTION__, 'Method: ' . $data->method, 0);
 
-        $buffer = json_decode($JSONString, true)['Buffer'];
+        $payload = $data['Payload'];
 
-        switch ($data->method) {
-            case 'NpCommand':
-                $getfields = $buffer['getfields'];
-                $postfields = $buffer['postfields'];
+        switch ($data['Type']) {
 
-                $result = $this->NpCommand($getfields, $postfields);
-                break;
+            case 'SendEcho':
+                $url = 'https://'. $this->GetAlexaURL() . $data['Payload']['url'];
+                $method = '';
+                $postfields = null;
+                if ( isset($data['Payload']['method'])) $method = $data['Payload']['method'];
+                if ( isset($data['Payload']['postfields'])) $postfields = $data['Payload']['postfields'];
 
-            case 'NpPlayer':
-                $getfields = $buffer['getfields'];
-
-                $result = $this->NpPlayer($getfields);
-                break;
-
-            case 'NpQueue':
-                $getfields = $buffer['getfields'];
-
-                $result = $this->NpQueue($getfields);
-                break;
-
-            case 'DoNotDisturb':
-                $putfields = $buffer['postfields'];
-
-                $result = $this->DoNotDisturb($putfields);
-                break;
-
-            case 'ValidateBehaviorsOperation':
-                $postfields = $buffer['postfields'];
-
-                $result = $this->ValidateBehaviorsOperation($postfields);
+                $result = $this->SendEcho($url, $postfields, $method);
                 break;
 
             case 'BehaviorsPreview':
-                $postfields = $buffer['postfields'];
+                $postfields = $payload['postfields'];
 
                 $result = $this->BehaviorsPreview($postfields);
                 break;
 
-            case 'BehaviorsAutomations':
-
-                $result = $this->BehaviorsAutomations();
-                break;
-
             case 'BehaviorsPreviewAutomation':
-                $deviceinfos = $buffer['postfields']; //the postfields contain the device infos
-                $automation = $buffer['automation'];
+                $deviceinfos = $payload['postfields']; //the postfields contain the device infos
+                $automation = $payload['automation'];
                 $result = $this->BehaviorsPreviewAutomation($deviceinfos, $automation);
                 break;
 
-            case 'CloudplayerQueueandplay':
-                $getfields = $buffer['getfields'];
-                $postfields = $buffer['postfields'];
-
-                $result = $this->CloudplayerQueueandplay($getfields, $postfields);
-                break;
-
-            case 'TuneinQueueandplay':
-                $getfields = $buffer['getfields'];
-                $postfields = $buffer['postfields'];
-
-                $result = $this->TuneinQueueandplay($getfields, $postfields);
-                break;
-
-            case 'MediaState':
-                $getfields = $buffer['getfields'];
-
-                $result = $this->MediaState($getfields);
-                break;
-
-            case 'Notifications':
-                $result = $this->Notifications();
-                break;
-
-            case 'ToDos':
-                $getfields = $buffer['getfields'];
-
-                $result = $this->ToDos($getfields);
-                break;
-
-            case 'Activities':
-                $getfields = $buffer['getfields'];
-
-                $result = $this->Activities($getfields);
-                break;
-
-            case 'BluetoothDisconnectSink':
-                $getfields = $buffer['getfields'];
-
-                $result = $this->BluetoothDisconnect($getfields);
-                break;
-
-            case 'BluetoothPairSink':
-                $getfields = $buffer['getfields'];
-                $postfields = $buffer['postfields'];
-
-                $result = $this->BluetoothConnect($getfields, $postfields);
-                break;
-
-            case 'Bluetooth':
-
-                $result = $this->GetBluetoothDevices();
-                break;
-
             case 'CustomCommand':
-                $postfields = $buffer['postfields'] ?? null;
-                $optpost = $buffer['optpost'] ?? null;
-                if (isset($buffer['getfields'])) {
-                    $url = $buffer['url'] . http_build_query($buffer['getfields']);
+                // DEPRECATED will be replaced by SendEcho
+                $postfields = null;
+                $method = '';
+
+                if (isset($payload['postfields'] ))
+                    $postfields = $payload['postfields'];
+
+                if (isset($payload['method'] ))
+                    $postfields = $payload['method'];
+
+                if (isset($payload['getfields'])) {
+                    $url = $payload['url'] . http_build_query($payload['getfields']);
                 } else {
-                    $url = $buffer['url'];
+                    $url = $payload['url'];
                 }
 
-                $result = $this->CustomCommand($url, $postfields, $optpost);
-                break;
-
-            case 'SendDelete':
-                $url = $buffer['url'];
-                $result = $this->SendDelete($url);
+                $result = $this->CustomCommand($url, $postfields, $method);
                 break;
 
             case 'GetDevices':
@@ -1262,29 +1171,16 @@ class AmazonEchoIO extends IPSModule
                 $result = $this->GetDNDState();
                 break;
 
-            case 'PrimeSections':
-                $getfields = $buffer['getfields'];
-
-                //$result = $this->PrimeSections($getfields, [], [], ['stationTitle', 'seedId']);
-                $result = $this->PrimeSections(
-                    $getfields, $buffer['additionalData']['filterSections'], $buffer['additionalData']['filterCategories'],
-                    $buffer['additionalData']['stationItems']
-                );
-                break;
-
             case 'GetCustomerID':
-                $result = ['http_code' => 200, 'header' => '', 'body' => $this->GetBuffer('customerID')];
-                //$result = ['http_code' => 200, 'header' => '', 'body' => $this->ReadAttributeString('customerID')]; //TEST
-                $this->SendDebug(__FUNCTION__, 'Return: ' . $this->GetBuffer('customerID'), 0);
-
+                $result = $this->GetBuffer('customerID');
                 break;
 
             case 'GetLanguage':
-                $result = ['http_code' => 200, 'header' => '', 'body' => $this->GetLanguage() ];
+                $result = $this->GetLanguage();
                 break;
 
             default:
-                trigger_error('Method \'' . $data->method . '\' not yet supported');
+                trigger_error('Type \'' . $data['Type'] . '\' not yet supported');
                 return false;
         }
 
@@ -1293,32 +1189,6 @@ class AmazonEchoIO extends IPSModule
         return $ret;
     }
 
-    private function NpCommand(array $getfields, array $postfields)
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/np/command?' . http_build_query($getfields);
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header, $postfields);
-    }
-
-    private function NpPlayer(array $getfields)
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/np/player?' . http_build_query($getfields);
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header);
-    }
-
-    private function NpQueue(array $getfields)
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/np/queue?' . http_build_query($getfields);
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header);
-    }
 
     public function UpdateAllDeviceVolumes()
     {
@@ -1336,9 +1206,7 @@ class AmazonEchoIO extends IPSModule
 
         $url = 'https://' . $this->GetAlexaURL() . '/api/devices/deviceType/dsn/audio/v1/allDeviceVolumes';
 
-        $header = $this->GetHeader();
-
-        $result = $this->SendEcho($url, $header); 
+        $result = $this->SendEcho($url); 
         
         if ($result['http_code'] == 200)
         {
@@ -1387,19 +1255,6 @@ class AmazonEchoIO extends IPSModule
 
         return false;
     }
-
-    private function DoNotDisturb($putfields)
-    {
-        $url = 'https://alexa.' . $this->GetAmazonURL() . '/api/dnd/status';
-        $postfields = [
-            'deviceSerialNumber' => $putfields['deviceSerialNumber'],
-            'deviceType' => $putfields['deviceType'],
-            'enabled' => $putfields['enabled']];
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header, $postfields, false, 'PUT');
-    }
-
     
     private function BehaviorsPreview( array $postfields)
     {
@@ -1570,12 +1425,11 @@ class AmazonEchoIO extends IPSModule
             'sequenceJson' => json_encode($sequence),
             'status' => 'ENABLED'];
 
-        $header = $this->GetHeader();
 
         if ( IPS_SemaphoreEnter ( 'BehaviorsPreview.'.$this->InstanceID , 6000) )
         {
 
-            $result = $this->SendEcho($url, $header, $postfields);
+            $result = $this->SendEcho($url, $postfields);
 
             // Rate limit for BehaviorsPreview requests: 1 request per 2 seconds
             IPS_Sleep( 2000 );
@@ -1624,46 +1478,9 @@ class AmazonEchoIO extends IPSModule
 
     }
 
-    /** ValidateBehaviorsOperation
-     * @return array|false|mixed
-     */
-    private function ValidateBehaviorsOperation( array $postfields )
-    {
-        /*
-        Postfields should contain the following
-
-        $postfields = [
-            'type' => $sequenceCmd,
-            'operationPayload' => json_encode($operationPayload)
-        ];
-
-        */
-        $this->SendDebug(__FUNCTION__, 'Postfields ' . json_encode($postfields), 0);
-
-        $header = $this->GetHeader();
-
-        $url = 'https://' . $this->GetAlexaURL() . '/api/behaviors/operation/validate';
-       
-        return $this->SendEcho($url, $header, $postfields);
-    }
-
-
-    /** V2 Routine
-     * @return array|false|mixed
-     */
-    private function BehaviorsAutomations()
-    {
-        $header = $this->GetHeader();
-        $url = 'https://' . $this->GetAlexaURL() . '/api/behaviors/v2/automations';
-
-        return $this->SendEcho($url, $header);
-    }
-
     private function BehaviorsPreviewAutomation(array $deviceinfos, array $automation)
     {
         $url = 'https://alexa.' . $this->GetAmazonURL() . '/api/behaviors/preview';
-
-        $header = $this->GetHeader();
 
         $postfields = [
                 'behaviorId' => $automation['automationId'],
@@ -1686,145 +1503,16 @@ class AmazonEchoIO extends IPSModule
             }
         }
         $this->SendDebug('Trigger Automation', 'automation name: ' . $automation_name . ', automation utterance: ' . $utterance, 0);
-        return $this->SendEcho($url, $header, $postfields);
-    }
-
-    private function CloudplayerQueueandplay(array $getfields, array $postfields)
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/cloudplayer/queue-and-play?' . http_build_query($getfields);
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header, $postfields);
-    }
-
-    private function TuneinQueueandplay(array $getfields, array $postfields)
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/entertainment/v1/player/queue?' . http_build_query($getfields);
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header, $postfields, null, 'PUT');
-    }
-
-    private function MediaState($getfields)
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/media/state?' . http_build_query($getfields);
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header);
-    }
-
-    private function Notifications()
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/notifications?';
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header);
-    }
-
-    private function ToDos($getfields)
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/todos?' . http_build_query($getfields);
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header);
-    }
-
-    private function Activities($getfields)
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/activities?' . http_build_query($getfields);
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header); //it seems as if postfields are not supported within this command
-    }
-
-    private function BluetoothDisconnect($getfields)
-    {
-        $url =
-            'https://' . $this->GetAlexaURL() . '/api/bluetooth/disconnect-sink/' . $getfields['deviceType'] . '/' . $getfields['deviceSerialNumber'];
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header, null, true);
-    }
-
-    private function BluetoothConnect($getfields, $postfields)
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/bluetooth/pair-sink/' . $getfields['deviceType'] . '/' . $getfields['deviceSerialNumber'];
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header, $postfields);
-    }
-
-    private function GetBluetoothDevices()
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/bluetooth?cached=false';
-
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header);
-    }
-
-    private function SendDelete(string $url)
-    {
-        $header = $this->GetHeader();
-
-        return $this->SendEcho($url, $header, ['type' => 'DELETE'], false);
+        return $this->SendEcho($url, $postfields);
     }
 
     private function GetDNDState()
     {
-        $header = $this->GetHeader();
         $url = 'https://' . $this->GetAlexaURL() . '/api/dnd/device-status-list';
 
-        return $this->SendEcho($url, $header);
+        return $this->SendEcho($url);
     }
 
-    private function PrimeSections($getfields, $filterSections, $filterCategories, $stationItems)
-    {
-        $url = 'https://' . $this->GetAlexaURL() . '/api/prime/prime-sections?' . http_build_query($getfields);
-
-        $header = $this->GetHeader();
-
-        $result = $this->SendEcho($url, $header);
-
-        if ($result['http_code'] === 200) {
-
-            //$arr     = json_decode($result['body'], true)['primeStationSectionList'][0]['categories'][0]['stations'];
-            $arr = json_decode($result['body'], true)['primeStationSectionList'];
-            $arr_neu = [];
-            foreach ($arr as $sectionKey => $section) {
-                if (!count($filterSections) || in_array($section['sectionId'], $filterSections, true)) {
-                    $arr_neu[$sectionKey]['sectionId'] = $section['sectionId'];
-                    $arr_neu[$sectionKey]['sectionName'] = $section['sectionName'];
-                    foreach ($section['categories'] as $categoryKey => $category) {
-                        if (!count($filterCategories) || in_array($category['categoryId'], $filterCategories, true)) {
-                            $arr_neu[$sectionKey]['categories'][$categoryKey]['categoryId'] = $category['categoryId'];
-                            $arr_neu[$sectionKey]['categories'][$categoryKey]['categoryName'] = $category['categoryName'];
-                            foreach ($category['stations'] as $stationKey => $station) {
-                                foreach ($station as $itemName => $item) {
-                                    if (in_array($itemName, $stationItems, true)) {
-                                        $arr_neu[$sectionKey]['categories'][$categoryKey]['stations'][$stationKey][$itemName] = $item;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            //echo substr(print_r($arr['primeStationSectionList'], true), 0, 100000);
-            //$result['body'] = json_encode(strlen(json_encode($arr_neu)));
-            $result['body'] = json_encode($arr_neu);
-        }
-
-        return $result;
-    }
 
     /**
      * build configuration form.
