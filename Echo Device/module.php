@@ -16,8 +16,13 @@ class EchoRemote extends IPSModule
     private const STATUS_INST_DEVICETYPE_IS_EMPTY = 210; // devicetype must not be empty.
     private const STATUS_INST_DEVICENUMBER_IS_EMPTY = 211; // devicenumber must not be empty
 
-    private $customerID = '';
+    const PREVIOUS = 0;
+    const STOP = 1;
+    const PLAY = 2;
+    const PAUSE = 3;
+    const NEXT = 4;
 
+    private $customerID = '';
     private $ParentID = 0;
     private int $position = 0;
 
@@ -211,23 +216,18 @@ class EchoRemote extends IPSModule
         $this->SendDebug('Echo Remote:', 'Request Action trigger device ' . $devicenumber . ' by Ident ' . $Ident, 0);
         if ($Ident === 'EchoRemote') {
             switch ($Value) {
-                case 0: // Rewind30s
-                    $this->Rewind30s();
-                    break;
-                case 1: // Previous
+                case self::PREVIOUS: // Previous
                     $this->Previous();
                     break;
-                case 2: // Pause / Stop
+                case self::STOP:
+                case self::PAUSE: // Pause / Stop
                     $this->Pause();
                     break;
-                case 3: // Play
+                case self::PLAY: // Play
                     $this->Play();
                     break;
-                case 4: // Next
+                case self::NEXT: // Next
                     $this->Next();
-                    break;
-                case 5: // Forward30s
-                    $this->Forward30s();
                     break;
             }
         }
@@ -344,7 +344,19 @@ class EchoRemote extends IPSModule
     {
         $result = $this->NpCommand('RewindCommand');
         if ($result['http_code'] === 200) {
-            $this->SetValue('EchoRemote', 0);
+            return true;
+        }
+        return false;
+    }
+
+    /** Forward 30s
+     *
+     * @return array|string
+     */
+    public function Forward30s()
+    {
+        $result = $this->NpCommand('ForwardCommand');
+        if ($result['http_code'] === 200) {
             return true;
         }
         return false;
@@ -358,7 +370,7 @@ class EchoRemote extends IPSModule
     {
         $result = $this->NpCommand('PreviousCommand');
         if ($result['http_code'] === 200) {
-            $this->SetValue('EchoRemote', 1);
+            //$this->SetValue('EchoRemote', self::PREVIOUS);
             return true;
         }
         return false;
@@ -372,7 +384,7 @@ class EchoRemote extends IPSModule
     {
         $result = $this->NpCommand('PauseCommand');
         if ($result['http_code'] === 200) {
-            $this->SetValue('EchoRemote', 2);
+            $this->SetValue('EchoRemote', self::PAUSE);
             return true;
         }
         return false;
@@ -386,7 +398,7 @@ class EchoRemote extends IPSModule
     {
         $result = $this->NpCommand('PlayCommand');
         if ($result['http_code'] === 200) {
-            $this->SetValue('EchoRemote', 3);
+            $this->SetValue('EchoRemote', self::PLAY);
             return true;
         }
         return false;
@@ -400,40 +412,12 @@ class EchoRemote extends IPSModule
     {
         $result = $this->NpCommand('NextCommand');
         if ($result['http_code'] === 200) {
-            $this->SetValue('EchoRemote', 4);
+            //$this->SetValue('EchoRemote', self::NEXT);
             return true;
         }
         return false;
     }
 
-    /** JumpToMediaId
-     *
-     * @param string $mediaID
-     *
-     * @return array|string
-     */
-    public function JumpToMediaId(string $mediaID)
-    {
-        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
-
-        $result = $this->NpCommand('JumpCommand', ['mediaId' => $mediaID]);
-
-        return $result['http_code'] === 200;
-    }
-
-    /** Forward 30s
-     *
-     * @return array|string
-     */
-    public function Forward30s()
-    {
-        $result = $this->NpCommand('ForwardCommand');
-        if ($result['http_code'] === 200) {
-            $this->SetValue('EchoRemote', 5);
-            return true;
-        }
-        return false;
-    }
 
     /** VolumeUp
      *
@@ -1537,13 +1521,13 @@ class EchoRemote extends IPSModule
             {
                 switch ($playerInfo['state']) {
                     case 'PLAYING':
-                        $this->SetValue('EchoRemote', 3);
+                        $this->SetValue('EchoRemote', self::PLAY);
                         break;
         
                     case null:
                     case 'PAUSED':
                     case 'IDLE':
-                        $this->SetValue('EchoRemote', 2);
+                        $this->SetValue('EchoRemote', self::PAUSE);
                         break;
         
                     default:
@@ -1871,18 +1855,17 @@ class EchoRemote extends IPSModule
 
         $keep = $playerControl && in_array('AMAZON_MUSIC', $caps, true);
         $this->RegisterProfileAssociation(
-            'Echo.Remote', 'Move', '', '', 0, 5, 0, 0, VARIABLETYPE_INTEGER, [
-                [0, $this->Translate('Rewind 30s'), 'HollowDoubleArrowLeft', -1],
-                [1, $this->Translate('Previous'), 'HollowLargeArrowLeft', -1],
-                [2, $this->Translate('Pause/Stop'), 'Sleep', -1],
-                [3, $this->Translate('Play'), 'Script', -1],
-                [4, $this->Translate('Next'), 'HollowLargeArrowRight', -1],
-                [5, $this->Translate('Forward 30s'), 'HollowDoubleArrowRight', -1]]
+            'Echo.Remote', 'Remote', '', '', 0, 5, 0, 0, VARIABLETYPE_INTEGER, [
+                [self::PREVIOUS, $this->Translate('Previous'), 'HollowLargeArrowLeft', -1],
+                [self::PAUSE, $this->Translate('Pause/Stop'), 'Sleep', -1],
+                [self::PLAY, $this->Translate('Play'), 'Script', -1],
+                [self::NEXT, $this->Translate('Next'), 'HollowLargeArrowRight', -1]
+            ]
         );
-        $this->MaintainVariable('EchoRemote', $this->Translate('Remote'), 1, 'Echo.Remote', $this->_getPosition(), $keep );
-        if ($keep) {
-            $this->EnableAction('EchoRemote');
-        }
+        $profile = '~PlaybackPreviousNext';
+        if ( !IPS_VariableProfileExists($profile) ) $profile = 'Echo.Remote';
+        $this->MaintainVariable('EchoRemote', $this->Translate('Remote'), 1, $profile, $this->_getPosition(), $keep );
+        @$this->MaintainAction('EchoRemote', $keep);
 
         //Shuffle Variable
         $keep = $playerControl && in_array('AMAZON_MUSIC', $caps, true);

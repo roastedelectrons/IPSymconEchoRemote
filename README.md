@@ -73,8 +73,9 @@ Version 2.2 (development)
 * Change: 
    * TextToSpeechEx() zusätzlicher options-Parameter muss übergeben werden (siehe Funktions-Doku)
    * Neues Profil für Mute-Variable (invertiert zum vorherigen Profil)
+   * Neues Profil für Remote-Variable
    * Interner Datenfluss vereinheitlicht
-   * Nicht-unterstützte Funktionen entfernt (PlayAlbum, PlaySong, PlayPlaylist, PlayAmazonMusic, PlayAmazonPrimePlaylist, GetAmazonPrimeStationSectionList, SendDelete)
+   * Nicht-unterstützte Funktionen entfernt (PlayAlbum, PlaySong, PlayPlaylist, PlayAmazonMusic, PlayAmazonPrimePlaylist, GetAmazonPrimeStationSectionList, SendDelete, JumpToMediaId)
 * Fix: 
    * Variablen, die in der Instanz-Konfiguration deaktiviert wurden, werden nun korrekt gelöscht
    * SetVolume() nutzt alternative Methode, sofern der Aufruf fehlgeschlagen ist
