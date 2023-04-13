@@ -67,6 +67,8 @@ class EchoRemote extends IPSModule
             {"position":33,"station":"1 Live","station_id":"s25260"}]'
         );
 
+        $this->RegisterPropertyString('FavoritesList', '[]');
+
         //        $this->RegisterPropertyString('TuneInStations', '');
         $this->RegisterPropertyInteger('updateinterval', 0);
         $this->RegisterPropertyBoolean('PlayerControl', true);
@@ -87,6 +89,8 @@ class EchoRemote extends IPSModule
         $this->RegisterPropertyInteger('Subtitle2Color', 0);
         $this->RegisterPropertyInteger('Subtitle2Size', 0);
         $this->RegisterPropertyBoolean('OnlineStatus', false);
+        $this->RegisterPropertyBoolean('EchoFavorites', false);
+        $this->RegisterPropertyBoolean('EchoTuneInRemote', true);
 
         $this->SetBuffer('CoverURL', '');
         $this->SetBuffer('Volume', '');
@@ -96,6 +100,7 @@ class EchoRemote extends IPSModule
         $this->RegisterAttributeString('routines', '[]');
         $this->RegisterPropertyBoolean('routines_wf', false);
         $this->RegisterAttributeString('DeviceInfo', '');
+        $this->RegisterAttributeString('MusicProviders', '');
 
         $this->ConnectParent('{C7F853A4-60D2-99CD-A198-2C9025E2E312}');
 
@@ -239,6 +244,22 @@ class EchoRemote extends IPSModule
         if ($Ident === 'EchoTuneInRemote_' . $devicenumber) {
             $stationid = $this->GetTuneInStationID($Value);
             $this->TuneIn($stationid);
+        }
+        if ($Ident === 'EchoFavorites') {
+            $this->SetValue('EchoFavorites', $Value);
+            $Value = json_decode($Value, true);
+            if ($Value !== false)
+                $this->PlayMusic($Value['searchPhrase'], $Value['musicProvider']);
+        }
+        if ($Ident === 'EchoFavoritesPlaylist') {
+            $this->SetValue('EchoFavoritesPlaylist', $Value);
+            $Value = json_decode($Value, true);
+            if ($Value !== false){
+                $current = $Value['current'];
+                $Value = $Value['entries'][$current ];
+                $this->PlayMusic($Value['searchPhrase'], $Value['musicProvider']);
+            }
+                
         }
         if ($Ident === 'EchoActions') {
             switch ($Value) {
@@ -1181,9 +1202,44 @@ class EchoRemote extends IPSModule
                 if ($provider['id'] != 'DEFAULT')
                     $list[ $provider['id'] ] = $provider['displayName'];
             }
+            $this->WriteAttributeString('MusicProviders', json_encode($list) );
         }
 
         return $list;
+    }
+
+    private function GetMusicProviersFormField()
+    {
+        $providers =  $this->ReadAttributeString('MusicProviders');
+
+        if ($providers == '')
+        {
+            $providers = $this->GetMusicProviders();
+        }
+        else
+        {
+            $providers = json_decode($providers, true);
+        }
+
+        $formField = array();
+        foreach( $providers as $id => $name)
+        {
+            $formField[] = [
+                'caption' => $name,
+                'value' => $id
+            ];
+        }
+        return $formField;
+    }
+
+    private function GetMusicProviderName( $id )
+    {
+        $providers =  json_decode( $this->ReadAttributeString('MusicProviders'), true);
+        if (isset( $providers[$id] ))
+        {
+            return $providers[$id];
+        }
+        return $id;
     }
 
     /** Get all automations
@@ -1476,19 +1532,23 @@ class EchoRemote extends IPSModule
             
             $playerInfo = $result['playerInfo'];
             $this->SendDebug('Playerinfo', json_encode($playerInfo), 0);
-            switch ($playerInfo['state']) {
-                case 'PLAYING':
-                    $this->SetValue('EchoRemote', 3);
-                    break;
-    
-                case null:
-                case 'PAUSED':
-                case 'IDLE':
-                    $this->SetValue('EchoRemote', 2);
-                    break;
-    
-                default:
-                    trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected state: ' . $playerInfo['state']);
+
+            if ($this->CheckExistence('EchoRemote') )
+            {
+                switch ($playerInfo['state']) {
+                    case 'PLAYING':
+                        $this->SetValue('EchoRemote', 3);
+                        break;
+        
+                    case null:
+                    case 'PAUSED':
+                    case 'IDLE':
+                        $this->SetValue('EchoRemote', 2);
+                        break;
+        
+                    default:
+                        trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected state: ' . $playerInfo['state']);
+                }
             }
     
             $imageurl = $playerInfo['mainArt']['url'] ?? null;
@@ -1501,7 +1561,7 @@ class EchoRemote extends IPSModule
                 );
             }
     
-            if (isset($playerInfo['transport']['repeat'])) {
+            if ($this->CheckExistence('EchoRepeat') && isset($playerInfo['transport']['repeat'])) {
                 switch ($playerInfo['transport']['repeat']) {
                     case null:
                         break;
@@ -1520,7 +1580,7 @@ class EchoRemote extends IPSModule
                 }
             }
     
-            if (isset($playerInfo['transport']['shuffle'])) {
+            if ($this->CheckExistence('EchoShuffle') && isset($playerInfo['transport']['shuffle'])) {
                 switch ($playerInfo['transport']['shuffle']) {
                     case null:
                         break;
@@ -1542,7 +1602,7 @@ class EchoRemote extends IPSModule
             if (is_null($volume)) {
                 $this->SendDebug('Playerinfo Volume', 'no volume information found', 0);
             } else {
-                if ($playerInfo['volume']['volume'] !== null) {
+                if ($this->CheckExistence('EchoVolume') && $playerInfo['volume']['volume'] !== null) {
                     $this->SetValue('EchoVolume', $playerInfo['volume']['volume']);
                 }
             }
@@ -1734,7 +1794,7 @@ class EchoRemote extends IPSModule
     {
         return json_encode(
             [
-                'elements' => $this->FormHead(),
+                'elements' => $this->FormElements(),
                 'actions'  => $this->FormActions(),
                 'status'   => $this->FormStatus()]
         );
@@ -1869,18 +1929,64 @@ class EchoRemote extends IPSModule
         }
 
         $this->MaintainVariable('Mute', $this->Translate('Mute'), 0, $profile, $this->_getPosition(), $keep);
-        if ($keep) { 
-            $this->EnableAction('Mute');
-        }
+        @$this->EnableAction('Mute');
 
         //Info Variable
         $keep = $playerControl && in_array('AMAZON_MUSIC', $caps, true);
         $this->MaintainVariable('EchoInfo', $this->Translate('Info'), 3, '~HTMLBox', $this->_getPosition(), $keep);
 
+        // Favorites
+        $keep = $this->ReadPropertyBoolean('EchoFavorites');
+        $profileName = '';
+        if ($keep)
+        {
+            $associations = [];
+
+            foreach (json_decode($this->ReadPropertyString('FavoritesList'), true) as $favorite) {
+                $value = [
+                    'musicProvider' => $favorite['musicProvider'],
+                    'searchPhrase' => $favorite['searchPhrase'],
+                ];
+                $name = $favorite['searchPhrase'] . ' ('. $this->GetMusicProviderName( $favorite['musicProvider'] ) .')';
+                $associations[] = [json_encode($value), $name, '', -1];
+            }
+            $profileName = 'Echo.Favorites.' . $this->InstanceID;
+            $this->RegisterProfileAssociation($profileName, 'Database', '', '', 0, 0, 0, 0, VARIABLETYPE_STRING, $associations);
+        }
+        $this->MaintainVariable('EchoFavorites', $this->Translate('Favorites'), 3, $profileName, $this->_getPosition(), $keep );
+        @$this->MaintainAction('EchoFavorites', $keep);
+
+        // Setup Favorites as Playlist for new Visualization
+        if ( IPS_VariableProfileExists('~Playlist') )
+        {
+            $this->MaintainVariable('EchoFavoritesPlaylist', $this->Translate('Favorites (Playlist)'), 3, '~Playlist', $this->_getPosition() -1 , $keep );
+            @$this->MaintainAction('EchoFavoritesPlaylist', $keep);
+
+            if ($keep)
+            {
+                $associations = [];
+
+                foreach (json_decode($this->ReadPropertyString('FavoritesList'), true) as $favorite) {
+                    $playlistEntries[] = [
+                        'artist' => $this->GetMusicProviderName( $favorite['musicProvider'] ) ,
+                        'song' => $favorite['searchPhrase'],
+                        'musicProvider' => $favorite['musicProvider'],
+                        'searchPhrase' => $favorite['searchPhrase'],
+                    ];
+                } 
+                $playlist = [
+                    'current' => -1,
+                    'entries' => $playlistEntries
+                ];
+                $this->SetValue('EchoFavoritesPlaylist', json_encode($playlist));
+            }
+        } 
+
         //TuneIn Variable
-        $keep = $playerControl && in_array('TUNE_IN', $caps, true);
+        $keep = $this->ReadPropertyBoolean('EchoTuneInRemote') && in_array('TUNE_IN', $caps, true);
+        $profileName = '';
+        $devicenumber = $this->ReadPropertyString('Devicenumber');
         if ($keep) {
-            $devicenumber = $this->ReadPropertyString('Devicenumber');
             if ($devicenumber !== '') {
                 $associations = [];
                 foreach (json_decode($this->ReadPropertyString('TuneInStations'), true) as $tuneInStation) {
@@ -1888,10 +1994,10 @@ class EchoRemote extends IPSModule
                 }
                 $profileName = 'Echo.TuneInStation.' . $devicenumber;
                 $this->RegisterProfileAssociation($profileName, 'Music', '', '', 0, 0, 0, 0, VARIABLETYPE_INTEGER, $associations);
-                $this->MaintainVariable('EchoTuneInRemote_' . $devicenumber, 'TuneIn Radio', 1, $profileName, $this->_getPosition(), $keep );
-                $this->EnableAction('EchoTuneInRemote_' . $devicenumber);
             } 
         }
+        $this->MaintainVariable('EchoTuneInRemote_' . $devicenumber, 'TuneIn Radio', 1, $profileName, $this->_getPosition(), $keep );
+        @$this->MaintainAction('EchoTuneInRemote_' . $devicenumber, $keep);
         
 
         //Extended Info
@@ -1900,13 +2006,14 @@ class EchoRemote extends IPSModule
         $this->MaintainVariable('Title', $this->Translate('Title'), 3, $profile, $this->_getPosition(),$keep );
 
         if ( IPS_VariableProfileExists('~Artist') ) $profile = '~Artist'; else $profile = '';
-        $this->MaintainVariable('Subtitle_1', $this->Translate('Subtitle 1'), 3, $profile, $this->_getPosition(), $keep);
+        $this->MaintainVariable('Subtitle_1', $this->Translate('Artist (Subtitle 1)'), 3, $profile, $this->_getPosition(), $keep);
 
-        $this->MaintainVariable('Subtitle_2', $this->Translate('Subtitle 2'), 3, '', $this->_getPosition(), $keep);
+        $this->MaintainVariable('Subtitle_2', $this->Translate('Album (Subtitle 2)'), 3, '', $this->_getPosition(), $keep);
         if ($keep) {
             $this->CreateMediaImage('MediaImageCover', 'Cover',  $this->_getPosition());
             $this->RefreshCover( $this->GetBuffer('CoverURL') );
         } else {
+            $this->_getPosition();
             $this->DeleteMediaImage('MediaImageCover');
         }
 
@@ -1932,15 +2039,14 @@ class EchoRemote extends IPSModule
         }
 
         // Do not disturb
+        $keep = $this->ReadPropertyBoolean('DND');
         $this->RegisterProfileAssociation(
             'Echo.Remote.DND', 'Speaker', '', '', 0, 1, 0, 0, VARIABLETYPE_BOOLEAN, [
                 [false, $this->Translate('Do not disturb off'), 'Speaker', 0x00ff55],
                 [true, $this->Translate('Do not disturb'), 'Speaker', 0xff3300]]
         );
-        $this->MaintainVariable('DND', $this->Translate('Do not disturb'), 0, 'Echo.Remote.DND', $this->_getPosition(), $this->ReadPropertyBoolean('DND') );
-        if ($this->ReadPropertyBoolean('DND')) {
-            $this->EnableAction('DND');
-        }
+        $this->MaintainVariable('DND', $this->Translate('Do not disturb'), 0, 'Echo.Remote.DND', $this->_getPosition(), $keep );
+        @$this->MaintainAction('DND', $keep);
 
         //support of alarm
         $this->MaintainVariable('nextAlarmTime', $this->Translate('next Alarm'), 1, '~UnixTimestamp', $this->_getPosition(), $this->ReadPropertyBoolean('AlarmInfo'));
@@ -2199,10 +2305,10 @@ class EchoRemote extends IPSModule
 
         IPS_SetVariableProfileIcon($Name, $Icon);
         IPS_SetVariableProfileText($Name, $Prefix, $Suffix);
-        IPS_SetVariableProfileDigits($Name, $Digits); //  Nachkommastellen
-        IPS_SetVariableProfileValues(
-            $Name, $MinValue, $MaxValue, $StepSize
-        ); // string $ProfilName, float $Minimalwert, float $Maximalwert, float $Schrittweite
+        if ($Vartype == VARIABLETYPE_FLOAT)
+            IPS_SetVariableProfileDigits($Name, $Digits); //  Nachkommastellen
+        if ($Vartype == VARIABLETYPE_FLOAT || $Vartype == VARIABLETYPE_INTEGER)
+            IPS_SetVariableProfileValues($Name, $MinValue, $MaxValue, $StepSize); // string $ProfilName, float $Minimalwert, float $Maximalwert, float $Schrittweite
         $this->SendDebug(
             'Variablenprofil konfiguriert',
             'Name: ' . $Name . ', Icon: ' . $Icon . ', Prefix: ' . $Prefix . ', $Suffix: ' . $Suffix . ', Digits: ' . $Digits . ', MinValue: '
@@ -2235,7 +2341,7 @@ class EchoRemote extends IPSModule
         if (is_array($Associations)) {
             //zunächst werden alte Assoziationen gelöscht
             //bool IPS_SetVariableProfileAssociation ( string $ProfilName, float $Wert, string $Name, string $Icon, integer $Farbe )
-            if ($Vartype === 1 || $Vartype === 2) { // 0 boolean, 1 int, 2 float, 3 string
+            if ($Vartype !== 0) { // 0 boolean, 1 int, 2 float, 3 string
                 foreach (IPS_GetVariableProfile($Name)['Associations'] as $Association) {
                     IPS_SetVariableProfileAssociation($Name, $Association['Value'], '', '', -1);
                 }
@@ -2545,7 +2651,10 @@ class EchoRemote extends IPSModule
 </main>
 </body>
 </html>';
-        $this->SetValue('EchoInfo', $html);
+        if ($this->CheckExistence('EchoInfo') )
+        {
+            $this->SetValue('EchoInfo', $html);
+        }     
 
         if ($this->ReadPropertyBoolean('ExtendedInfo')) {
             $this->SetValue('Title', $title);
@@ -2710,7 +2819,7 @@ class EchoRemote extends IPSModule
      *
      * @return array
      */
-    private function FormHead(): array
+    private function FormElements(): array
     {
         return [
             [
@@ -2730,11 +2839,11 @@ class EchoRemote extends IPSModule
             [
                 'name'    => 'PlayerControl',
                 'type'    => 'CheckBox',
-                'caption' => 'setup variables for media player control'],
+                'caption' => 'setup variables for media player control (remote, shuffle, repeat, volume)'],
             [
                 'name'    => 'ExtendedInfo',
                 'type'    => 'CheckBox',
-                'caption' => 'setup variables for extended info (title, subtitle_1, subtitle_2, cover)'],
+                'caption' => 'setup variables for extended info (title, artist, album, cover)'],
             [
                 'name'    => 'Mute',
                 'type'    => 'CheckBox',
@@ -2759,6 +2868,47 @@ class EchoRemote extends IPSModule
                 'name'    => 'OnlineStatus',
                 'type'    => 'CheckBox',
                 'caption' => 'setup variable for online status'],
+
+            [
+                'type'    => 'ExpansionPanel',
+                'caption' => 'Favorites',
+                'items'   => [
+                    [
+                        'name'    => 'EchoFavorites',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variable for favorites'
+                    ],
+                    [
+                        'type'     => 'List',
+                        'name'     => 'FavoritesList',
+                        'caption'  => 'Favorites',
+                        'rowCount' => 10,
+                        'add'      => true,
+                        'delete'   => true,
+                        'edit'   => true,
+                        'changeOrder' => true,
+                        'columns'  => [
+                            [
+                                'name'    => 'searchPhrase',
+                                'caption' => 'Search Phrase',
+                                'width'   => 'auto',
+                                'save'    => true,
+                                'add'     => '',
+                                'edit'    => [
+                                    'type' => 'ValidationTextBox']],
+                            [
+                                'name'    => 'musicProvider',
+                                'caption' => 'Music Provider',
+                                'width'   => '200px',
+                                'save'    => true,
+                                'add'     => 'DEFAULT',
+                                'edit'    => [
+                                    'type' => 'Select',
+                                    'options' => $this->GetMusicProviersFormField()
+                                ],
+                                'visible' => true]]]
+                ]
+            ],
             [
                 'type'    => 'ExpansionPanel',
                 'caption' => 'Alexa Routines',
@@ -2855,6 +3005,10 @@ class EchoRemote extends IPSModule
                 'caption' => 'TuneIn stations',
                 'items'   => [
                     [
+                        'name'    => 'EchoTuneInRemote',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variable for TuneIn stations'],
+                    [
                         'type'     => 'List',
                         'name'     => 'TuneInStations',
                         'caption'  => 'TuneIn stations',
@@ -2891,7 +3045,8 @@ class EchoRemote extends IPSModule
                                 'edit'    => [
                                     'type' => 'ValidationTextBox'],
                                 'visible' => true]]]
-                ]]];
+                ]]
+            ];
     }
 
     private function SelectionFontSize()

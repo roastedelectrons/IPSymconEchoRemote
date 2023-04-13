@@ -66,8 +66,10 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 Version 2.2 (development)
 * Neu: 
    * TextToSpeechVolume() und TextToSpeechEx() ändern die Lautstärke der Ansage und setzen sie danach wieder zurück
+   * Favoriten: Variable zum Starten von Musik verschiedener Musikanbieter (Favoritenliste wird in Instanz-Konfiguration angelegt. Siehe Dokumentation von PlayMusic() zur Verwendung von SearchPhrase)
    * Variable für Online-Status
    * Variablen für Player-Steuerung können de-/aktiviert werden
+   * Variable für TuneIn Radio kann de-/aktiviert werden
 * Change: 
    * TextToSpeechEx() zusätzlicher options-Parameter muss übergeben werden (siehe Funktions-Doku)
    * Neues Profil für Mute-Variable (invertiert zum vorherigen Profil)
