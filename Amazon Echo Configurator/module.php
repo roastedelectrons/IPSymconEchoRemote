@@ -192,7 +192,7 @@ class AmazonEchoConfigurator extends IPSModule
         // Get all Echo Devices conntected to this amazon account
         $devices = array();
 
-        $devices_info = $this->SendData('GetDevices');
+        $devices_info = $this->SendDataPacket('GetDevices');
 
         if ($devices_info['http_code'] === 200) {
             $devices_JSON = $devices_info['body'];
@@ -307,34 +307,13 @@ class AmazonEchoConfigurator extends IPSModule
         return array_reverse($path);
     }
 
-    /** Sends Request to IO and get response.
-     *
-     * @param string      $method
-     * @param array|null  $getfields
-     * @param array|null  $postfields
-     * @param null|string $url
-     *
-     * @return mixed
-     */
-    private function SendData(string $method, array $getfields = null, array $postfields = null, string $url = null)
+    private function SendDataPacket( string $type, array $payload = [])
     {
-        $this->SendDebug(
-            __FUNCTION__, 'Method: ' . $method . ', Getfields: ' . json_encode($getfields) . ', Postfields: ' . json_encode($postfields), 0
-        );
+        $Data['DataID']     = '{8E187D67-F330-2B1D-8C6E-B37896D7AE3E}';
+        $Data['Type']       = $type;
+        $Data['Payload']    = $payload;
 
-        $Data['DataID'] = '{2BD76048-32BD-7D8B-AB6C-626D5C6D7253}';
-
-        $Data['Buffer'] = ['method' => $method];
-
-        if ($getfields !== null) {
-            $Data['Buffer']['getfields'] = $getfields;
-        }
-        if ($postfields !== null) {
-            $Data['Buffer']['postfields'] = $postfields;
-        }
-        if ($url !== null) {
-            $Data['Buffer']['url'] = $url;
-        }
+        $this->SendDebug( __FUNCTION__, json_encode($Data) , 0);
 
         if (!$this->HasActiveParent())
         {
@@ -343,8 +322,21 @@ class AmazonEchoConfigurator extends IPSModule
         }
 
         $ResultJSON = $this->SendDataToParent(json_encode($Data));
-        $this->SendDebug(__FUNCTION__, 'Result: ' . $ResultJSON, 0);
+        if ($ResultJSON) {
+            $this->SendDebug(__FUNCTION__, 'Result: ' . json_encode($ResultJSON), 0);
 
-        return json_decode($ResultJSON, true); //returns an array of http_code, body and header
+            $ret = json_decode($ResultJSON, true);
+            if ($ret) {
+                return $ret; //returns an array of http_code, body and header
+            }
+        }
+
+        $this->SendDebug( __FUNCTION__, sprintf(
+                                               '\'%s\' (#%s): SendDataToParent returned with %s. $Data = %s', IPS_GetName($this->InstanceID),
+                                               $this->InstanceID, json_encode($ResultJSON), json_encode($Data)
+                                        ), 0
+        );
+
+        return ['http_code' => 502, 'header' => '', 'body' => ''];        
     }
 }
