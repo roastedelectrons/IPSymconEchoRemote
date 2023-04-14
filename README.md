@@ -124,6 +124,7 @@ Version 2.0 (2023-03-04)
 6. alexa-remote (NodeJS): Echo Steuerung https://github.com/Apollon77/alexa-remote
 7. openhab-addon Amazon Echo Control (Java): https://github.com/openhab/openhab-addons/tree/main/bundles/org.openhab.binding.amazonechocontrol/src/main/java/org/openhab/binding/amazonechocontrol/internal
 8. Sequence Command Discovery: https://github.com/custom-components/alexa_media_player/wiki/Developers%3A-Sequence-Discovery
+9. Amazon Alexa Logo by [icons8]( https://icons8.com/icon/X28a9yj_gkpy/amazon-alexa-logo)
 
 ## Dokumentation
 

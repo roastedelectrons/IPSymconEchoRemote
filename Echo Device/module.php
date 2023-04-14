@@ -1539,6 +1539,7 @@ class EchoRemote extends IPSModule
             $infotext = $playerInfo['infoText'];
             if (is_null($infotext)) {
                 $this->SendDebug('Playerinfo Infotext', 'no information found', 0);
+                $this->SetStatePage('', '', '', '');
             } else {
                 $this->SetStatePage(
                     $imageurl, $playerInfo['infoText']['title'], $playerInfo['infoText']['subText1'], $playerInfo['infoText']['subText2']
@@ -1947,7 +1948,7 @@ class EchoRemote extends IPSModule
 
             if ($keep)
             {
-                $associations = [];
+                $playlistEntries = [];
 
                 foreach (json_decode($this->ReadPropertyString('FavoritesList'), true) as $favorite) {
                     $playlistEntries[] = [
@@ -2385,9 +2386,8 @@ class EchoRemote extends IPSModule
         } 
         else 
         {
-            $Content = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Transparent png 1x1 Base64
+            $Content = base64_encode(file_get_contents( __DIR__ . '/../imgs/cover-800.png' ));
         }
-
         $mediaID = $this->GetIDForIdent('MediaImageCover');
         if ($mediaID > 0)
         {
@@ -2621,11 +2621,18 @@ class EchoRemote extends IPSModule
 
     private function SetStatePage(string $imageurl = null, string $title = null, string $subtitle_1 = null, string $subtitle_2 = null): void
     {
+        
+        if ($imageurl == null){
+            $htmlImage = 'data:image/png;base64,' . base64_encode(file_get_contents( __DIR__ . '/../imgs/cover-small.png' ) );
+        } else {
+            $htmlImage  = $imageurl;
+        }
+
         $html = '<!doctype html>
 <html lang="de">' . $this->GetHeader() . '
 <body>
 <main class="echo_mediaplayer1">
-  <section class="echo_cover"><img src="' . $imageurl . '" alt="cover" width="145" height="145" id="echocover"></section>
+  <section class="echo_cover"><img src="' . $htmlImage . '" alt="cover" width="145" height="145" id="echocover"></section>
   <section class="echo_description">
     <div class="echo_title">' . $title . '</div>
     <div class="echo_subtitle1">' . $subtitle_1 . '</div>
