@@ -1088,9 +1088,9 @@ class AmazonEchoIO extends IPSModule
     private function SendDataToChild($deviceSerial, $deviceType, $type, $data)
     {
         $payload['DataID']          = '{E41E38AC-30D7-CA82-DEF5-9561A5B06CD7}';
+        $payload['Type']            = $type;
         $payload['DeviceSerial']    = $deviceSerial;
         $payload['DeviceType']    = $deviceType;
-        $payload['Type']            = $type;
         $payload['Payload']            = $data;
 
         $this->SendDataToChildren( json_encode($payload) );
@@ -1138,15 +1138,14 @@ class AmazonEchoIO extends IPSModule
                 break;
 
             case 'BehaviorsPreviewAutomation':
-                $deviceinfos = $payload['postfields']; //the postfields contain the device infos
-                $automation = $payload['automation'];
-                $result = $this->BehaviorsPreviewAutomation($deviceinfos, $automation);
+                $result = $this->BehaviorsPreviewAutomation( $payload['device'], $payload['automation'] );
                 break;
 
             case 'CustomCommand':
                 // DEPRECATED will be replaced by SendEcho
+                $url = null;
                 $postfields = null;
-                $method = '';
+                $method = null;
 
                 if (isset($payload['postfields'] ))
                     $postfields = $payload['postfields'];
@@ -1154,9 +1153,7 @@ class AmazonEchoIO extends IPSModule
                 if (isset($payload['method'] ))
                     $postfields = $payload['method'];
 
-                if (isset($payload['getfields'])) {
-                    $url = $payload['url'] . http_build_query($payload['getfields']);
-                } else {
+                if (isset($payload['url'])) {
                     $url = $payload['url'];
                 }
 

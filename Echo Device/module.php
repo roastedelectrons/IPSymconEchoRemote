@@ -77,7 +77,7 @@ class EchoRemote extends IPSModule
         //        $this->RegisterPropertyString('TuneInStations', '');
         $this->RegisterPropertyInteger('updateinterval', 0);
         $this->RegisterPropertyBoolean('PlayerControl', true);
-        $this->RegisterPropertyBoolean('ExtendedInfo', false);
+        $this->RegisterPropertyBoolean('ExtendedInfo', true);
         $this->RegisterPropertyBoolean('DND', false);
         $this->RegisterPropertyBoolean('AlarmInfo', false);
         $this->RegisterPropertyBoolean('ShoppingList', false);
@@ -94,7 +94,7 @@ class EchoRemote extends IPSModule
         $this->RegisterPropertyInteger('Subtitle2Color', 0);
         $this->RegisterPropertyInteger('Subtitle2Size', 0);
         $this->RegisterPropertyBoolean('OnlineStatus', false);
-        $this->RegisterPropertyBoolean('EchoFavorites', false);
+        $this->RegisterPropertyBoolean('EchoFavorites', true);
         $this->RegisterPropertyBoolean('EchoTuneInRemote', true);
 
         $this->SetBuffer('CoverURL', '');
@@ -213,7 +213,7 @@ class EchoRemote extends IPSModule
     public function RequestAction($Ident, $Value)
     {
         $devicenumber = $this->ReadPropertyString('Devicenumber');
-        $this->SendDebug('Echo Remote:', 'Request Action trigger device ' . $devicenumber . ' by Ident ' . $Ident, 0);
+        $this->SendDebug(__FUNCTION__, 'Ident:' . $Ident . ',Value:' . $Value, 0);
         if ($Ident === 'EchoRemote') {
             switch ($Value) {
                 case self::PREVIOUS: // Previous
@@ -1147,7 +1147,7 @@ class EchoRemote extends IPSModule
     {
         $this->SendDebug(__FUNCTION__, 'started', 0);
 
-        $result = $this->SendData('GetDNDState');
+        $result = $this->SendDataPacket('GetDNDState');
         $deviceSerialNumber = $this->ReadPropertyString('Devicenumber');
         if ($result['http_code'] == 200) {
             $doNotDisturbDeviceStatusList = json_decode($result['body'], true);
@@ -1362,11 +1362,15 @@ class EchoRemote extends IPSModule
             $automation = $this->GetAutomation($utterance, $automations);
             if ($automation) {
                 //play automation
-                $postfields = [
-                    'deviceSerialNumber' => $this->GetDevicenumber(),
-                    'deviceType'         => $this->GetDevicetype()];
+                $payload = [
+                    'device'             => [
+                        'deviceSerialNumber' => $this->GetDevicenumber(),
+                        'deviceType'         => $this->GetDevicetype(),
+                    ],
+                    'automation'         => $automation
+                ];
 
-                $result = (array) $this->SendData('BehaviorsPreviewAutomation', null, $postfields, null, null, $automation);
+                $result = (array) $this->SendDataPacket('BehaviorsPreviewAutomation', $payload);
                 return $result['http_code'] === 200;
             }
         }
@@ -1387,11 +1391,15 @@ class EchoRemote extends IPSModule
             $automation = $this->GetAutomationByKey($routine_key, $automations);
             if ($automation) {
                 //play automation
-                $postfields = [
-                    'deviceSerialNumber' => $this->GetDevicenumber(),
-                    'deviceType'         => $this->GetDevicetype()];
+                $payload = [
+                    'device'             => [
+                        'deviceSerialNumber' => $this->GetDevicenumber(),
+                        'deviceType'         => $this->GetDevicetype(),
+                    ],
+                    'automation'         => $automation
+                ];
 
-                $result = (array) $this->SendData('BehaviorsPreviewAutomation', null, $postfields, null, null, $automation);
+                $result = (array) $this->SendDataPacket('BehaviorsPreviewAutomation', $payload);
                 return $result['http_code'] === 200;
             }
         }
@@ -1412,11 +1420,15 @@ class EchoRemote extends IPSModule
             $automation = $this->GetAutomationByName($routine_name, $automations);
             if ($automation) {
                 //play automation
-                $postfields = [
-                    'deviceSerialNumber' => $this->GetDevicenumber(),
-                    'deviceType'         => $this->GetDevicetype()];
+                $payload = [
+                    'device'             => [
+                        'deviceSerialNumber' => $this->GetDevicenumber(),
+                        'deviceType'         => $this->GetDevicetype(),
+                    ],
+                    'automation'         => $automation
+                ];
 
-                $result = (array) $this->SendData('BehaviorsPreviewAutomation', null, $postfields, null, null, $automation);
+                $result = (array) $this->SendDataPacket('BehaviorsPreviewAutomation', $payload);
                 return $result['http_code'] === 200;
             }
         }
@@ -1538,7 +1550,6 @@ class EchoRemote extends IPSModule
             $imageurl = $playerInfo['mainArt']['url'] ?? null;
             $infotext = $playerInfo['infoText'];
             if (is_null($infotext)) {
-                $this->SendDebug('Playerinfo Infotext', 'no information found', 0);
                 $this->SetStatePage('', '', '', '');
             } else {
                 $this->SetStatePage(
@@ -1584,9 +1595,7 @@ class EchoRemote extends IPSModule
                 }
             }
             $volume = $playerInfo['volume'];
-            if (is_null($volume)) {
-                $this->SendDebug('Playerinfo Volume', 'no volume information found', 0);
-            } else {
+            if (!is_null($volume)) {
                 if ($this->CheckExistence('EchoVolume') && $playerInfo['volume']['volume'] !== null) {
                     $this->SetValue('EchoVolume', $playerInfo['volume']['volume']);
                 }
@@ -1634,117 +1643,8 @@ class EchoRemote extends IPSModule
         return true;
     }
 
-    /*
-     * DEPRECATED
-     *
-    public function PlayAlbum(string $album, string $artist, 
-                              bool $shuffle = false): bool
-    {
-        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
 
-        return $this->PlayCloudplayer($shuffle, ['albumArtistName' => $artist, 'albumName' => $album]);
-    }
-    */
-
-    /*
-     * DEPRECATED
-    
-    public function PlaySong(string $track_id): bool
-    {
-        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
-
-        return $this->PlayCloudplayer(false, ['trackId' => $track_id, 'playQueuePrime' => true]);
-    }
-     */
-
-    /*
-     * DEPRECATED
-    
-    public function PlayPlaylist(string $playlist_id, bool $shuffle = false): bool
-    {
-        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
-
-        return $this->PlayCloudplayer($shuffle, ['playlistId' => $playlist_id, 'playQueuePrime' => true]);
-    }
-     */
-
-
-
-    /*
-     * DEPRECATED
-    
-    public function PlayAmazonMusic(string $seedId, string $stationName)
-    {
-        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
-
-        $url = 'https://{AlexaURL}/api/gotham/queue-and-play?';
-        $getfields = [
-            'deviceSerialNumber'   => $this->GetDevicenumber(),
-            'deviceType'           => $this->GetDevicetype(),
-            'mediaOwnerCustomerId' => $this->GetCustomerID()];
-        $postfields = ['seed' => json_encode(['type' => 'KEY', 'seedId' => $seedId]), 'stationName' => $stationName, 'seedType' => 'KEY'];
-        return $this->SendData('CustomCommand', $getfields, $postfields, $url)['http_code'] === 200;
-    }
-     */
-
-    /*
-     * DEPRECATED
-    
-    public function PlayAmazonPrimePlaylist(string $asin): bool
-    {
-        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated. Use ECHOREMOTE_PlayMusic instead.', E_USER_WARNING);
-
-        $url = 'https://{AlexaURL}/api/prime/prime-playlist-queue-and-play?';
-        $getfields = [
-            'deviceSerialNumber'   => $this->GetDevicenumber(),
-            'deviceType'           => $this->GetDevicetype(),
-            'mediaOwnerCustomerId' => $this->GetCustomerID()];
-        $postfields = ['asin' => $asin];
-        return $this->SendData('CustomCommand', $getfields, $postfields, $url)['http_code'] === 200;
-    }
-     */
-
-    /*
-     * DEPRECATED
-     
-    public function GetAmazonPrimeStationSectionList(string $filterSections, string $filterCategories, string $stationItems)
-    {
-        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated and will be removed.', E_USER_WARNING);
-
-        $filterSections = json_decode($filterSections, true);
-        $filterCategories = json_decode($filterCategories, true);
-        $stationItems = json_decode($stationItems, true);
-        $getfields = [
-            'deviceSerialNumber'   => $this->GetDevicenumber(),
-            'deviceType'           => $this->GetDevicetype(),
-            'mediaOwnerCustomerId' => $this->GetCustomerID()];
-        $result = (array) $this->SendData(
-            'PrimeSections', $getfields, null, null, null, null,
-            ['filterSections' => $filterSections, 'filterCategories' => $filterCategories, 'stationItems' => $stationItems]
-        );
-
-        if ($result['http_code'] === 200) {
-            return json_decode($result['body'], true);
-        }
-
-        return false;
-    }
-    */
-
-    /*
-     * DEPRECATED
-     
-    public function SendDelete(string $url)
-    {
-        trigger_error('ECHOREMOTE_'. __FUNCTION__ .' is deprecated and will be removed.', E_USER_WARNING);
-
-        $payload['url'] = $url;
-        $payload['method'] = 'DELETE';
-        return $this->SendDataPacket('SendEcho', $payload);
-    }
-    */
-
-    public function CustomCommand(string $url, string $postfields = null, bool $optpost = null)
+    public function CustomCommand(string $url, string $postfields = null, string $method = '')
     {
         $search = [
             '{DeviceSerialNumber}',
@@ -1770,8 +1670,11 @@ class EchoRemote extends IPSModule
             $postfields = str_replace($search, $replace, $postfields);
             $postfields = json_decode($postfields, true);
         }
+        $payload['url'] = $url;
+        $payload['postfields'] = $postfields;
+        $payload['method'] = $method;
 
-        return $this->SendData('CustomCommand', null, $postfields, $url, $optpost);
+        return $this->SendDataPacket('CustomCommand', $payload);
     }
 
 
@@ -1863,14 +1766,30 @@ class EchoRemote extends IPSModule
                 [self::NEXT, $this->Translate('Next'), 'HollowLargeArrowRight', -1]
             ]
         );
-        $profile = '~PlaybackPreviousNext';
-        if ( !IPS_VariableProfileExists($profile) ) $profile = 'Echo.Remote';
+        
+        if ( IPS_VariableProfileExists('~PlaybackPreviousNext') )
+        {
+            $profile = '~PlaybackPreviousNext';
+        }
+        else
+        {
+            $profile = 'Echo.Remote';
+        }
+        
         $this->MaintainVariable('EchoRemote', $this->Translate('Remote'), 1, $profile, $this->_getPosition(), $keep );
         @$this->MaintainAction('EchoRemote', $keep);
 
         //Shuffle Variable
         $keep = $playerControl && in_array('AMAZON_MUSIC', $caps, true);
-        if ( IPS_VariableProfileExists('~Shuffle') ) $profile = '~Shuffle'; else $profile = '~Switch';
+        if ( IPS_VariableProfileExists('~Shuffle') )
+        {
+            $profile = '~Shuffle';
+        }
+        else
+        {
+            $profile = '~Switch';
+        }
+
         $this->MaintainVariable('EchoShuffle', $this->Translate('Shuffle'), 0, $profile, $this->_getPosition(), $keep);
         if ($keep) {
             $exist_shuffle = $this->CheckExistence('EchoShuffle');
@@ -1889,11 +1808,15 @@ class EchoRemote extends IPSModule
 
         //Volume Variable
         $keep = $playerControl && in_array('AMAZON_MUSIC', $caps, true);
-        $profile = '~Volume';
-        if ( !IPS_VariableProfileExists($profile) )
+        if ( IPS_VariableProfileExists('~Volume') )
+        {
+            $profile = '~Volume';
+        }
+        else
         {
             $profile = '~Intensity.100';
         }
+
         $this->MaintainVariable('EchoVolume', $this->Translate('Volume'), 1, $profile, $this->_getPosition(), $keep);
         if ($keep) {
             $this->EnableAction('EchoVolume');
@@ -1901,14 +1824,19 @@ class EchoRemote extends IPSModule
 
         //Mute
         $keep = $this->ReadPropertyBoolean('Mute') && in_array('AMAZON_MUSIC', $caps, true);
-        $profile = '~Mute';
-        if ( !IPS_VariableProfileExists($profile) )
+
+        $this->RegisterProfileAssociation(
+            'Echo.Mute', 'Speaker', '', '', 0, 1, 0, 0, VARIABLETYPE_BOOLEAN, [
+                [false, $this->Translate('Off'), '', -1],
+                [true, $this->Translate('On'), '', 0x00ff00]]
+        ); 
+
+        if ( IPS_VariableProfileExists('~Mute') )
         {
-            $this->RegisterProfileAssociation(
-                'Echo.Mute', 'Speaker', '', '', 0, 1, 0, 0, VARIABLETYPE_BOOLEAN, [
-                    [false, $this->Translate('Off'), '', -1],
-                    [true, $this->Translate('On'), '', 0x00ff00]]
-            );            
+            $profile = '~Mute';
+        }
+        else
+        {
             $profile = 'Echo.Mute';
         }
 
@@ -2140,7 +2068,7 @@ class EchoRemote extends IPSModule
         $this->SendDebug(__FUNCTION__, 'started', 0);
 
         //fetch all devices
-        $result = $this->SendData('GetDevices');
+        $result = $this->SendDataPacket('GetDevices');
 
         if ($result['http_code'] !== 200) {
             return false;
@@ -2175,7 +2103,7 @@ class EchoRemote extends IPSModule
 
         $ResultJSON = $this->SendDataToParent(json_encode($Data));
         if ($ResultJSON) {
-            $this->SendDebug(__FUNCTION__, 'Result: ' . json_encode($ResultJSON), 0);
+            $this->SendDebug(__FUNCTION__.' Result', $ResultJSON, 0);
 
             $ret = json_decode($ResultJSON, true);
             if ($ret) {
@@ -2183,83 +2111,9 @@ class EchoRemote extends IPSModule
             }
         }
 
-        $this->SendDebug( __FUNCTION__, sprintf(
-                                               '\'%s\' (#%s): SendDataToParent returned with %s. $Data = %s', IPS_GetName($this->InstanceID),
-                                               $this->InstanceID, json_encode($ResultJSON), json_encode($Data)
-                                        ), 0
-        );
+        $this->SendDebug( __FUNCTION__.' Result', json_encode($ResultJSON), 0);
 
         return ['http_code' => 502, 'header' => '', 'body' => ''];        
-    }
-
-    /** Sends Request to IO and get response.
-     *
-     * @param string      $method
-     * @param array|null  $getfields
-     * @param array|null  $postfields
-     * @param null|string $url
-     * @param null        $optpost
-     * @param null        $automation
-     * @param null        $additionalData
-     *
-     * @return mixed
-     */
-    private function SendData(string $type, array $getfields = null, array $postfields = null, $url = null, $method = null, $automation = null,
-                              $additionalData = null): ?array
-    {
-        $this->SendDebug(
-            __FUNCTION__,
-            'Type: ' . $type . ', Getfields: ' . json_encode($getfields) . ', Postfields: ' . json_encode($postfields) . ', URL: ' . $url
-            . ', Method: ' . (string) $method . ', Automation: ' . json_encode($automation), 0
-        );
-
-        $Data['DataID'] = '{8E187D67-F330-2B1D-8C6E-B37896D7AE3E}';
-
-        $Data['Type'] = $type;
-        $Data['Payload'] = array();
-
-        if ($getfields !== null) {
-            $Data['Payload']['getfields'] = $getfields;
-        }
-        if ($postfields !== null) {
-            $Data['Payload']['postfields'] = $postfields;
-        }
-        if ($url !== null) {
-            $Data['Payload']['url'] = $url;
-        }
-        if ($method !== null) {
-            $Data['Payload']['method'] = $method;
-        }
-        if ($automation !== null) {
-            $Data['Payload']['automation'] = $automation;
-        }
-        if ($additionalData !== null) {
-            $Data['Payload']['additionalData'] = $additionalData;
-        }
-
-        if (!$this->HasActiveParent())
-        {
-            $this->SendDebug(__FUNCTION__, 'No active parent', 0);
-            return ['http_code' => 502, 'header' => '', 'body' => 'No active parent'];
-        }
-
-        $ResultJSON = $this->SendDataToParent(json_encode($Data));
-        if ($ResultJSON) {
-            $this->SendDebug(__FUNCTION__, 'Result: ' . json_encode($ResultJSON), 0);
-
-            $ret = json_decode($ResultJSON, true);
-            if ($ret) {
-                return $ret; //returns an array of http_code, body and header
-            }
-        }
-
-        $this->SendDebug( __FUNCTION__, sprintf(
-                                               '\'%s\' (#%s): SendDataToParent returned with %s. $Data = %s', IPS_GetName($this->InstanceID),
-                                               $this->InstanceID, json_encode($ResultJSON), json_encode($Data)
-                                        ), 0
-        );
-
-        return ['http_code' => 502, 'header' => '', 'body' => ''];
     }
 
     /** register profiles
@@ -2479,14 +2333,14 @@ class EchoRemote extends IPSModule
             $operationPayload['customerId'] = $this->GetCustomerID();
         }
 
-        $postfields = [
+        $payload['postfields']  = [
             'type' => $sequenceCmd,
             'operationPayload' => $operationPayload
         ];
 
         $this->SendDebug(__FUNCTION__, json_encode($postfields), 0);
         
-        $result = (array) $this->SendData('BehaviorsPreview', null, $postfields);
+        $result = (array) $this->SendDataPacket('BehaviorsPreview', $payload);
 
         return $result['http_code'] === 200;
     }
@@ -2570,7 +2424,6 @@ class EchoRemote extends IPSModule
     {
         $TitleSize = $this->ReadPropertyInteger('TitleSize') . 'em';
         $TitleColor = $this->GetColor('TitleColor');
-        $this->SendDebug('Title Color', $TitleColor, 0);
         if ($TitleSize == '0em') {
             $title_css = 'font-size: xx-large;';
         } else {
@@ -2584,7 +2437,6 @@ class EchoRemote extends IPSModule
     {
         $Subtitle1Size = $this->ReadPropertyInteger('Subtitle1Size') . 'em';
         $Subtitle1Color = $this->GetColor('Subtitle1Color');
-        $this->SendDebug('Subtitle Color', $Subtitle1Color, 0);
         if ($Subtitle1Size == '0em') {
             $subtitle1_css = 'font-size: large;';
         } else {
@@ -2598,7 +2450,6 @@ class EchoRemote extends IPSModule
     {
         $Subtitle2Size = $this->ReadPropertyInteger('Subtitle2Size') . 'em';
         $Subtitle2Color = $this->GetColor('Subtitle2Color');
-        $this->SendDebug('Subtitle Color', $Subtitle2Color, 0);
         if ($Subtitle2Size == '0em') {
             $subtitle2_css = 'font-size: large;';
         } else {

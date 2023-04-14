@@ -320,16 +320,6 @@ Parameter _$completed_ null: es werden alle Einträge geliefert, false: es werde
  
 Liefert eine Liste mit den Einträgen der aktuellen Einkaufsliste oder To-Do-Liste.  
 
-**JumpToMediaId**
-```php
-ECHOREMOTE_JumpToMediaId(int $InstanceID, string MediaID)
-``` 
-Parameter _$InstanceID_ ObjektID des Echo Remote Devices 
- 
-Parameter _$MediaID_ MediaID, die innerhalb einer Abspielliste angesprungen werden soll
-
-Springt zu der angegebenen ID der aktuellen Abspielliste.  
-
 **TuneIn**
 ```php
 ECHOREMOTE_TuneIn(int $InstanceID, string $station)
@@ -345,24 +335,6 @@ ECHOREMOTE_TuneInPreset(int $InstanceID, int $preset)
 Parameter _$InstanceID_ ObjektID des Echo Remote Devices
 
 Parameter _$preset_ Positions ID der Radiostation im Modul    
-
-**PlayAmazonMusic**
-```php
-ECHOREMOTE_PlayAmazonMusic(integer $InstanceID, string $seedid, string $stationname)
-``` 
-Parameter _$InstanceID_ ObjektID des Echo Remote Devices 
-
-Parameter _$seedid_ Seed ID ist die _seedId_ die pro Sender einmal ermittelt werden muss  
-
-Parameter _$stationname_ Station Name der _stationName_ der pro Sender ermittelt werden muss
-
-**PlayAmazonPrimePlaylist**
-```php
-ECHOREMOTE_PlayAmazonPrimePlaylist(integer $InstanceID, string $asin)
-``` 
-Parameter _$InstanceID_ ObjektID des Echo Remote Devices 
-
-Parameter _$asin_ Asin ist die _asin_ die entsprechend der Anleitung pro Sender einmal ausgelesen werden muss  
 
 **Text to Speech**
 ```php

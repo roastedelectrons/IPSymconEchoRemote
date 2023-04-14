@@ -275,16 +275,6 @@ Parameter _$InstanceID_ ObjectID of the Echo Remote Device
 
 Parameter _$preset_ Position ID of the radio station in the module    
 
-**AmazonMusic**
-```php
-ECHOREMOTE_AmazonMusic(integer $InstanceID, string $seedid, string $stationname)
-``` 
-Parameter _$InstanceID_ ObjectID of the Echo Remote Device 
-
-Parameter _$seedid_ Seed ID is the _seedId_ which has to be read once per transmitter according to the instructions 
-
-Parameter _$stationname_ Station Name, _station_name_ that must be read out once per transmitter as per the instructions
-
 **Text to Speech**
 ```php
 ECHOREMOTE_TextToSpeech(integer $InstanceID, string $text_to_speech)
