@@ -134,7 +134,7 @@ class EchoRemote extends IPSModule
         $this->SetReceiveDataFilter('.*' . $devicenumber . '.*');
     }
 
-    /** @noinspection PhpMissingParentCallCommonInspection */
+
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
         switch ($Message) {
@@ -182,7 +182,6 @@ class EchoRemote extends IPSModule
             case 'LastAction':
                 $payload = $data->Payload;
                 $creationTimestamp = $payload->creationTimestamp;
-                $this->SendDebug('Creation Timestamp', $creationTimestamp, 0);
                 $last_timestamp = $this->ReadAttributeInteger('creationTimestamp');
                 if ($last_timestamp != $creationTimestamp) 
                 {
@@ -209,7 +208,6 @@ class EchoRemote extends IPSModule
 
     }
 
-    /** @noinspection PhpMissingParentCallCommonInspection */
     public function RequestAction($Ident, $Value)
     {
         $devicenumber = $this->ReadPropertyString('Devicenumber');
@@ -623,7 +621,6 @@ class EchoRemote extends IPSModule
      */
     public function Shuffle(bool $value)
     {
-        $this->SendDebug('Echo Remote:', 'Request Action Shuffle', 0);
 
         $command= [
             'shuffle' => $value ? 'true' : 'false'
@@ -645,7 +642,6 @@ class EchoRemote extends IPSModule
      */
     public function Repeat(bool $value)
     {
-        $this->SendDebug('Echo Remote:', 'Request Action Repeat', 0);
 
         $command= [
             'repeat' => $value ? 'true' : 'false'
@@ -1145,7 +1141,6 @@ class EchoRemote extends IPSModule
      */
     public function GetDoNotDisturbState()
     {
-        $this->SendDebug(__FUNCTION__, 'started', 0);
 
         $result = $this->SendDataPacket('GetDNDState');
         $deviceSerialNumber = $this->ReadPropertyString('Devicenumber');
@@ -1156,7 +1151,7 @@ class EchoRemote extends IPSModule
             {
                 if($deviceSerialNumber == $dnd_device['deviceSerialNumber']){
                     $dnd = $dnd_device['enabled'];
-                    $this->SendDebug('do not disturb state', strval($dnd), 0);
+
                     if(@$this->GetIDForIdent('DND') > 0)
                     {
                         if ($this->GetValue('DND') != $dnd )
@@ -1664,9 +1659,7 @@ class EchoRemote extends IPSModule
 
         $url = str_replace($search, $replace, $url);
 
-        if ($postfields === null) {
-            $this->SendDebug('CustomCommand', 'URL: ' . $url . ' (no postdata)', 0);
-        } else {
+        if ($postfields !== null) {
             $postfields = str_replace($search, $replace, $postfields);
             $postfields = json_decode($postfields, true);
         }
@@ -1775,7 +1768,7 @@ class EchoRemote extends IPSModule
         {
             $profile = 'Echo.Remote';
         }
-        
+
         $this->MaintainVariable('EchoRemote', $this->Translate('Remote'), 1, $profile, $this->_getPosition(), $keep );
         @$this->MaintainAction('EchoRemote', $keep);
 
@@ -2065,7 +2058,6 @@ class EchoRemote extends IPSModule
 
     private function RequestDeviceInfo()
     {
-        $this->SendDebug(__FUNCTION__, 'started', 0);
 
         //fetch all devices
         $result = $this->SendDataPacket('GetDevices');
@@ -2265,8 +2257,6 @@ class EchoRemote extends IPSModule
             if ($preset === $station['position']) {
                 $station_name = $station['station'];
                 $stationid = $station['station_id'];
-                $this->SendDebug(__FUNCTION__, 'station name: ' . $station_name, 0);
-                $this->SendDebug(__FUNCTION__, 'station id: ' . $stationid, 0);
             }
         }
         return $stationid;
@@ -2288,9 +2278,6 @@ class EchoRemote extends IPSModule
                 $presetPosition = $station['position'];
                 $station_name = $station['station'];
                 $stationid = $station['station_id'];
-                $this->SendDebug(__FUNCTION__, 'preset position: ' . $presetPosition, 0);
-                $this->SendDebug(__FUNCTION__, 'station name: ' . $station_name, 0);
-                $this->SendDebug(__FUNCTION__, 'station id: ' . $stationid, 0);
                 break;
             }
         }
@@ -2337,8 +2324,6 @@ class EchoRemote extends IPSModule
             'type' => $sequenceCmd,
             'operationPayload' => $operationPayload
         ];
-
-        $this->SendDebug(__FUNCTION__, json_encode($postfields), 0);
         
         $result = (array) $this->SendDataPacket('BehaviorsPreview', $payload);
 
@@ -2565,17 +2550,14 @@ class EchoRemote extends IPSModule
         if ($nextAlarm !== $this->GetValue('nextAlarmTime')) {
             //neuen Wert und Timer setzen.
             $this->SetValue('nextAlarmTime', $nextAlarm);
-            $this->SendDebug(__FUNCTION__, 'nextAlarmTime set to ' . $nextAlarm . ' (' . date(DATE_RSS, $nextAlarm) . ')', 0);
 
             $this->SetTimerInterval('EchoAlarm', $timerIntervalSec * 1000);
-            $this->SendDebug(__FUNCTION__, 'Timer EchoAlarm is set to ' . $timerIntervalSec . 's', 0);
         }
 
         // Set the timer in case of a restart of symcon
         if ( $this->GetTimerInterval("EchoAlarm") === 0 && $timerIntervalSec > 0 )
         {
-            $this->SetTimerInterval('EchoAlarm', $timerIntervalSec * 1000);
-            $this->SendDebug(__FUNCTION__, 'Timer EchoAlarm is set to ' . $timerIntervalSec . 's', 0);           
+            $this->SetTimerInterval('EchoAlarm', $timerIntervalSec * 1000);         
         }
 
         return true;

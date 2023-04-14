@@ -135,7 +135,7 @@ class AmazonEchoIO extends IPSModule
         $devices = $this->GetDeviceList();
 
         if (empty($devices)) {
-            $this->SendDebug(__FUNCTION__, 'no devices found', 0);
+            $this->SendDebug(__FUNCTION__, 'DeviceInfo missing', 0);
         } else {
             $device_association = [];
             $max = 1;
@@ -175,8 +175,6 @@ class AmazonEchoIO extends IPSModule
         $post['domain'] = 'www.'.$this->GetAmazonURL();
         $post['source_token_type'] = 'refresh_token';
         $post['source_token'] = $this->ReadPropertyString('refresh_token');
-
-        $this->SendDebug(__FUNCTION__, 'url: ' . $url, 0);
 
         $ch = curl_init(); 
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);    
@@ -1101,7 +1099,6 @@ class AmazonEchoIO extends IPSModule
      * @param $JSONString
      *
      * @return bool|false|string
-     * @noinspection PhpMissingParentCallCommonInspection
      */
     public function ForwardData($JSONString)
     {
@@ -1515,7 +1512,6 @@ class AmazonEchoIO extends IPSModule
      * build configuration form.
      *
      * @return string
-     * @noinspection PhpMissingParentCallCommonInspection
      */
     public function GetConfigurationForm(): string
     {
