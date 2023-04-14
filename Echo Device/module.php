@@ -72,7 +72,7 @@ class EchoRemote extends IPSModule
             {"position":33,"station":"1 Live","station_id":"s25260"}]'
         );
 
-        $this->RegisterPropertyString('FavoritesList', '[]');
+        $this->RegisterPropertyString('FavoritesList', '[{"searchPhrase":"Deutschlandradio", "musicProvider":"TUNEIN"},{"searchPhrase":"Mein Discovery Mix", "musicProvider":"CLOUDPLAYER"},{"searchPhrase":"Soul & Funk", "musicProvider":"AMAZON_MUSIC"},{"searchPhrase":"Rock", "musicProvider":"DEFAULT"}]');
 
         //        $this->RegisterPropertyString('TuneInStations', '');
         $this->RegisterPropertyInteger('updateinterval', 0);
