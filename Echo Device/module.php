@@ -99,14 +99,7 @@ class EchoRemote extends IPSModule
         $this->RegisterPropertyInteger('Subtitle2Size', 0);
         $this->RegisterPropertyBoolean('OnlineStatus', false);
         $this->RegisterPropertyBoolean('EchoFavorites', true);
-        if ( $this->CheckExistence('EchoTuneInRemote_' . $this->ReadPropertyString('Devicenumber') ) )
-        {
-            $this->RegisterPropertyBoolean('EchoTuneInRemote', true);
-        }
-        else
-        {
-            $this->RegisterPropertyBoolean('EchoTuneInRemote', false);
-        }
+        $this->RegisterPropertyBoolean('EchoTuneInRemote', true);
         
 
         $this->SetBuffer('CoverURL', '');
