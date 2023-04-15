@@ -75,7 +75,8 @@ class EchoRemote extends IPSModule
         $this->RegisterPropertyString('FavoritesList', '[
             {"searchPhrase":"Deutschlandfunk", "musicProvider":"TUNEIN"},
             {"searchPhrase":"Mein Discovery Mix", "musicProvider":"CLOUDPLAYER"},
-            {"searchPhrase":"Soul & Funk", "musicProvider":"AMAZON_MUSIC"},{"searchPhrase":"Rock", "musicProvider":"DEFAULT"}
+            {"searchPhrase":"Pop", "musicProvider":"AMAZON_MUSIC"},
+            {"searchPhrase":"Rock", "musicProvider":"DEFAULT"}
         ]');
 
         //        $this->RegisterPropertyString('TuneInStations', '');
