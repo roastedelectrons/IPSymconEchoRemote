@@ -64,20 +64,27 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 ## Changelog
 
 Version 2.2 (development)
-* Neu: 
+* Neu: Favoriten
+   * Variable zum einfachen Starten von Musik verschiedener Musikanbieter
+   * Favoritenliste kann in Instanz-Konfiguration angepasst werden
+   * Favoriten verwenden intern die Funktion PlayMusic() (siehe Dokumentation neuer Funktionen)
+   * Favoriten sollen mittelfristig die TuneIn-Senderliste ersetzten. Eine Migrationsfunktion vereinfacht die Übernahme der TuneIn-Sender in die Favoritenliste
+
+* Weitere Neuerungen:
    * TextToSpeechVolume() und TextToSpeechEx() ändern die Lautstärke der Ansage und setzen sie danach wieder zurück
-   * Favoriten: Variable zum Starten von Musik verschiedener Musikanbieter (Favoritenliste wird in Instanz-Konfiguration angelegt. Siehe Dokumentation von PlayMusic() zur Verwendung von SearchPhrase)
    * Variable für Online-Status
    * Variablen für Player-Steuerung können de-/aktiviert werden
    * Variable für TuneIn Radio kann de-/aktiviert werden
+
+
 * Change: 
    * TextToSpeechEx() zusätzlicher options-Parameter muss übergeben werden (siehe Funktions-Doku)
-   * Neues Profil für Mute-Variable (invertiert zum vorherigen Profil)
-   * Neues Profil für Remote-Variable
+   * Änderung der Assoziationen der VariablenProfile ECHO.Mute, ECHO.Remote
+   * Variablen, die in der Instanz-Konfiguration deaktiviert wurden, werden nun gelöscht
    * Interner Datenfluss vereinheitlicht
    * Nicht-unterstützte Funktionen entfernt (PlayAlbum, PlaySong, PlayPlaylist, PlayAmazonMusic, PlayAmazonPrimePlaylist, GetAmazonPrimeStationSectionList, SendDelete, JumpToMediaId)
+
 * Fix: 
-   * Variablen, die in der Instanz-Konfiguration deaktiviert wurden, werden nun korrekt gelöscht
    * SetVolume() nutzt alternative Methode, sofern der Aufruf fehlgeschlagen ist
 
 Version 2.1 (2023-03-14)

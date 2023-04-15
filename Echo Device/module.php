@@ -72,7 +72,11 @@ class EchoRemote extends IPSModule
             {"position":33,"station":"1 Live","station_id":"s25260"}]'
         );
 
-        $this->RegisterPropertyString('FavoritesList', '[{"searchPhrase":"Deutschlandradio", "musicProvider":"TUNEIN"},{"searchPhrase":"Mein Discovery Mix", "musicProvider":"CLOUDPLAYER"},{"searchPhrase":"Soul & Funk", "musicProvider":"AMAZON_MUSIC"},{"searchPhrase":"Rock", "musicProvider":"DEFAULT"}]');
+        $this->RegisterPropertyString('FavoritesList', '[
+            {"searchPhrase":"Deutschlandfunk", "musicProvider":"TUNEIN"},
+            {"searchPhrase":"Mein Discovery Mix", "musicProvider":"CLOUDPLAYER"},
+            {"searchPhrase":"Soul & Funk", "musicProvider":"AMAZON_MUSIC"},{"searchPhrase":"Rock", "musicProvider":"DEFAULT"}
+        ]');
 
         //        $this->RegisterPropertyString('TuneInStations', '');
         $this->RegisterPropertyInteger('updateinterval', 0);
@@ -95,7 +99,15 @@ class EchoRemote extends IPSModule
         $this->RegisterPropertyInteger('Subtitle2Size', 0);
         $this->RegisterPropertyBoolean('OnlineStatus', false);
         $this->RegisterPropertyBoolean('EchoFavorites', true);
-        $this->RegisterPropertyBoolean('EchoTuneInRemote', true);
+        if ( $this->CheckExistence('EchoTuneInRemote_' . $this->ReadPropertyString('Devicenumber') ) )
+        {
+            $this->RegisterPropertyBoolean('EchoTuneInRemote', true);
+        }
+        else
+        {
+            $this->RegisterPropertyBoolean('EchoTuneInRemote', false);
+        }
+        
 
         $this->SetBuffer('CoverURL', '');
         $this->SetBuffer('Volume', '');
@@ -240,6 +252,9 @@ class EchoRemote extends IPSModule
             $this->SetVolume($Value);
         }
         if ($Ident === 'EchoTuneInRemote_' . $devicenumber) {
+            $this->SetValue($Ident, $Value);
+            //$station = GetValueFormatted( $this->GetIDForIdent($Ident));
+            //$this->PlayMusic( $station, 'TUNEIN');
             $stationid = $this->GetTuneInStationID($Value);
             $this->TuneIn($stationid);
         }
@@ -2284,6 +2299,26 @@ class EchoRemote extends IPSModule
         return $presetPosition;
     }
 
+    public function CopyTuneInStationsToFavorites()
+    {
+        $stations = json_decode( $this->ReadPropertyString('TuneInStations'), true) ;
+        $favorites = json_decode( $this->ReadPropertyString('FavoritesList'), true) ;
+
+        foreach( $stations as $station)
+        {
+            if ( in_array($station['station'], array_column( $favorites, 'searchPhrase')) === false )
+            {
+                $favorites[] = [
+                    'searchPhrase' => $station['station'],
+                    'musicProvider' => 'TUNEIN'
+                ];
+            }
+        }
+        IPS_SetProperty ( $this->InstanceID, 'FavoritesList', json_encode($favorites) );
+        IPS_ApplyChanges( $this->InstanceID );
+        return true;
+    }
+
     private function NpCommand(string $commandType, array $command = [])
     {
         $device = [
@@ -2825,8 +2860,14 @@ class EchoRemote extends IPSModule
                         'options' => $this->SelectionFontSize()]]],
             [
                 'type'    => 'ExpansionPanel',
-                'caption' => 'TuneIn stations',
+                'caption' => 'TuneIn stations (deprecated - use favorites instead)',
                 'items'   => [
+                    [
+                        "type" => "Label", 
+                        "bold" => true,
+                        "caption"=> "Migration zu Favoriten: Die TuneIn-Sender dieser Liste können mit dem Button 'TuneIn-Sender in Favoritenliste kopieren' (am Ende des Konfigurationsformulars) in die neue Favoritenliste übernommen werden. In den Favoriten werden die Sendernamen (nicht mehr die Stationskennung) verwendet, um den Sender zu starten. Daher müssen die Sendernamen in der Favoriten-Liste exakt mit den Sendernamen auf https://tunein.com/ übereinstimmen.",
+                        "link" => true
+                    ],
                     [
                         'name'    => 'EchoTuneInRemote',
                         'type'    => 'CheckBox',
@@ -3044,7 +3085,15 @@ class EchoRemote extends IPSModule
             [
                 'type'    => 'Button',
                 'caption' => 'Speak Text',
-                'onClick' => "if (EchoRemote_TextToSpeech(\$id, 'Wer hätte das gedacht. Das ist ein toller Erfolg!')){echo 'Ok';} else {echo 'Error';}"]];
+                'onClick' => "if (EchoRemote_TextToSpeech(\$id, 'Wer hätte das gedacht. Das ist ein toller Erfolg!')){echo 'Ok';} else {echo 'Error';}"],
+            [
+                'type'    => 'Label',
+                'caption' => 'Migration:'],
+            [
+                'type'    => 'Button',
+                'caption' => 'Copy TuneIn stations to favorites',
+                'onClick' => "if (EchoRemote_CopyTuneInStationsToFavorites(\$id)){echo 'TuneIn stations copied to favorites! Make sure that all station names in the favorits match those on tunein.com';} else {echo 'Error';}"]
+            ];
 
         return $form;
     }
