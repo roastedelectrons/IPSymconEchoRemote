@@ -108,6 +108,7 @@ class EchoRemote extends IPSModule
         $this->SetBuffer('CoverURL', '');
         $this->SetBuffer('Volume', '');
         $this->RegisterTimer('EchoUpdate', 0, 'EchoRemote_UpdateStatus(' . $this->InstanceID . ');');
+        $this->RegisterTimer('UpdatePlayerStatus', 0, 'EchoRemote_UpdatePlayerStatus(' . $this->InstanceID . ', 0);');
         $this->RegisterTimer('EchoAlarm', 0, 'EchoRemote_RaiseAlarm(' . $this->InstanceID . ');');
         $this->RegisterAttributeInteger('creationTimestamp', 0);
         $this->RegisterAttributeString('routines', '[]');
@@ -258,7 +259,9 @@ class EchoRemote extends IPSModule
             $this->SetValue('EchoFavorites', $Value);
             $Value = json_decode($Value, true);
             if ($Value !== false)
+            {
                 $this->PlayMusic($Value['searchPhrase'], $Value['musicProvider']);
+            }          
         }
         if ($Ident === 'EchoFavoritesPlaylist') {
             $this->SetValue('EchoFavoritesPlaylist', $Value);
@@ -326,6 +329,7 @@ class EchoRemote extends IPSModule
         if ($Ident === 'Automation') {
             $this->StartAlexaRoutineByKey($Value);
         }
+
     }
 
     /**
@@ -379,6 +383,7 @@ class EchoRemote extends IPSModule
     {
         $result = $this->NpCommand('PreviousCommand');
         if ($result['http_code'] === 200) {
+            $this->UpdatePlayerStatus(5);
             //$this->SetValue('EchoRemote', self::PREVIOUS);
             return true;
         }
@@ -394,6 +399,7 @@ class EchoRemote extends IPSModule
         $result = $this->NpCommand('PauseCommand');
         if ($result['http_code'] === 200) {
             $this->SetValue('EchoRemote', self::PAUSE);
+            $this->UpdatePlayerStatus(5);
             return true;
         }
         return false;
@@ -408,6 +414,7 @@ class EchoRemote extends IPSModule
         $result = $this->NpCommand('PlayCommand');
         if ($result['http_code'] === 200) {
             $this->SetValue('EchoRemote', self::PLAY);
+            $this->UpdatePlayerStatus(5);
             return true;
         }
         return false;
@@ -421,6 +428,7 @@ class EchoRemote extends IPSModule
     {
         $result = $this->NpCommand('NextCommand');
         if ($result['http_code'] === 200) {
+            $this->UpdatePlayerStatus(5);
             //$this->SetValue('EchoRemote', self::NEXT);
             return true;
         }
@@ -496,6 +504,8 @@ class EchoRemote extends IPSModule
             $result = $this->SetVolumeSequenceCmd( $volume );
         }
 
+        $this->UpdatePlayerStatus(5);
+
         if ($result) {
             $this->SetValue('EchoVolume', $volume);
             if ($volume > 0)
@@ -506,7 +516,6 @@ class EchoRemote extends IPSModule
                 if (@$this->GetValue('Mute'))
                     $this->SetValue('Mute', false);
             }
-                
             return true;
         }
 
@@ -707,8 +716,7 @@ class EchoRemote extends IPSModule
             $this->SetValue('EchoTuneInRemote_' . $this->ReadPropertyString('Devicenumber'), $presetPosition);
         }
         if ($result['http_code'] === 200) {
-            sleep(4); //warten, bis das Umschalten erfolgt ist
-            return $this->UpdateStatus();
+            return $this->UpdatePlayerStatus(5);
         }
         return false;
     }
@@ -1005,7 +1013,11 @@ class EchoRemote extends IPSModule
             'musicProviderId'       => $musicProviderId
         ];
 
-        return $this->PlaySequenceCmd('Alexa.Music.PlaySearchPhrase', $operationPayload);
+        $result = $this->PlaySequenceCmd('Alexa.Music.PlaySearchPhrase', $operationPayload);
+
+        $this->UpdatePlayerStatus(5);
+
+        return $result;
     }
 
     private function sanitizeSearchPhrase(  $searchPhrase )
@@ -1525,7 +1537,69 @@ class EchoRemote extends IPSModule
      * @return bool
      */
     public function UpdateStatus(): bool
-    {     
+    {    
+
+        if ( !IPS_SemaphoreEnter ( 'UpdateStatus.'.$this->InstanceID , 1000) )
+        {
+            return false;
+        } 
+
+        $this->UpdatePlayerStatus();
+
+        // Update do-not-disturb-state
+        if ($this->ReadPropertyBoolean('DND')) {
+            $this->GetDoNotDisturbState();
+        }
+
+        //update Alarm
+        if ($this->ReadPropertyBoolean('AlarmInfo')) {
+            $this->UpdateAlarm();
+        }
+
+        //update ShoppingList
+        if ($this->ReadPropertyBoolean('ShoppingList')) {
+            $shoppingList = (array) $this->GetToDos('SHOPPING_ITEM', false);
+            if ($shoppingList === false) {
+                return false;
+            }
+
+            $html = $this->GetListPage($shoppingList);
+            //neuen Wert setzen.
+            if ($html !== $this->GetValue('ShoppingList')) {
+                $this->SetValue('ShoppingList', $html);
+            }
+        }
+
+        //update TaskList
+        if ($this->ReadPropertyBoolean('TaskList')) {
+            $taskList = (array) $this->GetToDos('TASK', false);
+            if ($taskList === false) {
+                return false;
+            }
+
+            $html = $this->GetListPage($taskList);
+            //neuen Wert setzen.
+            if ($html !== $this->GetValue('TaskList')) {
+                $this->SetValue('TaskList', $html);
+            }
+        }
+
+        IPS_SemaphoreLeave ( 'UpdateStatus.'.$this->InstanceID );
+
+        return true;
+    }
+
+    public function UpdatePlayerStatus(int $waitSeconds = 0)
+    {
+        if ($waitSeconds > 0)
+        {
+            $this->SetTimerInterval('UpdatePlayerStatus', $waitSeconds * 1000);
+            return;
+        } 
+        else
+        {
+            $this->SetTimerInterval('UpdatePlayerStatus', 0);
+        }
 
         // Update player information
         $result = $this->GetPlayerInformation();
@@ -1534,6 +1608,16 @@ class EchoRemote extends IPSModule
             
             $playerInfo = $result['playerInfo'];
             $this->SendDebug('Playerinfo', json_encode($playerInfo), 0);
+
+            // Set timer based on media length and current progress
+            if ( isset($playerInfo['progress']['mediaLength']) && isset($playerInfo['progress']['mediaProgress']) )
+            {
+                $remaining = $playerInfo['progress']['mediaLength'] - $playerInfo['progress']['mediaProgress'];
+                if ( $remaining > 0)
+                {
+                    $this->SetTimerInterval('UpdatePlayerStatus', ($remaining + 5) * 1000);
+                }
+            }
 
             if ($this->CheckExistence('EchoRemote') )
             {
@@ -1607,46 +1691,6 @@ class EchoRemote extends IPSModule
                 }
             }
         }
-
-        // Update do-not-disturb-state
-        if ($this->ReadPropertyBoolean('DND')) {
-            $this->GetDoNotDisturbState();
-        }
-
-        //update Alarm
-        if ($this->ReadPropertyBoolean('AlarmInfo')) {
-            $this->UpdateAlarm();
-        }
-
-        //update ShoppingList
-        if ($this->ReadPropertyBoolean('ShoppingList')) {
-            $shoppingList = (array) $this->GetToDos('SHOPPING_ITEM', false);
-            if ($shoppingList === false) {
-                return false;
-            }
-
-            $html = $this->GetListPage($shoppingList);
-            //neuen Wert setzen.
-            if ($html !== $this->GetValue('ShoppingList')) {
-                $this->SetValue('ShoppingList', $html);
-            }
-        }
-
-        //update TaskList
-        if ($this->ReadPropertyBoolean('TaskList')) {
-            $taskList = (array) $this->GetToDos('TASK', false);
-            if ($taskList === false) {
-                return false;
-            }
-
-            $html = $this->GetListPage($taskList);
-            //neuen Wert setzen.
-            if ($html !== $this->GetValue('TaskList')) {
-                $this->SetValue('TaskList', $html);
-            }
-        }
-
-        return true;
     }
 
 

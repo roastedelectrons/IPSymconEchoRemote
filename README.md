@@ -66,24 +66,20 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 Version 2.2 (development)
 * Neu: Favoriten
    * Variable zum einfachen Starten von Musik verschiedener Musikanbieter
-   * Favoritenliste kann in Instanz-Konfiguration angepasst werden
-   * Favoriten verwenden intern die Funktion PlayMusic() (siehe Dokumentation neuer Funktionen)
-   * Favoriten sollen mittelfristig die TuneIn-Senderliste ersetzten. Eine Migrationsfunktion vereinfacht die Übernahme der TuneIn-Sender in die Favoritenliste
-
+   * Favoritenliste kann in Instanz-Konfiguration editiert werden
+   * verwendet intern die Funktion PlayMusic() (siehe Dokumentation neuer Funktionen)
+   * Favoriten sollen zukünftig die TuneIn-Senderliste ersetzen. Eine Migrationsfunktion vereinfacht die Übernahme der TuneIn-Sender in die Favoritenliste
 * Weitere Neuerungen:
    * TextToSpeechVolume() und TextToSpeechEx() ändern die Lautstärke der Ansage und setzen sie danach wieder zurück
-   * Variable für Online-Status
-   * Variablen für Player-Steuerung können de-/aktiviert werden
-   * Variable für TuneIn Radio kann de-/aktiviert werden
-
-
+   * Variable für Online-Status des Echo-Gerätes
+   * Alle Variablen können in der EchoRemote-Instanz de-/aktiviert werden
+   * Player-Status wird Ereignis-basiert aktualisiert (so kann das Aktualisierungintervall der EchoRemote-Instanz größer gewählt werden - empfohlen: größer 60 sec.)
 * Change: 
-   * TextToSpeechEx() zusätzlicher options-Parameter muss übergeben werden (siehe Funktions-Doku)
-   * Änderung der Assoziationen der VariablenProfile ECHO.Mute, ECHO.Remote
+   * TextToSpeechEx() zusätzlicher options-Parameter muss übergeben werden (siehe Dokumentation neuer Funktionen)
+   * Assoziationen der VariablenProfile ECHO.Mute und ECHO.Remote angepasst
    * Variablen, die in der Instanz-Konfiguration deaktiviert wurden, werden nun gelöscht
    * Interner Datenfluss vereinheitlicht
    * Nicht-unterstützte Funktionen entfernt (PlayAlbum, PlaySong, PlayPlaylist, PlayAmazonMusic, PlayAmazonPrimePlaylist, GetAmazonPrimeStationSectionList, SendDelete, JumpToMediaId)
-
 * Fix: 
    * SetVolume() nutzt alternative Methode, sofern der Aufruf fehlgeschlagen ist
 
@@ -228,7 +224,7 @@ _Beispiel:_
 $InstanceID = 12345; // InstanzID des Echo Remote Devices
 $instanceIDList = [12345, 23456, 34567];
 
-ECHOREMOTE_TextToSpeechEx( $InstanceID,  'Die Waschmaschine ist fertig', $instanceIDList, ['volume' => 50] );
+ECHOREMOTE_TextToSpeechEx( $InstanceID,  'Die Waschmaschine ist fertig', $instanceIDList, [] );
 
 ```
 
