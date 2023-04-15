@@ -100,6 +100,9 @@ class EchoRemote extends IPSModule
         $this->RegisterPropertyBoolean('OnlineStatus', false);
         $this->RegisterPropertyBoolean('EchoFavorites', true);
         $this->RegisterPropertyBoolean('EchoTuneInRemote', true);
+        $this->RegisterPropertyBoolean('LastAction', true);
+        $this->RegisterPropertyBoolean('EchoTTS', true);
+        $this->RegisterPropertyBoolean('EchoActions', true);
         
 
         $this->SetBuffer('CoverURL', '');
@@ -1930,26 +1933,28 @@ class EchoRemote extends IPSModule
             $this->DeleteMediaImage('MediaImageCover');
         }
 
-        //Actions and TTS Variables
-        if (in_array('FLASH_BRIEFING', $caps, true)) {
-            $this->RegisterProfileAssociation(
-                'Echo.Actions', 'Move', '', '', 0, 5, 0, 0, VARIABLETYPE_INTEGER, [
-                    [0, $this->Translate('Weather'), '', -1],
-                    [1, $this->Translate('Traffic'), '', -1],
-                    [2, $this->Translate('Flash Briefing'), '', -1],
-                    [3, $this->Translate('Good morning'), '', -1],
-                    [4, $this->Translate('Sing a song'), '', -1],
-                    [5, $this->Translate('Tell a story'), '', -1],
-                    [6, $this->Translate('Tell a joke'), '', -1],
-                    [7, $this->Translate('Tell a funfact'), '', -1],
-                    [8, $this->Translate('Stop all actions'), '', -1]]
-            );
-            $this->RegisterVariableInteger('EchoActions', $this->Translate('Actions'), 'Echo.Actions', $this->_getPosition());
-            $this->EnableAction('EchoActions');
+        //Actions
+        $this->RegisterProfileAssociation(
+            'Echo.Actions', 'Move', '', '', 0, 5, 0, 0, VARIABLETYPE_INTEGER, [
+                [0, $this->Translate('Weather'), '', -1],
+                [1, $this->Translate('Traffic'), '', -1],
+                [2, $this->Translate('Flash Briefing'), '', -1],
+                [3, $this->Translate('Good morning'), '', -1],
+                [4, $this->Translate('Sing a song'), '', -1],
+                [5, $this->Translate('Tell a story'), '', -1],
+                [6, $this->Translate('Tell a joke'), '', -1],
+                [7, $this->Translate('Tell a funfact'), '', -1],
+                [8, $this->Translate('Stop all actions'), '', -1]]
+        );
 
-            $this->RegisterVariableString('EchoTTS', $this->Translate('Text to Speech'), '', $this->_getPosition());
-            $this->EnableAction('EchoTTS');
-        }
+        $keep = in_array('FLASH_BRIEFING', $caps, true) && $this->ReadPropertyBoolean('EchoActions');
+        $this->MaintainVariable('EchoActions', $this->Translate('Actions'), 1, 'Echo.Actions', $this->_getPosition(), $keep);
+        @$this->EnableAction('EchoActions');
+
+        // Text to Speech
+        $keep = in_array('FLASH_BRIEFING', $caps, true) && $this->ReadPropertyBoolean('EchoTTS');
+        $this->MaintainVariable('EchoTTS', $this->Translate('Text to Speech'), 3, '', $this->_getPosition(), $keep);
+        @$this->EnableAction('EchoTTS');
 
         // Do not disturb
         $keep = $this->ReadPropertyBoolean('DND');
@@ -2016,7 +2021,7 @@ class EchoRemote extends IPSModule
             $this->EnableAction('Automation');
         }
 
-        $keep = in_array('FLASH_BRIEFING', $caps, true);
+        $keep = in_array('FLASH_BRIEFING', $caps, true) && $this->ReadPropertyBoolean('LastAction');
         $this->MaintainVariable('last_action', $this->Translate('Last Action'), 1, '~UnixTimestamp', $this->_getPosition(), $keep);
         $this->MaintainVariable('summary', $this->Translate('Last Command'), 3, '', $this->_getPosition(), $keep);
 
@@ -2715,6 +2720,18 @@ class EchoRemote extends IPSModule
                 'name'    => 'TaskList',
                 'type'    => 'CheckBox',
                 'caption' => 'setup variable for a task list'],
+            [
+                'name'    => 'EchoActions',
+                'type'    => 'CheckBox',
+                'caption' => 'setup variable for actions (i.g. flash briefing, traffic, weather,...)'],
+            [
+                'name'    => 'EchoTTS',
+                'type'    => 'CheckBox',
+                'caption' => 'setup variable for text-to-speech'],
+            [
+                'name'    => 'LastAction',
+                'type'    => 'CheckBox',
+                'caption' => 'setup variables for last action (function has to be enabled in EchoIO instance)'],
             [
                 'name'    => 'OnlineStatus',
                 'type'    => 'CheckBox',
