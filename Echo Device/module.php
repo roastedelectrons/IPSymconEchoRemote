@@ -308,10 +308,6 @@ class EchoRemote extends IPSModule
                     $this->SetValue('EchoActions', $Value);
                     $this->TellFunFact();
                     break;
-                case 8: // stop all actions
-                    $this->SetValue('EchoActions', $Value);
-                    $this->StopDeviceActions();
-                    break;
             }
         }
         if ($Ident === 'EchoTTS') {
@@ -436,6 +432,34 @@ class EchoRemote extends IPSModule
         return false;
     }
 
+    /**
+     * Stop Music
+     */
+    public function Stop(): bool
+    {
+
+        $operationPayload = [
+            'customerId'    => $this->GetCustomerID(),
+            'devices' => [
+                [
+                'deviceSerialNumber'  => $this->GetDevicenumber(),
+                'deviceType'          => $this->GetDevicetype()
+                ]
+            ],
+            'isAssociatedDevice' => false         
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.DeviceControls.Stop',
+            'skillId'           => 'amzn1.ask.1p.alexadevicecontrols',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
+    }
+
     /** StopAll
      *
      * @return bool
@@ -444,7 +468,6 @@ class EchoRemote extends IPSModule
     {
 
         $operationPayload = [
-            //'skillId'       => 'amzn1.ask.1p.alexadevicecontrols',
             'customerId'    => $this->GetCustomerID(),
             'devices' => [
                 [
@@ -453,10 +476,17 @@ class EchoRemote extends IPSModule
                 ]
             ],
             'isAssociatedDevice' => false         
-
         ];
 
-        return $this->PlaySequenceCmd('Alexa.DeviceControls.Stop', $operationPayload);
+        $payload  = [
+            'type'              => 'Alexa.DeviceControls.Stop',
+            'skillId'           => 'amzn1.ask.1p.alexadevicecontrols',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /** VolumeUp
@@ -548,13 +578,23 @@ class EchoRemote extends IPSModule
     private function SetVolumeSequenceCmd( int $volume )
     {
         $operationPayload = [
-            'deviceSerialNumber' => $this->GetDevicenumber(),
-            'deviceType' => $this->GetDevicetype(),
-            'customerId' => $this->GetCustomerID(),
-            'value' => $volume,
+            'customerId'            => $this->GetCustomerID(),
+            'deviceSerialNumber'    => $this->GetDevicenumber(),
+            'deviceType'            => $this->GetDevicetype(),
+            'value'                 => $volume,
+            'locale'                => 'ALEXA_CURRENT_LOCALE'
         ];
 
-        return $this->PlaySequenceCmd('Alexa.DeviceControls.Volume', $operationPayload);
+        $payload  = [
+            'type'              => 'Alexa.DeviceControls.Volume',
+            'skillId'           => 'amzn1.ask.1p.alexadevicecontrols',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
+
     }
 
     /** Mute / unmute
@@ -902,7 +942,15 @@ class EchoRemote extends IPSModule
             $operationPayload['volume'] = $options['volume'];
         }
 
-        return $this->PlaySequenceCmd('Alexa.Speak', $operationPayload);
+        $payload  = [
+            'type'              => 'Alexa.Speak',
+            'skillId'           => 'amzn1.ask.1p.saysomething',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /** Send a text Command to an echo device
@@ -912,14 +960,22 @@ class EchoRemote extends IPSModule
     public function TextCommand(string $command): bool
     {
         $operationPayload = [
+            'customerId' => $this->GetCustomerID(),
             'deviceSerialNumber' => $this->GetDevicenumber(),
             'deviceType' => $this->GetDevicetype(),
-            'customerId' => $this->GetCustomerID(),
             'locale'        => 'ALEXA_CURRENT_LOCALE', 
-            'text' => $command,
-            'skillId' => 'amzn1.ask.1p.tellalexa'
+            'text' => $command
         ];
-        return $this->PlaySequenceCmd('Alexa.TextCommand', $operationPayload);
+
+        $payload  = [
+            'type'              => 'Alexa.TextCommand',
+            'skillId'           => 'amzn1.ask.1p.tellalexa',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /** Announcement
@@ -942,7 +998,7 @@ class EchoRemote extends IPSModule
      */
     public function AnnouncementEx(string $tts, array $instanceIDList = [] , array $options = [] ): bool
     {
-        $language = $this->GetLanguage();
+
         $customerID = $this->GetCustomerID();
 
         $tts = '<speak>'.$tts.'</speak>';
@@ -981,21 +1037,29 @@ class EchoRemote extends IPSModule
                         'type' => 'ssml',
                         'value' => $tts
                     ],
-                    'locale' => $language
+                    'locale' => 'ALEXA_CURRENT_LOCALE'
                 ]
             ],
             'skillId' => 'amzn1.ask.1p.routines.messaging',
-            'locale' => $language,
+            'locale' => 'ALEXA_CURRENT_LOCALE',
             'customerId' => $customerID,
             'locale'        => 'ALEXA_CURRENT_LOCALE', 
             'target' => [
                 'customerId' => $customerID,
                 'devices' => $targetDevices,
-                'locale' =>  $language
+                'locale' =>  'ALEXA_CURRENT_LOCALE'
             ]
         ];   
-        
-        return $this->PlaySequenceCmd('AlexaAnnouncement',  $operationPayload);
+
+        $payload  = [
+            'type'              => 'AlexaAnnouncement',
+            'skillId'           => 'amzn1.ask.1p.routines.messaging',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;        
     }
     
 
@@ -1012,10 +1076,18 @@ class EchoRemote extends IPSModule
             'title'                 => $title,
             'notificationMessage'   => $message,
             'alexaUrl'              => '#v2/behaviors',
-            'skillId'               => 'amzn1.ask.1p.routines.messaging',
             'customerId'            => $this->GetCustomerID()
         ];
-        return $this->PlaySequenceCmd('Alexa.Notifications.SendMobilePush', $operationPayload);
+
+        $payload  = [
+            'type'              => 'Alexa.Notifications.SendMobilePush',
+            'skillId'           => 'amzn1.ask.1p.routines.messaging',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;    
     }
 
     /** PlayMusic
@@ -1040,11 +1112,17 @@ class EchoRemote extends IPSModule
             'musicProviderId'       => $musicProviderId
         ];
 
-        $result = $this->PlaySequenceCmd('Alexa.Music.PlaySearchPhrase', $operationPayload);
+        $payload  = [
+            'type'              => 'Alexa.Music.PlaySearchPhrase',
+            'skillId'           => 'amzn1.ask.1p.music',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
 
         $this->UpdatePlayerStatus(5);
 
-        return $result;
+        return $result['http_code'] === 200; 
     }
 
     private function sanitizeSearchPhrase(  $searchPhrase )
@@ -1087,7 +1165,22 @@ class EchoRemote extends IPSModule
      */
     public function Weather(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.Weather.Play');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.Weather.Play',
+            'skillId'           => 'amzn1.ask.1p.weather',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /**
@@ -1095,7 +1188,22 @@ class EchoRemote extends IPSModule
      */
     public function Traffic(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.Traffic.Play');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.Traffic.Play',
+            'skillId'           => 'amzn1.ask.1p.traffic',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /**
@@ -1103,7 +1211,22 @@ class EchoRemote extends IPSModule
      */
     public function FlashBriefing(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.FlashBriefing.Play');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.FlashBriefing.Play',
+            'skillId'           => 'amzn1.ask.1p.flashbriefing',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /**
@@ -1111,7 +1234,22 @@ class EchoRemote extends IPSModule
      */
     public function GoodMorning(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.GoodMorning.Play');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.GoodMorning.Play',
+            'skillId'           => 'amzn1.ask.1p.saysomething',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /**
@@ -1119,7 +1257,22 @@ class EchoRemote extends IPSModule
      */
     public function SingASong(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.SingASong.Play');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.SingASong.Play',
+            'skillId'           => 'amzn1.ask.1p.saysomething',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /**
@@ -1127,7 +1280,22 @@ class EchoRemote extends IPSModule
      */
     public function TellStory(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.TellStory.Play');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.TellStory.Play',
+            'skillId'           => 'amzn1.ask.1p.saysomething',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /**
@@ -1135,7 +1303,22 @@ class EchoRemote extends IPSModule
      */
     public function TellFunFact(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.FunFact.Play');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.FunFact.Play',
+            'skillId'           => 'amzn1.ask.1p.saysomething',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /**
@@ -1143,23 +1326,45 @@ class EchoRemote extends IPSModule
      */
     public function TellJoke(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.Joke.Play');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.Joke.Play',
+            'skillId'           => 'amzn1.ask.1p.saysomething',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
-    /**
-     * Stop all current actions on device.
-     */
-    public function StopDeviceActions(): bool
-    {
-        return $this->PlaySequenceCmd('Alexa.DeviceControls.Stop');
-    }
 
     /**
      * Clean Up need Amazon Music Unlimited.
      */
     public function CleanUp(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.CleanUp.Play');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.CleanUp.Play',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /**
@@ -1167,7 +1372,22 @@ class EchoRemote extends IPSModule
      */
     public function CalendarToday(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.Calendar.PlayToday');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.Calendar.PlayToday',
+            'skillId'           => 'amzn1.ask.1p.calendar',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /**
@@ -1175,7 +1395,22 @@ class EchoRemote extends IPSModule
      */
     public function CalendarTomorrow(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.Calendar.PlayTomorrow');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.Calendar.PlayTomorrow',
+            'skillId'           => 'amzn1.ask.1p.calendar',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /**
@@ -1183,7 +1418,22 @@ class EchoRemote extends IPSModule
      */
     public function CalendarNext(): bool
     {
-        return $this->PlaySequenceCmd('Alexa.Calendar.PlayNext');
+        $operationPayload = [
+            'customerId'         => $this->GetCustomerID(),
+            'deviceSerialNumber' => $this->GetDevicenumber(),
+            'deviceType'         => $this->GetDevicetype(),
+            'locale'             => 'ALEXA_CURRENT_LOCALE'
+        ];
+
+        $payload  = [
+            'type'              => 'Alexa.Calendar.PlayNext',
+            'skillId'           => 'amzn1.ask.1p.calendar',
+            'operationPayload'  => $operationPayload
+        ];
+
+        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+        return $result['http_code'] === 200;
     }
 
     /** Get state do not disturb
@@ -1324,17 +1574,8 @@ class EchoRemote extends IPSModule
      * @return bool
      */
     public function DisplayOff(): bool
-    {
-        $operationPayload = [
-            'deviceSerialNumber' => $this->GetDevicenumber(),
-            'deviceType' => $this->GetDevicetype(),
-            'customerId' => $this->GetCustomerID(),
-            'locale'     => 'ALEXA_CURRENT_LOCALE',           
-            'text'      => $this->Translate('display off'),
-            'skillId'   => 'amzn1.ask.1p.tellalexa'
-        ];
-        
-        return $this->PlaySequenceCmd('Alexa.TextCommand', $operationPayload);
+    {      
+        return $this->TextCommand( $this->Translate('display off') );
     }
 
     /** Echo Show Display on
@@ -1343,16 +1584,7 @@ class EchoRemote extends IPSModule
      */
     public function DisplayOn(): bool
     {
-        $operationPayload = [
-            'deviceSerialNumber' => $this->GetDevicenumber(),
-            'deviceType' => $this->GetDevicetype(),
-            'customerId' => $this->GetCustomerID(),  
-            'locale'     => 'ALEXA_CURRENT_LOCALE',           
-            'text'      => $this->Translate('display on'),
-            'skillId'   => 'amzn1.ask.1p.tellalexa'
-        ];
-
-        return $this->PlaySequenceCmd('Alexa.TextCommand', $operationPayload);
+        return $this->TextCommand( $this->Translate('display on') );
     }
 
     /** Show Alarm Clock
@@ -1361,16 +1593,7 @@ class EchoRemote extends IPSModule
      */
     public function ShowAlarmClock(): bool
     {
-        $operationPayload = [
-            'deviceSerialNumber' => $this->GetDevicenumber(),
-            'deviceType' => $this->GetDevicetype(),
-            'customerId' => $this->GetCustomerID(),
-            'locale'     => 'ALEXA_CURRENT_LOCALE',           
-            'text'      => $this->Translate('show alarm clock'),
-            'skillId'   => 'amzn1.ask.1p.tellalexa'
-        ];
-
-        return $this->PlaySequenceCmd('Alexa.TextCommand', $operationPayload);
+        return $this->TextCommand( $this->Translate('show alarm clock') );
     }
 
     /** Set do not disturb
@@ -2017,8 +2240,8 @@ class EchoRemote extends IPSModule
                 [4, $this->Translate('Sing a song'), '', -1],
                 [5, $this->Translate('Tell a story'), '', -1],
                 [6, $this->Translate('Tell a joke'), '', -1],
-                [7, $this->Translate('Tell a funfact'), '', -1],
-                [8, $this->Translate('Stop all actions'), '', -1]]
+                [7, $this->Translate('Tell a funfact'), '', -1]
+            ]
         );
 
         $keep = in_array('FLASH_BRIEFING', $caps, true) && $this->ReadPropertyBoolean('EchoActions');
@@ -2408,33 +2631,6 @@ class EchoRemote extends IPSModule
         $payload['postfields'] = $postfields;
 
         return $this->SendDataPacket('SendEcho', $payload);
-    }
-
-    /** PlaySequenceCmd
-     *
-     * @param string $sequenceCmd
-     * @param string $tts
-     *
-     * @return bool
-     */
-    private function PlaySequenceCmd(string $sequenceCmd, array $operationPayload = null): bool
-    {
-        //Set default values, if no payload is given
-        if ($operationPayload === null)
-        {
-            $operationPayload['deviceSerialNumber'] = $this->GetDevicenumber();
-            $operationPayload['deviceType'] = $this->GetDevicetype();
-            $operationPayload['customerId'] = $this->GetCustomerID();
-        }
-
-        $payload['postfields']  = [
-            'type' => $sequenceCmd,
-            'operationPayload' => $operationPayload
-        ];
-        
-        $result = (array) $this->SendDataPacket('BehaviorsPreview', $payload);
-
-        return $result['http_code'] === 200;
     }
 
     private function GetAutomation($utterance, $automations)

@@ -1129,9 +1129,7 @@ class AmazonEchoIO extends IPSModule
                 break;
 
             case 'BehaviorsPreview':
-                $postfields = $payload['postfields'];
-
-                $result = $this->BehaviorsPreview($postfields);
+                $result = $this->BehaviorsPreview($payload);
                 break;
 
             case 'BehaviorsPreviewAutomation':
@@ -1257,11 +1255,13 @@ class AmazonEchoIO extends IPSModule
         $type = $postfields['type'];
 
         $operationPayload = $postfields['operationPayload'];
-        
-        // Extend operation Payload
-        if (isset( $operationPayload['locale']) && $operationPayload['locale'] == 'ALEXA_CURRENT_LOCALE')
+        if ( isset($postfields['skillId']) )
         {
-            $operationPayload['locale'] =  $locale;
+            $skillId = $postfields['skillId'];
+        }
+        else
+        {
+            $skillId = '';
         }
 
         $nodes = array();
@@ -1302,7 +1302,7 @@ class AmazonEchoIO extends IPSModule
                 $operationPayload['target']['devices'] = $devices;
             }
             
-            $nodes[] = $this->createNode( $type, $operationPayload);
+            $nodes[] = $this->createNode( $type, $operationPayload, $skillId);
 
         }
         elseif ( $type == 'Alexa.Speak' )
@@ -1353,7 +1353,7 @@ class AmazonEchoIO extends IPSModule
                     $payload['deviceSerialNumber'] = $device['deviceSerialNumber'];                    
                     $payload['value']              = $operationPayload['volume'];
 
-                    $nodesSetVolume[] = $this->createNode( 'Alexa.DeviceControls.Volume', $payload);
+                    $nodesSetVolume[] = $this->createNode( 'Alexa.DeviceControls.Volume', $payload, $skillId);
 
                     // Reset volume to current value
                     $payload = array();
@@ -1363,7 +1363,7 @@ class AmazonEchoIO extends IPSModule
                     $payload['deviceSerialNumber'] = $device['deviceSerialNumber'];  
                     $payload['value']              = $this->GetDeviceVolume($device['deviceSerialNumber'], $device['deviceType']);
 
-                    $nodesResetVolume[] = $this->createNode( 'Alexa.DeviceControls.Volume', $payload);
+                    $nodesResetVolume[] = $this->createNode( 'Alexa.DeviceControls.Volume', $payload, $skillId);
 
                 }
 
@@ -1377,7 +1377,7 @@ class AmazonEchoIO extends IPSModule
                 $payload['deviceType']         = $device['deviceType'];
                 $payload['deviceSerialNumber'] = $device['deviceSerialNumber'];
 
-                $nodesCmd[] = $this->createNode( $type, $payload);
+                $nodesCmd[] = $this->createNode( $type, $payload, $skillId);
             }
 
             if (isset($nodesSetVolume))
@@ -1406,7 +1406,7 @@ class AmazonEchoIO extends IPSModule
         } 
         else 
         {
-            $nodes[] = $this->createNode( $type, $operationPayload);
+            $nodes[] = $this->createNode( $type, $operationPayload, $skillId);
         }
 
 
@@ -1414,12 +1414,18 @@ class AmazonEchoIO extends IPSModule
 
         $sequence = [
             '@type' => 'com.amazon.alexa.behaviors.model.Sequence',
-            'startNode' => $startNode];
+            'startNode' => $startNode
+        ];
+
+        $sequenceJson = json_encode($sequence);
+
+        // Replace placeholder
+        str_replace( 'ALEXA_CURRENT_LOCALE', $this->GetLanguage() ,$sequenceJson);
 
         unset($postfields);
         $postfields = [
             'behaviorId' => 'PREVIEW',
-            'sequenceJson' => json_encode($sequence),
+            'sequenceJson' => $sequenceJson,
             'status' => 'ENABLED'];
 
         $this->SendDebug(__FUNCTION__, $postfields, 0);
@@ -1441,13 +1447,18 @@ class AmazonEchoIO extends IPSModule
         return $result;
     }
 
-    private function createNode( string $type, array $operationPayload)
+    private function createNode( string $type, array $operationPayload, string $skillId)
     {
         $node = [
             '@type' => 'com.amazon.alexa.behaviors.model.OpaquePayloadOperationNode',
             'type' => $type,
             'operationPayload' => $operationPayload
         ];
+
+        if ($skillId != '')
+        {
+            $node['skillId'] = $skillId;
+        }
 
         return $node;
     }
