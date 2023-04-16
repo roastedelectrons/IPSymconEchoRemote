@@ -433,7 +433,7 @@ class EchoRemote extends IPSModule
     }
 
     /**
-     * Stop Music
+     * Stop music
      */
     public function Stop(): bool
     {
@@ -460,7 +460,7 @@ class EchoRemote extends IPSModule
         return $result['http_code'] === 200;
     }
 
-    /** StopAll
+    /** Stop music on all devices
      *
      * @return bool
      */
@@ -989,6 +989,17 @@ class EchoRemote extends IPSModule
         return $this->AnnouncementEx( $tts, [ $this->InstanceID ] , [] );
     }
 
+    /** AnnouncementToAll
+     *
+     * @param string $tts
+     *
+     * @return array|string
+     */
+    public function AnnouncementToAll(string $tts): bool
+    {
+        return $this->AnnouncementEx( $tts, ['ALL_DEVICES'] , [] );
+    }
+
     /** AnnouncementEx
      *
      * @param string $tts
@@ -1006,7 +1017,11 @@ class EchoRemote extends IPSModule
         if ( $instanceIDList == array())
         {
             return false;
-        } 
+        }
+        elseif ( in_array('ALL_DEVICES', $instanceIDList) )
+        {
+            $targetDevices = [];
+        }
         else
         {
             // Remove duplicates
@@ -1049,7 +1064,13 @@ class EchoRemote extends IPSModule
                 'devices' => $targetDevices,
                 'locale' =>  'ALEXA_CURRENT_LOCALE'
             ]
-        ];   
+        ];
+
+        // Announcements to all devices do not have the devices attribute
+        if ($targetDevices == [])
+        {
+            unset($operationPayload['target']['devices']);
+        }
 
         $payload  = [
             'type'              => 'AlexaAnnouncement',

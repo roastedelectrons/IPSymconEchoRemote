@@ -71,6 +71,8 @@ Version 2.2 (development)
    * Favoriten sollen zukünftig die TuneIn-Senderliste ersetzen. Eine Migrationsfunktion vereinfacht die Übernahme der TuneIn-Sender in die Favoritenliste
 * Weitere Neuerungen:
    * TextToSpeechVolume() und TextToSpeechEx() ändern die Lautstärke der Ansage und setzen sie danach wieder zurück
+   * AnnouncementToAll() führt Ansagen auf allen im Account registrierten Geräten aus
+   * StopAll() stoppt Musikwiedergabe auf allen im Account registrierten Geräten 
    * Variable für Online-Status des Echo-Gerätes
    * Alle Variablen können in der EchoRemote-Instanz de-/aktiviert werden
    * Player-Status wird Ereignis-basiert aktualisiert (so kann das Aktualisierungintervall der EchoRemote-Instanz größer gewählt werden - empfohlen: größer 60 sec.)

@@ -1274,32 +1274,34 @@ class AmazonEchoIO extends IPSModule
             $this->UpdateDeviceList();
             
             $devices = array();
-            foreach ( $operationPayload['target']['devices'] as $device )
+            if ( isset($operationPayload['target']['devices'] ))
             {
-                $members = $this->getClusterMembers( $device['deviceSerialNumber'] );
-                if ( $members === array() )
+                foreach ( $operationPayload['target']['devices'] as $device )
                 {
-                    //Singel device
-                    $devices[] = $device;
-                }
-                else
-                {
-                    // Add clusterMembers of multiroom-group
-                    foreach ($members as $member)
+                    $members = $this->getClusterMembers( $device['deviceSerialNumber'] );
+                    if ( $members === array() )
                     {
-                        // it is important to rename deviceType to deviceTypeId for announcements to work properly
-                        $devices[] = [
-                            'deviceSerialNumber'    => $member['deviceSerialNumber'],
-                            'deviceTypeId'          => $member['deviceType'],                               
-                        ];
+                        //Singel device
+                        $devices[] = $device;
                     }
-                    
+                    else
+                    {
+                        // Add clusterMembers of multiroom-group
+                        foreach ($members as $member)
+                        {
+                            // it is important to rename deviceType to deviceTypeId for announcements to work properly
+                            $devices[] = [
+                                'deviceSerialNumber'    => $member['deviceSerialNumber'],
+                                'deviceTypeId'          => $member['deviceType'],                               
+                            ];
+                        }
+                        
+                    }
                 }
-            }
-
-            if ($devices !== array() )
-            {
-                $operationPayload['target']['devices'] = $devices;
+                if ($devices !== array() )
+                {
+                    $operationPayload['target']['devices'] = $devices;
+                }
             }
             
             $nodes[] = $this->createNode( $type, $operationPayload, $skillId);
