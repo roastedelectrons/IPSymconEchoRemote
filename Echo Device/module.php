@@ -436,6 +436,28 @@ class EchoRemote extends IPSModule
         return false;
     }
 
+    /** StopAll
+     *
+     * @return bool
+     */
+    public function StopAll(): bool
+    {
+
+        $operationPayload = [
+            //'skillId'       => 'amzn1.ask.1p.alexadevicecontrols',
+            'customerId'    => $this->GetCustomerID(),
+            'devices' => [
+                [
+                'deviceSerialNumber'  => 'ALEXA_ALL_DSN',
+                'deviceType'          => 'ALEXA_ALL_DEVICE_TYPE'
+                ]
+            ],
+            'isAssociatedDevice' => false         
+
+        ];
+
+        return $this->PlaySequenceCmd('Alexa.DeviceControls.Stop', $operationPayload);
+    }
 
     /** VolumeUp
      *
@@ -870,7 +892,8 @@ class EchoRemote extends IPSModule
 
         $operationPayload = [
             '_devices'      => $targetDevices,
-            'customerId'    => $this->GetCustomerID(),            
+            'customerId'    => $this->GetCustomerID(),
+            'locale'        => 'ALEXA_CURRENT_LOCALE',         
             'textToSpeak'   => $tts
         ];
 
@@ -892,6 +915,7 @@ class EchoRemote extends IPSModule
             'deviceSerialNumber' => $this->GetDevicenumber(),
             'deviceType' => $this->GetDevicetype(),
             'customerId' => $this->GetCustomerID(),
+            'locale'        => 'ALEXA_CURRENT_LOCALE', 
             'text' => $command,
             'skillId' => 'amzn1.ask.1p.tellalexa'
         ];
@@ -963,6 +987,7 @@ class EchoRemote extends IPSModule
             'skillId' => 'amzn1.ask.1p.routines.messaging',
             'locale' => $language,
             'customerId' => $customerID,
+            'locale'        => 'ALEXA_CURRENT_LOCALE', 
             'target' => [
                 'customerId' => $customerID,
                 'devices' => $targetDevices,
@@ -1008,7 +1033,8 @@ class EchoRemote extends IPSModule
         $operationPayload = [
             'deviceSerialNumber'    => $this->GetDevicenumber(),
             'deviceType'            => $this->GetDevicetype(),   
-            'customerId'            => $this->GetCustomerID(),            
+            'customerId'            => $this->GetCustomerID(),
+            'locale'                => 'ALEXA_CURRENT_LOCALE',            
             'searchPhrase'          => $searchPhrase,
             'sanitizedSearchPhrase' => $this->sanitizeSearchPhrase( $searchPhrase ),
             'musicProviderId'       => $musicProviderId
@@ -1302,7 +1328,8 @@ class EchoRemote extends IPSModule
         $operationPayload = [
             'deviceSerialNumber' => $this->GetDevicenumber(),
             'deviceType' => $this->GetDevicetype(),
-            'customerId' => $this->GetCustomerID(),            
+            'customerId' => $this->GetCustomerID(),
+            'locale'     => 'ALEXA_CURRENT_LOCALE',           
             'text'      => $this->Translate('display off'),
             'skillId'   => 'amzn1.ask.1p.tellalexa'
         ];
@@ -1319,7 +1346,8 @@ class EchoRemote extends IPSModule
         $operationPayload = [
             'deviceSerialNumber' => $this->GetDevicenumber(),
             'deviceType' => $this->GetDevicetype(),
-            'customerId' => $this->GetCustomerID(),            
+            'customerId' => $this->GetCustomerID(),  
+            'locale'     => 'ALEXA_CURRENT_LOCALE',           
             'text'      => $this->Translate('display on'),
             'skillId'   => 'amzn1.ask.1p.tellalexa'
         ];
@@ -1336,7 +1364,8 @@ class EchoRemote extends IPSModule
         $operationPayload = [
             'deviceSerialNumber' => $this->GetDevicenumber(),
             'deviceType' => $this->GetDevicetype(),
-            'customerId' => $this->GetCustomerID(),            
+            'customerId' => $this->GetCustomerID(),
+            'locale'     => 'ALEXA_CURRENT_LOCALE',           
             'text'      => $this->Translate('show alarm clock'),
             'skillId'   => 'amzn1.ask.1p.tellalexa'
         ];

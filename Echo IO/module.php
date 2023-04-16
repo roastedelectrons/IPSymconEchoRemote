@@ -1259,7 +1259,10 @@ class AmazonEchoIO extends IPSModule
         $operationPayload = $postfields['operationPayload'];
         
         // Extend operation Payload
-        $operationPayload['locale'] =  $locale;
+        if (isset( $operationPayload['locale']) && $operationPayload['locale'] == 'ALEXA_CURRENT_LOCALE')
+        {
+            $operationPayload['locale'] =  $locale;
+        }
 
         $nodes = array();
 
@@ -1419,6 +1422,7 @@ class AmazonEchoIO extends IPSModule
             'sequenceJson' => json_encode($sequence),
             'status' => 'ENABLED'];
 
+        $this->SendDebug(__FUNCTION__, $postfields, 0);
 
         if ( IPS_SemaphoreEnter ( 'BehaviorsPreview.'.$this->InstanceID , 6000) )
         {
