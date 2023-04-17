@@ -897,6 +897,17 @@ class EchoRemote extends IPSModule
         return $this->TextToSpeechEx( $tts, [ $this->InstanceID ], ['volume' => $volume] );
     }
 
+    /** TextToSpeech to all devices
+     *
+     * @param string $tts
+     *
+     * @return array|string
+     */
+    public function TextToSpeechToAll(string $tts): bool
+    {
+        return $this->TextToSpeechEx( $tts, ['ALL_DEVICES'], [] );
+    }
+
     /** TextToSpeechEx
      *
      * @param string $tts
@@ -908,6 +919,10 @@ class EchoRemote extends IPSModule
         if ( $instanceIDList == array())
         {
             return false;
+        }
+        elseif ( in_array('ALL_DEVICES', $instanceIDList) )
+        {
+            $targetDevices = 'ALL_DEVICES';
         } 
         else
         {
@@ -931,22 +946,22 @@ class EchoRemote extends IPSModule
         }
 
         $operationPayload = [
-            '_devices'      => $targetDevices,
             'customerId'    => $this->GetCustomerID(),
             'locale'        => 'ALEXA_CURRENT_LOCALE',         
             'textToSpeak'   => $tts
         ];
 
-        if (isset($options['volume']) )
-        {
-            $operationPayload['volume'] = $options['volume'];
-        }
-
         $payload  = [
             'type'              => 'Alexa.Speak',
             'skillId'           => 'amzn1.ask.1p.saysomething',
-            'operationPayload'  => $operationPayload
+            'operationPayload'  => $operationPayload,
+            'devices'           => $targetDevices,
         ];
+
+        if (isset($options['volume']) )
+        {
+            $payload['volume'] = $options['volume'];
+        }
 
         $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
 

@@ -835,6 +835,25 @@ class AmazonEchoIO extends IPSModule
         return $result;
     }
 
+    private function getEchoDevices()
+    {
+        $devices = $this->GetDeviceList();
+
+        $echos = array();
+
+        foreach ( $devices as $device )
+        {
+            if ( in_array('FLASH_BRIEFING', $device['capabilities']) && $device['deviceFamily'] != 'WHA' )
+            {
+                $echos[] = [
+                    'deviceSerialNumber' => $device['serialNumber' ],
+                    'deviceType'   => $device['deviceType' ]
+                ];
+            }
+        }
+        return $echos;
+    }
+
     private function getClusterMembers( $serialNumber )
     {
         
@@ -1313,7 +1332,14 @@ class AmazonEchoIO extends IPSModule
             $this->UpdateDeviceList();
 
             $devices = array();
-            foreach ( $operationPayload['_devices'] as $device )
+
+            $targetDevices = $postfields['devices'];
+            if ( $targetDevices == 'ALL_DEVICES' )
+            {
+                $targetDevices = $this->getEchoDevices();
+            }
+
+            foreach ( $targetDevices as $device )
             {
                 $members = $this->getClusterMembers( $device['deviceSerialNumber'] );
                 if ( $members === array() )
@@ -1331,11 +1357,11 @@ class AmazonEchoIO extends IPSModule
                     }
                 }
             }
-            unset($operationPayload['_devices']);
 
-            if ( isset($operationPayload['volume']))
+            if ( isset($postfields['volume']))
             {
                 $this->UpdateAllDeviceVolumes();
+                $volume = $postfields['volume'];
             }
 
 
@@ -1345,7 +1371,7 @@ class AmazonEchoIO extends IPSModule
                 if ( $this->GetDevice($device['deviceSerialNumber'], $device['deviceType'] )['online'] == false )
                     continue;
 
-                if ( isset ($operationPayload['volume'] ))
+                if ( isset ($volume ))
                 {
                     // Set new volume for tts
                     $payload = array();
@@ -1353,7 +1379,7 @@ class AmazonEchoIO extends IPSModule
                     $payload['locale']             = $operationPayload['locale'];
                     $payload['deviceType']         = $device['deviceType'];
                     $payload['deviceSerialNumber'] = $device['deviceSerialNumber'];                    
-                    $payload['value']              = $operationPayload['volume'];
+                    $payload['value']              = $volume;
 
                     $nodesSetVolume[] = $this->createNode( 'Alexa.DeviceControls.Volume', $payload, $skillId);
 
@@ -1371,9 +1397,6 @@ class AmazonEchoIO extends IPSModule
 
                 $payload = array();
                 $payload = $operationPayload;
-                //Cleanup payload
-                if ( isset($payload['volume'])) 
-                    unset( $payload['volume']) ;
 
                 //Set target device 
                 $payload['deviceType']         = $device['deviceType'];

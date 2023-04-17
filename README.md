@@ -72,6 +72,7 @@ Version 2.2 (development)
 * Weitere Neuerungen:
    * TextToSpeechVolume() und TextToSpeechEx() ändern die Lautstärke der Ansage und setzen sie danach wieder zurück
    * AnnouncementToAll() führt Ansagen auf allen im Account registrierten Geräten aus
+   * TextToSpeechToAll() führt Ansagen auf allen im Account registrierten Geräten aus
    * StopAll() stoppt Musikwiedergabe auf allen im Account registrierten Geräten 
    * Variable für Online-Status des Echo-Gerätes
    * Alle Variablen können in der EchoRemote-Instanz de-/aktiviert werden
@@ -195,7 +196,7 @@ ECHOREMOTE_AnnouncementEx(int $InstanceID, string $tts, array $instanceIDList, a
 | Parameter        |  Beschreibung | Wert |
 |------------------|---------------|------|
 |_$InstanceID_     | InstanzID des ausführenden Echo Remote Devices| |
-|_$instanceIDList_   |  Array mit InstanzID's auf denen die Ankündigung erfolgen soll. Wird ein leeres Array übergeben, erfolgt keine Ansage| `[ 12345, 23456, 34567]` |
+|_$instanceIDList_   |  Array mit InstanzID's auf denen die Ankündigung erfolgen soll. Wird ein leeres Array übergeben, erfolgt keine Ansage. Wird 'ALL_DEVICES' im Array übergeben, erfolgt die Ansage auf allen im Account registirerten Echo-Geräten| `[ 12345, 23456, 34567]` oder `['ALL_DEVICES']` |
 |_$tts_ | Ankündigung | `Text`|
 |_$options_ | Optionen (aktuell keine verfügbar) | `[]` |
 
@@ -216,7 +217,7 @@ ECHOREMOTE_TextToSpeechEx(int $InstanceID, string $tts, array $instanceIDList, a
 | Parameter        |  Beschreibung | Wert |
 |------------------|---------------|------|
 |_$InstanceID_     | InstanzID des ausführenden Echo Remote Devices| |
-|_$instanceIDList_   |  Array mit InstanzID's auf denen die Ankündigung erfolgen soll. Wird ein leeres Array übergeben, erfolgt keine Ansage| `[ 12345, 23456, 34567]` |
+|_$instanceIDList_   |  Array mit InstanzID's auf denen die Ankündigung erfolgen soll. Wird ein leeres Array übergeben, erfolgt keine Ansage. Wird 'ALL_DEVICES' im Array übergeben, erfolgt die Ansage auf allen im Account registirerten Echo-Geräten| `[ 12345, 23456, 34567]` oder `['ALL_DEVICES']` |
 |_$tts_ | Ankündigung | `Text`|
 |_$options_ | Optionen als Array | `[]` |
 |_$options['volume']_ | Lautsärke während Ansage| `['volume' => 35]` |
