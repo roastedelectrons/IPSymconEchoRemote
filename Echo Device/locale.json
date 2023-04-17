@@ -20,7 +20,7 @@
       "setup variable for favorites": "Variable für Favoriten anlegen",
       "Search Phrase": "Suchbegriff",
       "Music Provider": "Musikdienst",
-      "TuneIn stations (deprecated - use favorites instead)": "TuneIn Stationen (veraltet - stattdessen Favoriten verwenden)",
+      "TuneIn stations (will be replaced by favorites in future)": "TuneIn Stationen (wird zukünftig durch Favoriten ersetzt)",
       "Copy TuneIn stations to favorites": "TuneIn-Sender in Favoritenliste kopieren",
       "setup variable for TuneIn stations": "Variable für TuneIn-Stationen anlegen",
       "Last Action": "Letzte Aktion",

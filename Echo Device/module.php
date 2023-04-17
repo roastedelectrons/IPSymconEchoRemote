@@ -80,7 +80,7 @@ class EchoRemote extends IPSModule
         ]');
 
         //        $this->RegisterPropertyString('TuneInStations', '');
-        $this->RegisterPropertyInteger('updateinterval', 0);
+        $this->RegisterPropertyInteger('updateinterval', 60);
         $this->RegisterPropertyBoolean('PlayerControl', true);
         $this->RegisterPropertyBoolean('ExtendedInfo', true);
         $this->RegisterPropertyBoolean('DND', false);
@@ -3161,11 +3161,10 @@ class EchoRemote extends IPSModule
                         'options' => $this->SelectionFontSize()]]],
             [
                 'type'    => 'ExpansionPanel',
-                'caption' => 'TuneIn stations (deprecated - use favorites instead)',
+                'caption' => 'TuneIn stations (will be replaced by favorites in future)',
                 'items'   => [
                     [
                         "type" => "Label", 
-                        "bold" => true,
                         "caption"=> "Migration zu Favoriten: Die TuneIn-Sender dieser Liste können mit dem Button 'TuneIn-Sender in Favoritenliste kopieren' (am Ende des Konfigurationsformulars) in die neue Favoritenliste übernommen werden. In den Favoriten werden die Sendernamen (nicht mehr die Stationskennung) verwendet, um den Sender zu starten. Daher müssen die Sendernamen in der Favoriten-Liste exakt mit den Sendernamen auf https://tunein.com/ übereinstimmen.",
                         "link" => true
                     ],
@@ -3352,41 +3351,7 @@ class EchoRemote extends IPSModule
     {
         $form = [
             [
-                'type'    => 'Label',
-                'caption' => 'Play Radio:'],
-            [
-                'type'    => 'Button',
-                'caption' => 'FFH Lounge',
-                'onClick' => "if (EchoRemote_TuneIn(\$id, 's84483')){echo 'Ok';} else {echo 'Error';}"],
-            [
-                'type'    => 'Label',
-                'caption' => 'Remote Control:'],
-            [
-                'type'    => 'Button',
-                'caption' => 'Play',
-                'onClick' => "if (EchoRemote_Play(\$id)){echo 'Ok';} else {echo 'Error';}"],
-            [
-                'type'    => 'Button',
-                'caption' => 'Pause',
-                'onClick' => "if (EchoRemote_Pause(\$id)){echo 'Ok';} else {echo 'Error';}"],
-            [
-                'type'    => 'Label',
-                'caption' => 'Modify Volume:'],
-            [
-                'type'    => 'Button',
-                'caption' => 'Decrease Volume',
-                'onClick' => "if (EchoRemote_DecreaseVolume(\$id, 3)){echo 'Ok';} else {echo 'Error';}"],
-            [
-                'type'    => 'Button',
-                'caption' => 'Increase Volume',
-                'onClick' => "if (EchoRemote_IncreaseVolume(\$id, 3)){echo 'Ok';} else {echo 'Error';}"],
-            [
-                'type'    => 'Label',
-                'caption' => 'Voice Output:'],
-            [
-                'type'    => 'Button',
-                'caption' => 'Speak Text',
-                'onClick' => "if (EchoRemote_TextToSpeech(\$id, 'Wer hätte das gedacht. Das ist ein toller Erfolg!')){echo 'Ok';} else {echo 'Error';}"],
+                'type'    => 'TestCenter',],
             [
                 'type'    => 'Label',
                 'caption' => 'Migration:'],
