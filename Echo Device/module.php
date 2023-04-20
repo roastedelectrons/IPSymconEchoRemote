@@ -205,6 +205,7 @@ class EchoRemote extends IPSModule
                     {
                         $this->SetValue('summary', $summary);
                     }
+                    $this->UpdatePlayerStatus(5);
                 }
                 break;
             case 'DeviceInfo':
