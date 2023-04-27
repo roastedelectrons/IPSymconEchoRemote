@@ -1,17 +1,33 @@
-[![Version](https://img.shields.io/badge/Symcon-PHPModul-red.svg)](https://www.symcon.de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
-[![Version](https://img.shields.io/badge/Symcon%20Version-5.5%20%3E-green.svg)](https://www.symcon.de/de/service/dokumentation/installation/migrationen/v54-v55-q4-2020/)
-![Code](https://img.shields.io/badge/Code-PHP-blue.svg)
-[![Check Style](https://github.com/Wolbolar/IPSymconEchoRemote/workflows/Check%20Style/badge.svg)](https://github.com/Wolbolar/IPSymconEchoRemote/actions)
-
+[![Symcon Module](https://img.shields.io/badge/Symcon-PHPModul-blue.svg)](https://www.symcon.de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
+![Symcon Version](https://img.shields.io/badge/dynamic/json?color=blue&label=Symcon%20Version&prefix=%3E%3D&query=compatibility.version&url=https%3A%2F%2Fraw.githubusercontent.com%2Froastedelectrons%2FIPSymconEchoRemote%2Fmaster%2Flibrary.json)
+![Module Version](https://img.shields.io/badge/dynamic/json?color=green&label=Module%20Version&query=version&url=https%3A%2F%2Fraw.githubusercontent.com%2Froastedelectrons%2FIPSymconEchoRemote%2Fmaster%2Flibrary.json)
+![GitHub](https://img.shields.io/github/license/roastedelectrons/IPSymconEchoRemote)
 
 IPSymconEchoRemote 2
 ===
-Dieses Modul ist ein Fork von https://github.com/Wolbolar/IPSymconEchoRemote und implementiert eine neue Authentifizierungsmethode analog zum [alexa_remote_control.sh](https://github.com/adn77/alexa-remote-control) Script. Dadurch sollte das Modul wieder auf allen Plattformen funktionsfähig sein (getestet: Windows, Symbox/Linux).
+Modul zur Steuerung der Musikwiedergabe und Durchführung von Ansagen (Text-To-Speech) auf Echo-Geräten. Mit den Modul können außerdem Routinen gestartet, Push-Nachrichten an die Alexa-App versandt, die letzten Aktionen der Echo-Geräte ausgewertet und diverse Informationen wie Weckzeiten und Listen ausgelesen werden.
 
-Die Authentifizierung erfolgt ausschließlich mittels Refresh-Token, der einmalig (mit einem externen Tool) generiert und im Modul hinterlegt werden muss. Damit verhält sich das Modul nun so wie die Alexa App.
-Eine optimierte Überwachung des Anmelde- und Instanzstatus stellt sicher, dass ein automatischer Reconnect erfolgt, falls erforderlich.
+**BREAKING-CHANGE:**
+Ab Version 2.0. erfolgt die Authentifizierung ausschließlich mittels Refresh-Token, der einmalig (mit einem externen Tool) generiert und im Modul hinterlegt werden muss.
 
-**Disclaimer: Das Modul verwendet weiterhin eine nicht-dokumentierte Schnittstelle zu alexa.amazon.de. Amazon hat bereits angekündigt die Funktionalität dieser Seite weiter einschränken zu werden. Daher ist es wohl nur eine Frage der Zeit, wie lange das Modul funktionsfähig bleibt. Bevorzugt sollte daher auf alternative Lösungen, die offizielle API's verwenden, gewechselt werden.**
+*Disclaimer: Das Modul verwendet eine nicht-dokumentierte Schnittstelle zu alexa.amazon.de. Daher kann die Funktion ohne Ankündigung jederzeit eingestellt werden. Bevorzugt sollte daher auf alternative Lösungen, die offizielle API's verwenden, gewechselt werden.*
+
+## Inhaltsverzeichnis
+
+1. [Dokumentation der Module](#dokumenation-der-module)
+2. [Einrichten in IP-Symcon](#einrichtung)
+3. [Changelog](#changelog)
+4. [Quellen](#quellen)
+
+## Dokumenation der Module
+- __Echo Device__ ([Dokumentation](Echo%20Device/README.md))  
+	Modul zur Steuerung der Musikwiedergabe, Text-Ansagen und Ausführung von Routinen auf Echo-Geräten.
+
+- __Echo IO__ ([Dokumentation](Echo%20IO))  
+	Modul zu Authenzifizierung mit dem Amazon-Alexa-Account.
+
+- __Amazon Echo Configurator__ ([Dokumentation](Amazon%20Echo%20Configurator))  
+	Konfigurator zum Erstellen und Einrichten der Echo Device Instanzen.
 
 ## Einrichtung 
 
@@ -58,7 +74,6 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 4. Browser öffenen und die Seite http://localhost:8080/ aufrufen. Es wird nun eine Amazon-Login Seite angezeigt. Hier mit dem Amazon-Account einloggen.
 5. Wenn der Login erfolgreich war, wieder ins Terminal wechseln und den nun angezeigten Refresh-Token (beginnend mit `Atnr|...`) kopieren.
 6. In der IP-Symcon Verwaltungskonsole im Objektbaum die EchoIO-Instanz öffnen und den generierten Refresh-Token im Feld *Refresh-Token* einfügen und auf *übernehmen* klicken.
-
 
 
 ## Changelog
@@ -132,9 +147,7 @@ Version 2.0 (2023-03-04)
 8. Sequence Command Discovery: https://github.com/custom-components/alexa_media_player/wiki/Developers%3A-Sequence-Discovery
 9. Amazon Alexa Logo by [icons8]( https://icons8.com/icon/X28a9yj_gkpy/amazon-alexa-logo)
 
-## Dokumentation
-
-### Neue Funktionen
+## Dokumentation Neue Funktionen
 **PlayMusic**
 
 ```php
@@ -251,15 +264,4 @@ $InstanceID = 12345; // InstanzID des Echo Remote Devices
 ECHOREMOTE_TextToSpeechVolume( $InstanceID,  'Die Waschmaschine ist fertig', 50 );
 
 ```
-
-
-IP-Symcon PHP module for remote control of an Amazon Echo / Amazon Dot / Amazon Echo Show from IP-Symcon.
-
-Modul für IP-Symcon ab Version 5.0. Ermöglicht die Fernsteuerung mit einem Amazon Echo / Amazon Dot / Amazon Echo Show von IP-Symcon aus.
-
- - [Deutsche Dokumentation](docs/de/README.md "Deutsche Dokumentation") (Nicht Aktuell)
- 
-Module for IP-Symcon from Version 5.0. With this module IP-Symcon can remote control an  Amazon Echo / Amazon Dot / Amazon Echo Show.
-
- - [English Documentation](docs/en/README.md "English documentation")  (Nicht Aktuell)
 
