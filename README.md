@@ -5,7 +5,7 @@
 
 IPSymconEchoRemote 2
 ===
-Modul zur Steuerung der Musikwiedergabe und Durchführung von Ansagen (Text-To-Speech) auf Echo-Geräten. Mit den Modul können außerdem Routinen gestartet, Push-Nachrichten an die Alexa-App versandt, die letzten Aktionen der Echo-Geräte ausgewertet und diverse Informationen wie Weckzeiten und Listen ausgelesen werden.
+Modul für IP-Symcon zur Steuerung der Musikwiedergabe und Durchführung von Ansagen (Text-To-Speech) auf Echo-Geräten. Es ermöglicht außerdem das Starten von Routinen, Versand von Push-Nachrichten an die Alexa-App, Auswertung der letzten Aktionen der Echo-Geräte sowie diverser Informationen wie Weckzeiten und Listen.
 
 **BREAKING-CHANGE:**
 Ab Version 2.0. erfolgt die Authentifizierung ausschließlich mittels Refresh-Token, der einmalig (mit einem externen Tool) generiert und im Modul hinterlegt werden muss.
@@ -78,23 +78,28 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.2 (development)
+Version 2.2 (2023-04-29)
 * Neu: Favoriten
    * Variable zum einfachen Starten von Musik verschiedener Musikanbieter
    * Favoritenliste kann in Instanz-Konfiguration editiert werden
    * verwendet intern die Funktion PlayMusic() (siehe Dokumentation neuer Funktionen)
+   * können als Playlist in MediaPlayer-Kachel verwendet werden
    * Favoriten sollen zukünftig die TuneIn-Senderliste ersetzen. Eine Migrationsfunktion vereinfacht die Übernahme der TuneIn-Sender in die Favoritenliste
-* Weitere Neuerungen:
+* Unterstützung für MediaPlayer-Kachel der neuen Visualisierung (ab IPS 6.4)
+   * Für vollen Funktionsumfang sollten Variablen für Mediaplayer-Steuerung, erweiterte Informationen und Favoriten aktiviert werden
+   * Standard-Variablenprofile werden verwendet, sofern vorhanden (~PlaybackPreviousNext, ~Mute, ~Volume, ~Playlist, ~Shuffle, ~Song, ~Artist)
+   * Assoziationen der Profile der Variablen Fernbedienung und Mute geändert (ggf. sind Anpassungen in Skripten, Ablaufplänen und Events notwendig)
+* Ansagen:
    * TextToSpeechVolume() und TextToSpeechEx() ändern die Lautstärke der Ansage und setzen sie danach wieder zurück
    * AnnouncementToAll() führt Ansagen auf allen im Account registrierten Geräten aus
    * TextToSpeechToAll() führt Ansagen auf allen im Account registrierten Geräten aus
-   * StopAll() stoppt Musikwiedergabe auf allen im Account registrierten Geräten 
+* Weitere Neuerungen:
+   * StopAll() stoppt Musikwiedergabe auf allen im Account registrierten Geräten
    * Variable für Online-Status des Echo-Gerätes
    * Alle Variablen können in der EchoRemote-Instanz de-/aktiviert werden
-   * Player-Status wird Ereignis-basiert aktualisiert (so kann das Aktualisierungintervall der EchoRemote-Instanz größer gewählt werden - empfohlen: größer 60 sec.)
+   * Player-Status wird Ereignis-basiert aktualisiert (so kann das Aktualisierungintervall der EchoRemote-Instanz größer gewählt werden - empfohlen: 60 sec.)
 * Change: 
    * TextToSpeechEx() zusätzlicher options-Parameter muss übergeben werden (siehe Dokumentation neuer Funktionen)
-   * Assoziationen der VariablenProfile ECHO.Mute und ECHO.Remote angepasst
    * Variablen, die in der Instanz-Konfiguration deaktiviert wurden, werden nun gelöscht
    * Interner Datenfluss vereinheitlicht
    * Nicht-unterstützte Funktionen entfernt (PlayAlbum, PlaySong, PlayPlaylist, PlayAmazonMusic, PlayAmazonPrimePlaylist, GetAmazonPrimeStationSectionList, SendDelete, JumpToMediaId)
@@ -147,7 +152,7 @@ Version 2.0 (2023-03-04)
 8. Sequence Command Discovery: https://github.com/custom-components/alexa_media_player/wiki/Developers%3A-Sequence-Discovery
 9. Amazon Alexa Logo by [icons8]( https://icons8.com/icon/X28a9yj_gkpy/amazon-alexa-logo)
 
-## Dokumentation Neue Funktionen
+## Dokumentation neuer Funktionen
 **PlayMusic**
 
 ```php
