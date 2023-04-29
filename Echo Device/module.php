@@ -3000,50 +3000,56 @@ class EchoRemote extends IPSModule
                 'suffix'  => 'seconds',
                 'minimum' => 0],
             [
-                'name'    => 'PlayerControl',
-                'type'    => 'CheckBox',
-                'caption' => 'setup variables for media player control (remote, shuffle, repeat, volume)'],
-            [
-                'name'    => 'ExtendedInfo',
-                'type'    => 'CheckBox',
-                'caption' => 'setup variables for extended info (title, artist, album, cover)'],
-            [
-                'name'    => 'Mute',
-                'type'    => 'CheckBox',
-                'caption' => 'setup variable for mute'],
-            [
-                'name'    => 'DND',
-                'type'    => 'CheckBox',
-                'caption' => 'setup variable for Do not disturb'],
-            [
-                'name'    => 'AlarmInfo',
-                'type'    => 'CheckBox',
-                'caption' => 'setup variables for alarm info (nextAlarmTime, lastAlarmTime)'],
-            [
-                'name'    => 'ShoppingList',
-                'type'    => 'CheckBox',
-                'caption' => 'setup variable for a shopping list'],
-            [
-                'name'    => 'TaskList',
-                'type'    => 'CheckBox',
-                'caption' => 'setup variable for a task list'],
-            [
-                'name'    => 'EchoActions',
-                'type'    => 'CheckBox',
-                'caption' => 'setup variable for actions (i.g. flash briefing, traffic, weather,...)'],
-            [
-                'name'    => 'EchoTTS',
-                'type'    => 'CheckBox',
-                'caption' => 'setup variable for text-to-speech'],
-            [
-                'name'    => 'LastAction',
-                'type'    => 'CheckBox',
-                'caption' => 'setup variables for last action (function has to be enabled in EchoIO instance)'],
-            [
-                'name'    => 'OnlineStatus',
-                'type'    => 'CheckBox',
-                'caption' => 'setup variable for online status'],
-
+                'type'    => 'ExpansionPanel',
+                'caption' => 'Variables',
+                'expanded' => true,
+                'items'   => [                
+                    [
+                        'name'    => 'PlayerControl',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variables for media player control (remote, shuffle, repeat, volume)'],
+                    [
+                        'name'    => 'ExtendedInfo',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variables for extended info (title, artist, album, cover)'],
+                    [
+                        'name'    => 'Mute',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variable for mute'],
+                    [
+                        'name'    => 'DND',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variable for Do not disturb'],
+                    [
+                        'name'    => 'AlarmInfo',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variables for alarm info (nextAlarmTime, lastAlarmTime)'],
+                    [
+                        'name'    => 'ShoppingList',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variable for a shopping list'],
+                    [
+                        'name'    => 'TaskList',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variable for a task list'],
+                    [
+                        'name'    => 'EchoActions',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variable for actions (i.g. flash briefing, traffic, weather,...)'],
+                    [
+                        'name'    => 'EchoTTS',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variable for text-to-speech'],
+                    [
+                        'name'    => 'LastAction',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variables for last action (function has to be enabled in EchoIO instance)'],
+                    [
+                        'name'    => 'OnlineStatus',
+                        'type'    => 'CheckBox',
+                        'caption' => 'setup variable for online status']
+                ]
+            ],
             [
                 'type'    => 'ExpansionPanel',
                 'caption' => 'Favorites',
