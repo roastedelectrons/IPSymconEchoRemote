@@ -83,11 +83,11 @@ Version 2.2 (2023-04-29)
    * Variable zum einfachen Starten von Musik verschiedener Musikanbieter
    * Favoritenliste kann in Instanz-Konfiguration editiert werden
    * verwendet intern die Funktion PlayMusic() (siehe Dokumentation neuer Funktionen)
-   * können als Playlist in MediaPlayer-Kachel verwendet werden
+   * werden als Playlist in neuer MediaPlayer-Kachel verwendet werden können
    * Favoriten sollen zukünftig die TuneIn-Senderliste ersetzen. Eine Migrationsfunktion vereinfacht die Übernahme der TuneIn-Sender in die Favoritenliste
-* Unterstützung für MediaPlayer-Kachel der neuen Visualisierung (ab IPS 6.4)
+* Unterstützung für MediaPlayer-Kachel der neuen Visualisierung vorbereitet
    * Für vollen Funktionsumfang sollten Variablen für Mediaplayer-Steuerung, erweiterte Informationen und Favoriten aktiviert werden
-   * Standard-Variablenprofile werden verwendet, sofern vorhanden (~PlaybackPreviousNext, ~Mute, ~Volume, ~Playlist, ~Shuffle, ~Song, ~Artist)
+   * Standard-Variablenprofile für Mediaplayer-Steuerung werden bevorzugt verwendet, sofern vorhanden
    * Assoziationen der Profile der Variablen Fernbedienung und Mute geändert (ggf. sind Anpassungen in Skripten, Ablaufplänen und Events notwendig)
 * Ansagen:
    * TextToSpeechVolume() und TextToSpeechEx() ändern die Lautstärke der Ansage und setzen sie danach wieder zurück
