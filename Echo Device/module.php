@@ -3007,7 +3007,7 @@ class EchoRemote extends IPSModule
                     [
                         'name'    => 'PlayerControl',
                         'type'    => 'CheckBox',
-                        'caption' => 'setup variables for media player control (remote, shuffle, repeat, volume)'],
+                        'caption' => 'setup variables for media player control (remote, shuffle, repeat, volume, info)'],
                     [
                         'name'    => 'ExtendedInfo',
                         'type'    => 'CheckBox',
