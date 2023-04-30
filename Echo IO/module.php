@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/EchoBufferHelper.php';
 require_once __DIR__ . '/../libs/EchoDebugHelper.php';
+require_once __DIR__ . '/../libs/AlexaWebsocket.php';
 
 // Modul für Amazon Echo Remote
 
@@ -11,7 +12,9 @@ class AmazonEchoIO extends IPSModule
 {
     use EchoBufferHelper;
     use EchoDebugHelper;
+    use AlexaWebsocket;
 
+    private const STATUS_INST_WEBSOCKET_ERROR = 200; // websocket error
     private const STATUS_INST_NOT_AUTHENTICATED = 214; // authentication must be performed.
     private const STATUS_INST_REFRESH_TOKEN_IS_EMPTY = 215; // authentication must be performed.
 
@@ -28,7 +31,9 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterPropertyInteger('language', 0);
         $this->RegisterPropertyString('refresh_token', '');    
         $this->RegisterPropertyBoolean('TimerLastAction', true);
+        $this->RegisterPropertyBoolean('Websocket', true);
         $this->RegisterPropertyBoolean('LogMessageEx', false);
+        $this->RegisterPropertyInteger('UpdateInterval', 60);
         
         $this->RegisterPropertyString(
             'browser', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gecko/20100101 Firefox/58.0'
@@ -40,7 +45,7 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterAttributeInteger('LastCookieRefresh', 0);
         $this->RegisterAttributeInteger('CookieExpirationDate', 0);
 
-        $this->RegisterTimer('TimerLastDevice', 0, 'ECHOIO_GetLastDevice(' . $this->InstanceID . ');');
+        //$this->RegisterTimer('TimerLastDevice', 0, 'ECHOIO_GetLastDevice(' . $this->InstanceID . ');');
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
         $this->RegisterTimer('UpdateStatus', 0, 'ECHOIO_UpdateStatus(' . $this->InstanceID . ');');
 
@@ -50,22 +55,44 @@ class AmazonEchoIO extends IPSModule
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
-        switch ($Message) {
-            case IM_CHANGESTATUS:
-                if ($Data[0] === IS_ACTIVE) {
-                    $this->ApplyChanges();
-                }
-                break;
-
-            case IPS_KERNELMESSAGE:
-                if ($Data[0] === KR_READY) {
-                    $this->ApplyChanges();
-                }
-                break;
-
-            default:
-                break;
+        // Kernel message
+        if ($SenderID == 0)
+        {
+            switch ($Message) {
+                case IM_CHANGESTATUS:
+                    if ($Data[0] === IS_ACTIVE) {
+                        $this->ApplyChanges();
+                    }
+                    break;
+        
+                case IPS_KERNELMESSAGE:
+                    if ($Data[0] === KR_READY) {
+                        $this->ApplyChanges();
+                    }
+                    break;
+         
+                default:
+                    break;
+            }
         }
+
+        // Message from parent connection (websocket)
+        if ($SenderID != 0)
+        {
+            print_r($Data);
+            switch ($Message) {
+                case IM_CHANGESTATUS:
+                    if ($Data[0] == 200) {
+                        // Watchdog will handle reconnect
+                        $this->SetStatus(self::STATUS_INST_WEBSOCKET_ERROR);
+                    }
+                    break; 
+         
+                default:
+                    break;
+            }
+        }
+
     }
 
 
@@ -96,6 +123,29 @@ class AmazonEchoIO extends IPSModule
             
         }
 
+        // Connect to websocket client
+        if ($this->ReadPropertyBoolean('Websocket'))
+        {
+            $this->RequireParent('{D68FD31F-0E90-7019-F16C-1949BD3079EF}');
+            $parentID = IPS_GetInstance( $this->InstanceID)['ConnectionID'];
+
+            $this->RegisterMessage($parentID , IM_CHANGESTATUS);
+            if ( IPS_GetInstance($parentID)['InstanceStatus'] == 200 )
+            {
+                $this->wsSetConfiguration(1);
+            }
+        }
+        else
+        {
+            $parentID = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+            if ( $parentID > 0 )
+            {
+                IPS_DisconnectInstance($this->InstanceID);
+                $this->UnregisterMessage($parentID , IM_CHANGESTATUS);
+            }
+        }
+
+
         $this->RegisterVariableInteger('cookie_expiration_date', $this->Translate('Cookie expiration date'), '~UnixTimestamp', 0);
 
         $active = $this->ReadPropertyBoolean('active');
@@ -103,7 +153,7 @@ class AmazonEchoIO extends IPSModule
         if (!$active)
         {
             $this->LogOff();
-            $this->SetTimerInterval('TimerLastDevice', 0);
+            //$this->SetTimerInterval('TimerLastDevice', 0);
             $this->SetTimerInterval('RefreshCookie', 0);
             $this->SetTimerInterval('UpdateStatus', 0);
             $this->SetStatus(IS_INACTIVE);
@@ -149,14 +199,16 @@ class AmazonEchoIO extends IPSModule
             $this->RegisterProfileAssociation(
                 'EchoRemote.LastDevice', '', '', '', 1, $max, 0, 0, VARIABLETYPE_INTEGER, $device_association);
             $this->RegisterVariableInteger('last_device', $this->Translate('last device'), 'EchoRemote.LastDevice', 1);
+            /*
             if ($TimerLastAction) {
                 $this->SetTimerInterval('TimerLastDevice', 2000);
             } else {
                 $this->SetTimerInterval('TimerLastDevice', 0);
             }
+            */
         }
 
-        $this->SetTimerInterval('UpdateStatus', 60000);
+        $this->SetTimerInterval('UpdateStatus', $this->ReadPropertyInteger('UpdateInterval') * 1000);
     }
 
 
@@ -1114,7 +1166,7 @@ class AmazonEchoIO extends IPSModule
     }
 
 
-    /**
+    /** Receive data from children and forward to api
      * @param $JSONString
      *
      * @return bool|false|string
@@ -1200,6 +1252,52 @@ class AmazonEchoIO extends IPSModule
         return $ret;
     }
 
+    // Receive data from websocket
+    public function ReceiveData($JSONString)
+    {
+        $data = json_decode($JSONString);
+        //IPS_LogMessage('Splitter RECV', utf8_decode($data->Buffer));
+
+        $msg = $this->wsDecodeMessageAH(utf8_decode($data->Buffer));
+        //print_r($msg);
+
+        // Handshake
+        if ($msg['service'] == 'TUNE')
+        {
+
+            $this->wsSendMessage( $this->encodeWSHandshake() );
+            IPS_Sleep( 100 );
+
+            $this->wsSendMessage( $this->encodeGWHandshake() );
+            IPS_Sleep( 100 );
+
+            $this->wsSendMessage( $this->encodeGWRegisterAH() );    
+        }
+
+        if ($msg['service'] == 'FABE')
+        {
+            if (isset ($msg['content']['payload']['command']))
+            {
+                switch ( $msg['content']['payload']['command'] )
+                {
+                    case 'PUSH_ACTIVITY':
+                        $this->GetLastDevice();
+                        break;
+                }
+            }
+        }
+
+        return true;
+
+        //$this->SendDataToChildren(json_encode(['DataID' => '{26039E09-3FE0-A12C-D4F3-D68BCF46A884}', 'Buffer' => $data->Buffer]));
+    }
+
+    public function GetConfigurationForParent()
+    {
+        $config = $this->wsGetConfiguration( 1 );
+
+        return json_encode($config);
+    }
 
     public function UpdateAllDeviceVolumes()
     {
@@ -1594,6 +1692,10 @@ class AmazonEchoIO extends IPSModule
                 'type' => 'CheckBox',
                 'caption' => 'Get last action'],
             [
+                'name' => 'Websocket',
+                'type' => 'CheckBox',
+                'caption' => 'Websocket'],
+            [
                 'name' => 'LogMessageEx',
                 'type' => 'CheckBox',
                 'caption' => 'Extented log messages']
@@ -1651,6 +1753,10 @@ class AmazonEchoIO extends IPSModule
     private function FormStatus(): array
     {
         $form = [
+            [
+                'code' => self::STATUS_INST_WEBSOCKET_ERROR,
+                'icon' => 'error',
+                'caption' => 'Websocket can not connect'],            
             [
                 'code' => 214,
                 'icon' => 'error',
