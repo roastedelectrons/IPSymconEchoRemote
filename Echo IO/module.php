@@ -122,6 +122,9 @@ class AmazonEchoIO extends IPSModule
             }
             
         }
+        // Migration of Idents
+        if ( @$this->GetIDForIdent('last_device') !== false ) IPS_SetIdent( $this->GetIDForIdent('last_device'), 'LastDevice');
+        if ( @$this->GetIDForIdent('cookie_expiration_date') !== false ) IPS_SetIdent( $this->GetIDForIdent('cookie_expiration_date'), 'CookieExpirationDate');
 
         // Connect to websocket client
         if ($this->ReadPropertyBoolean('Websocket'))
@@ -142,7 +145,7 @@ class AmazonEchoIO extends IPSModule
         }
 
 
-        $this->RegisterVariableInteger('cookie_expiration_date', $this->Translate('Cookie expiration date'), '~UnixTimestamp', 0);
+        $this->RegisterVariableInteger('CookieExpirationDate', $this->Translate('Cookie expiration date'), '~UnixTimestamp', 0);
         $this->RegisterVariableString('LastAction', $this->Translate('Last action'), '', 0);
 
         $active = $this->ReadPropertyBoolean('active');
@@ -201,7 +204,7 @@ class AmazonEchoIO extends IPSModule
             $this->SendDebug('Devices Profile', json_encode($device_association), 0);
             $this->RegisterProfileAssociation(
                 'EchoRemote.LastDevice', '', '', '', 1, $max, 0, 0, VARIABLETYPE_INTEGER, $device_association);
-            $this->RegisterVariableInteger('last_device', $this->Translate('last device'), 'EchoRemote.LastDevice', 1);
+            $this->RegisterVariableInteger('LastDevice', $this->Translate('last device'), 'EchoRemote.LastDevice', 1);
             /*
             if ($TimerLastAction) {
                 $this->SetTimerInterval('TimerLastDevice', 2000);
@@ -441,7 +444,7 @@ class AmazonEchoIO extends IPSModule
         if ( !$result )
             return false;
         
-        $this->SetValue('cookie_expiration_date', $this->getExpirationDateFromCookie() );
+        $this->SetValue('CookieExpirationDate', $this->getExpirationDateFromCookie() );
         $this->WriteAttributeInteger('CookieExpirationDate', $this->getExpirationDateFromCookie() );
         $this->WriteAttributeInteger('LastCookieRefresh', time() );
 
@@ -1140,7 +1143,7 @@ class AmazonEchoIO extends IPSModule
                         
                         if ( $creationTimestamp != $this->ReadAttributeInteger( 'LastDeviceTimeStamp' ))
                         {
-                            $this->SetValue('last_device', $key + 1);
+                            $this->SetValue('LastDevice', $key + 1);
                             $this->SetValue('LastAction', $summary);
                             $this->WriteAttributeInteger( 'LastDeviceTimeStamp', $creationTimestamp);
                         }  
@@ -1300,7 +1303,7 @@ class AmazonEchoIO extends IPSModule
     {
         $config = $this->wsGetConfiguration( 1 );
 
-        return json_encode($config);
+        return json_encode($config, JSON_UNESCAPED_SLASHES);
     }
 
     public function UpdateAllDeviceVolumes()

@@ -79,7 +79,7 @@ trait AlexaWebsocket
         }
         $config['Active'] = $this->ReadPropertyBoolean('active');
         $config['URL'] = $this->wsGetUrl($method);
-        $config['Headers'] = json_encode($headerProperty);
+        $config['Headers'] = json_encode($headerProperty, JSON_UNESCAPED_SLASHES);
 
         return $config;        
     }
