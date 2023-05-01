@@ -77,9 +77,8 @@ trait AlexaWebsocket
                 'Value' => $value
             ];
         }
-
+        $config['Active'] = $this->ReadPropertyBoolean('active');
         $config['URL'] = $this->wsGetUrl($method);
-        $config['Active'] = true;
         $config['Headers'] = json_encode($headerProperty);
 
         return $config;        
@@ -93,9 +92,9 @@ trait AlexaWebsocket
 
         if ( $wsID > 0)
         {
+            IPS_SetProperty($wsID, 'Active', $config['Active']);
             IPS_SetProperty($wsID, 'URL', $config['URL']);
             IPS_SetProperty($wsID, 'Headers', $config['Headers']);
-            IPS_SetProperty($wsID, 'Active', $config['Active']);
             IPS_ApplyChanges($wsID);
         }
     }
@@ -185,6 +184,7 @@ trait AlexaWebsocket
                 $parts = explode("\t", $line);
                 if ( count( $parts) < 7 ) continue;
                 
+
                 $parts[6] = str_replace('"', '', $parts[6]);
 
                 if ($cookie != "") $cookie .= '; ';

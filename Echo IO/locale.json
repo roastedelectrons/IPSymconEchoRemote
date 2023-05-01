@@ -11,15 +11,15 @@
       "logoff": "abmelden",
       "checkloginstatus": "Anmeldestatus prüfen",
       "Echo language": "Echo Sprache",
-      "Use Custom Cookie": "Benutze eigenen Cookie",
-      "Test the Registration:": "Anmeldung testen:",
       "Login Status": "Anmeldestatus",
-      "Echo is accessible.": "Echo ist erreichbar.",
       "refresh token must not be empty": "Refresh Token darf nicht leer sein",
       "not authenticated.": "Nicht angemeldet.",
       "last device": "letztes Gerät",
+      "Expert settings": "Experteneinstellungen",
+      "Update interval": "Aktualisierungsintervall",
       "Get last action": "Letzte Aktion auswerten",
       "Cookie expiration date": "Ablaufdatum des Cookies",
+      "Last action": "Letzte Aktion",
       "Extented log messages": "Erweiterte Log Meldungen"
     }
   }

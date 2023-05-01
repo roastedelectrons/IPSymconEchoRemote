@@ -79,7 +79,7 @@ class AmazonEchoIO extends IPSModule
         // Message from parent connection (websocket)
         if ($SenderID != 0)
         {
-            print_r($Data);
+
             switch ($Message) {
                 case IM_CHANGESTATUS:
                     if ($Data[0] == 200) {
@@ -130,10 +130,6 @@ class AmazonEchoIO extends IPSModule
             $parentID = IPS_GetInstance( $this->InstanceID)['ConnectionID'];
 
             $this->RegisterMessage($parentID , IM_CHANGESTATUS);
-            if ( IPS_GetInstance($parentID)['InstanceStatus'] == 200 )
-            {
-                $this->wsSetConfiguration(1);
-            }
         }
         else
         {
@@ -147,6 +143,7 @@ class AmazonEchoIO extends IPSModule
 
 
         $this->RegisterVariableInteger('cookie_expiration_date', $this->Translate('Cookie expiration date'), '~UnixTimestamp', 0);
+        $this->RegisterVariableString('LastAction', $this->Translate('Last action'), '', 0);
 
         $active = $this->ReadPropertyBoolean('active');
 
@@ -157,6 +154,7 @@ class AmazonEchoIO extends IPSModule
             $this->SetTimerInterval('RefreshCookie', 0);
             $this->SetTimerInterval('UpdateStatus', 0);
             $this->SetStatus(IS_INACTIVE);
+            $this->wsSetConfiguration(1);
             return;
         }
 
@@ -176,6 +174,11 @@ class AmazonEchoIO extends IPSModule
                 return;
         }
 
+        if ( IPS_GetInstance($parentID)['InstanceStatus'] !== 102 )
+        {
+            $this->wsSetConfiguration(1);
+        }
+        
         
         $TimerLastAction = $this->ReadPropertyBoolean('TimerLastAction');
 
@@ -1138,6 +1141,7 @@ class AmazonEchoIO extends IPSModule
                         if ( $creationTimestamp != $this->ReadAttributeInteger( 'LastDeviceTimeStamp' ))
                         {
                             $this->SetValue('last_device', $key + 1);
+                            $this->SetValue('LastAction', $summary);
                             $this->WriteAttributeInteger( 'LastDeviceTimeStamp', $creationTimestamp);
                         }  
                     }
@@ -1688,17 +1692,30 @@ class AmazonEchoIO extends IPSModule
                 'link' => 'true',
                 'caption' => 'To generate the refresh token, follow the instructions from: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung'],              
             [
-                'name' => 'TimerLastAction',
-                'type' => 'CheckBox',
-                'caption' => 'Get last action'],
-            [
-                'name' => 'Websocket',
-                'type' => 'CheckBox',
-                'caption' => 'Websocket'],
-            [
-                'name' => 'LogMessageEx',
-                'type' => 'CheckBox',
-                'caption' => 'Extented log messages']
+                'type'    => 'ExpansionPanel',
+                'caption' => 'Expert settings',
+                'expanded' => false,
+                'items'   => [   
+                    [
+                        'name'    => 'UpdateInterval',
+                        'type'    => 'NumberSpinner',
+                        'caption' => 'Update interval',
+                        'suffix'  => 'seconds',
+                        'minimum' => 0],
+                    [
+                        'name' => 'TimerLastAction',
+                        'type' => 'CheckBox',
+                        'caption' => 'Get last action'],
+                    [
+                        'name' => 'Websocket',
+                        'type' => 'CheckBox',
+                        'caption' => 'Websocket'],
+                    [
+                        'name' => 'LogMessageEx',
+                        'type' => 'CheckBox',
+                        'caption' => 'Extented log messages']
+                ]
+            ]
 
         ];
     }
