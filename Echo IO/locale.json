@@ -20,7 +20,8 @@
       "Get last action": "Letzte Aktion auswerten",
       "Cookie expiration date": "Ablaufdatum des Cookies",
       "Last action": "Letzte Aktion",
-      "Extented log messages": "Erweiterte Log Meldungen"
+      "Extented log messages": "Erweiterte Log Meldungen",
+      "Websocket (for evaluation of last activity)": "Websocket (zur Auswertung der letzten Aktion)"
     }
   }
 }

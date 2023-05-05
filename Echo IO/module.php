@@ -41,11 +41,11 @@ class AmazonEchoIO extends IPSModule
 
         $this->RegisterAttributeString('devices', '[]');
         $this->RegisterAttributeString('CookiesFileName', IPS_GetKernelDir() . 'alexa_cookie_'. $this->InstanceID .'.txt');
-        $this->RegisterAttributeInteger('LastDeviceTimeStamp', 0);
+        $this->RegisterAttributeString( 'LastActivityID', '' ); 
         $this->RegisterAttributeInteger('LastCookieRefresh', 0);
         $this->RegisterAttributeInteger('CookieExpirationDate', 0);
 
-        //$this->RegisterTimer('TimerLastDevice', 0, 'ECHOIO_GetLastDevice(' . $this->InstanceID . ');');
+        //$this->RegisterTimer('TimerLastDevice', 0, 'ECHOIO_GetLastActivity(' . $this->InstanceID . ');');
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
         $this->RegisterTimer('UpdateStatus', 0, 'ECHOIO_UpdateStatus(' . $this->InstanceID . ');');
 
@@ -1082,76 +1082,65 @@ class AmazonEchoIO extends IPSModule
     }
 
 
-    public function GetLastDevice()
+    public function GetLastActivity()
     {
-        if ( IPS_SemaphoreEnter ( 'GetLastDevice.'.$this->InstanceID , 1000) )
+
+        if ( IPS_SemaphoreEnter ( 'GetLastActivity.'.$this->InstanceID , 5000) )
         {
-            $response_activities = $this->CustomCommand('https://{AlexaURL}/api/activities?startTime=&size=10&offset=1');
-            IPS_SemaphoreLeave ( 'GetLastDevice.'.$this->InstanceID );
+            // Throttle requests due to rate limit
+            $delay = microtime(true) - floatval( $this->GetBuffer( 'GetLastActivityRequestTimestamp' ));
+
+            if ( $delay < 2.5)
+            {
+                $this->SendDebug(__FUNCTION__, 'waiting', 0);
+                IPS_Sleep(2500 - $delay*1000);
+            }
+
+            $result = $this->SendEcho('https://' . $this->GetAlexaURL() .'/api/activities?startTime=&size=10&offset=1' , null, 'GET');
+
+            $this->SetBuffer( 'GetLastActivityRequestTimestamp', microtime(true));
+            IPS_SemaphoreLeave ( 'GetLastActivity.'.$this->InstanceID );
         } 
         else
         {
             return [];
         }
+        
+        $lastActivity = [];
 
-        $last_device = ['name' => '', 'serialnumber' => '', 'creationTimestamp' => '', 'summary' => ''];
-        if ($response_activities != false) {
-            $http_code = $response_activities['http_code'];
+        if (isset($result['http_code']) && $result['http_code'] == 200)
+        {
+            $payload = json_decode($result['body'], true);
 
-            $serialNumber = '';
-            if ($http_code == 200) {
-                $payload_activities = $response_activities['body'];
-                if (!empty($payload_activities)) {
-                    $activities_array = json_decode($payload_activities, true);
-                    $activities = $activities_array['activities'];
-                    foreach ($activities as $key => $activity) {
-                        $state = $activity['activityStatus'];
-                        if ($state == 'SUCCESS') {
-                            $sourceDeviceIds = $activity['sourceDeviceIds'][0];
-                            $serialNumber = $sourceDeviceIds['serialNumber'];
-                            $creationTimestamp = intval( $activity['creationTimestamp'] / 1000);
-                            $description = $activity['description'];
-                            $summary = json_decode($description)->summary;
-                            break;
-                        }
-                    }
-                }
-            }
-            $devices = $this->GetDeviceList();
-
-            if (empty($devices)) {
+            if ($payload === false)
+            {
                 return [];
             }
 
-            if ($serialNumber != '') {
-                foreach ($devices as $key => $device) {
-                    $accountName = $device['accountName'];
-                    $device_serialNumber = $device['serialNumber'];
-                    if ($serialNumber == $device_serialNumber) {
-                        $this->SendDebug('Echo Device', 'account name: ' . $accountName, 0);
-                        $this->SendDebug('Echo Device', 'serial number: ' . $device_serialNumber, 0);
-                        $this->SendDebug('Echo Command', 'summary: ' . $summary, 0);
-                        $last_device = ['name' => $accountName, 'serialnumber' => $device_serialNumber, 'creationTimestamp' => $creationTimestamp, 'summary' => $summary];
-                        //$payload = json_encode(['DataID' => '{E41E38AC-30D7-CA82-DEF5-9561A5B06CD7}', 'Buffer' => $last_device]);
-                        //$this->SendDataToChildren($payload);
-                        $this->SendDataToChild($device_serialNumber, '', 'LastAction', $last_device);
-
-                        //$this->SendDebug('Forward Data Last Device', $payload, 0);
-
-                        $this->SendDebug('Echo LastDevice', 'LastDeviceTimeStamp: ' . $this->ReadAttributeInteger( 'LastDeviceTimeStamp' ), 0);
-                        $this->SendDebug('Echo LastDevice', 'creationTimestamp: ' . $creationTimestamp, 0);
-                        
-                        if ( $creationTimestamp != $this->ReadAttributeInteger( 'LastDeviceTimeStamp' ))
-                        {
-                            $this->SetValue('LastDevice', $key + 1);
-                            $this->SetValue('LastAction', $summary);
-                            $this->WriteAttributeInteger( 'LastDeviceTimeStamp', $creationTimestamp);
-                        }  
-                    }
-                }
+            if ( isset($payload['activities'][0]) && isset($payload['activities'][0]['sourceDeviceIds'][0]) )
+            {
+                $lastActivity['id'] =  $payload['activities'][0]['id'];
+                $lastActivity['creationTimestamp'] =  round( ($payload['activities'][0]['creationTimestamp'] / 1000), 3);
+                $lastActivity['utterance'] = json_decode($payload['activities'][0]['description'] , true)['summary'];
+                $lastActivity['deviceType'] =  $payload['activities'][0]['sourceDeviceIds'][0]['deviceType'];
+                $lastActivity['serialNumber'] =  $payload['activities'][0]['sourceDeviceIds'][0]['serialNumber'];
             }
         }
-        return $last_device;
+
+        if ($lastActivity != [])
+        {
+            if ( $lastActivity['id'] != $this->ReadAttributeString( 'LastActivityID' ) )
+            {
+                $devices = $this->GetDeviceList();
+                $key = array_search($lastActivity['serialNumber'] , array_column( $devices, 'serialNumber') );
+                $this->SetValue('LastDevice', $key + 1);
+                $this->SetValue('LastAction', $lastActivity['utterance'] );
+                $this->WriteAttributeString( 'LastActivityID', $lastActivity['id']);                
+            }
+            $this->SendDataToChild( $lastActivity['serialNumber'] , $lastActivity['deviceType'] , 'LastAction', $lastActivity);
+        }
+
+        return $lastActivity;
     }
 
     private function CustomCommand(string $url, array $postfields = null, string $method = 'GET')
@@ -1271,14 +1260,28 @@ class AmazonEchoIO extends IPSModule
         // Handshake
         if ($msg['service'] == 'TUNE')
         {
+            // Method 1
+            if ($msg['content']['protocolName'] == 'A:H')
+            {
+                $this->wsSendMessage( $this->encodeWSHandshake() );
+                IPS_Sleep( 100 );
+    
+                $this->wsSendMessage( $this->encodeGWHandshake() );
+                IPS_Sleep( 100 );
+    
+                $this->wsSendMessage( $this->encodeGWRegisterAH() );   
+            }
 
-            $this->wsSendMessage( $this->encodeWSHandshake() );
-            IPS_Sleep( 100 );
+             // Method 2
+             if ($msg['content']['protocolName'] == 'A:F')
+             {
+                 $this->wsSendMessage( $this->encodeWSHandshake() );
+                 IPS_Sleep( 100 );
+     
+     
+                 $this->wsSendMessage( $this->encodeGWRegisterAF() );   
+             }
 
-            $this->wsSendMessage( $this->encodeGWHandshake() );
-            IPS_Sleep( 100 );
-
-            $this->wsSendMessage( $this->encodeGWRegisterAH() );    
         }
 
         if ($msg['service'] == 'FABE')
@@ -1288,7 +1291,7 @@ class AmazonEchoIO extends IPSModule
                 switch ( $msg['content']['payload']['command'] )
                 {
                     case 'PUSH_ACTIVITY':
-                        $this->GetLastDevice();
+                        $this->RegisterOnceTimer("GetLastActivityTimer", 'ECHOIO_GetLastActivity(' . $this->InstanceID . ');' );
                         break;
                 }
             }
@@ -1706,13 +1709,9 @@ class AmazonEchoIO extends IPSModule
                         'suffix'  => 'seconds',
                         'minimum' => 0],
                     [
-                        'name' => 'TimerLastAction',
-                        'type' => 'CheckBox',
-                        'caption' => 'Get last action'],
-                    [
                         'name' => 'Websocket',
                         'type' => 'CheckBox',
-                        'caption' => 'Websocket'],
+                        'caption' => 'Websocket (for evaluation of last activity)'],
                     [
                         'name' => 'LogMessageEx',
                         'type' => 'CheckBox',

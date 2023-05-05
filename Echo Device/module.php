@@ -111,7 +111,8 @@ class EchoRemote extends IPSModule
         $this->RegisterTimer('EchoUpdate', 0, 'EchoRemote_UpdateStatus(' . $this->InstanceID . ');');
         $this->RegisterTimer('UpdatePlayerStatus', 0, 'EchoRemote_UpdatePlayerStatus(' . $this->InstanceID . ', 0);');
         $this->RegisterTimer('EchoAlarm', 0, 'EchoRemote_RaiseAlarm(' . $this->InstanceID . ');');
-        $this->RegisterAttributeInteger('creationTimestamp', 0);
+        $this->RegisterAttributeFloat('LastDeviceTimestamp', 0);
+        $this->RegisterAttributeString('LastActivityID', '' ); 
         $this->RegisterAttributeString('routines', '[]');
         $this->RegisterPropertyBoolean('routines_wf', false);
         $this->RegisterAttributeString('DeviceInfo', '');
@@ -191,21 +192,20 @@ class EchoRemote extends IPSModule
             
             case 'LastAction':
                 $payload = $data->Payload;
-                $creationTimestamp = $payload->creationTimestamp;
-                $last_timestamp = $this->ReadAttributeInteger('creationTimestamp');
-                if ($last_timestamp != $creationTimestamp) 
+
+                if ($payload->id != $this->ReadAttributeString('LastActivityID')) 
                 {
-                    $this->WriteAttributeInteger('creationTimestamp', $creationTimestamp);
-                    $summary = $payload->summary;
+                    $this->WriteAttributeString('LastActivityID', $payload->id);
+
                     if(@$this->GetIDForIdent('last_action') > 0)
                     {
-                        $this->SetValue('last_action', $creationTimestamp);
+                        $this->SetValue('last_action', intval($payload->creationTimestamp) );
                     }
                     if(@$this->GetIDForIdent('summary') > 0)
                     {
-                        $this->SetValue('summary', $summary);
+                        $this->SetValue('summary', $payload->utterance );
                     }
-                    $this->UpdatePlayerStatus(5);
+                    $this->UpdatePlayerStatus(10);
                 }
                 break;
             case 'DeviceInfo':

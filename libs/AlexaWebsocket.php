@@ -9,49 +9,9 @@
 
 trait AlexaWebsocket
 {
-    public $protocol = "A:H";
-    public $messageID = 0;
-    public $macDms = [];
-
-    public function connect()
-    {
-        if ($this->protocol == "A:F")
-        {
-            // "A:F"
-            $header = $this->wsGetHeader(2);
-            $url = $this->wsGetUrl(2);
-            $this->setWSConfiguration( $url, $header);
-            IPS_Sleep( 1000 );
-
-            $msg = $this->encodeWSHandshake();
-            $this->SendMessage($msg);
-
-            IPS_Sleep( 50 );
-
-            $msg = $this->encodeGWRegisterAF();
-            $this->SendMessage($msg, true);
-        }
-        else
-        {
-            // "A:H"
-            $header = $this->wsGetHeader(1);
-            $url = $this->wsGetUrl(1);
-            $this->setWSConfiguration( $url, $header);
-            IPS_Sleep( 1000 );
-
-
-            $msg = $this->encodeWSHandshake();
-            $this->SendMessage($msg);
-
-            IPS_Sleep( 50 );
-            $msg = $this->encodeGWHandshake();
-            $this->SendMessage($msg);
-
-            IPS_Sleep( 100 );
-            $msg = $this->encodeGWRegisterAH();
-            $this->SendMessage($msg);         
-        }
-    }
+    protected $protocol = "A:H";
+    protected $messageID = 0;
+    protected $macDms = [];
 
     protected function wsSendMessage( $msg, $binary = false )
     {
@@ -228,7 +188,7 @@ trait AlexaWebsocket
         //openssl_sign('test', 'key');
     }
 
-    public function encodeWSHandshake( )
+    protected function encodeWSHandshake( )
     {
         // 0xa6f6a951 0x0000009c {"protocolName":"A:H","parameters":{"AlphaProtocolHandler.receiveWindowSize":"16","AlphaProtocolHandler.maxFragmentSize":"16000"}}TUNE
 
@@ -241,7 +201,7 @@ trait AlexaWebsocket
     }
 
     
-    public function encodeGWHandshake()
+    protected function encodeGWHandshake()
     {
         // MSG 0x00000361 0x00000001 f 0x00000001 0x4d6fede7 0x0000009b INI 0x00000003 1.0 0x00000024 3fae56ab-5022-bfa9-c381-c90a6eb555ad 0x00000186daff5cf0 END FABE
 
@@ -274,7 +234,7 @@ trait AlexaWebsocket
         return $msg;
     }
 
-    public function encodeGWRegisterAH() 
+    protected function encodeGWRegisterAH() 
     {
         //MSG 0x00000362 0x00000002 f 0x00000001 0xf4004fed 0x00000109 GWM MSG 0x0000b479 0x0000003b urn:tcomm-endpoint:device:deviceType:0:deviceSerialNumber:0 0x00000041 urn:tcomm-endpoint:service:serviceName:DeeWebsiteMessagingService {"command":"REGISTER_CONNECTION"}FABE
         $messageid = $this->messageID;
@@ -295,7 +255,7 @@ trait AlexaWebsocket
     }
 
 
-    public function encodeGWRegisterAF() 
+    protected function encodeGWRegisterAF() 
     {
         //pubrelBuf = new Buffer('MSG 0x00000362 0x0e414e46 f 0x00000001 0xf904b9f5 0x00000109 GWM MSG 0x0000b479 0x0000003b urn:tcomm-endpoint:device:deviceType:0:deviceSerialNumber:0 0x00000041 urn:tcomm-endpoint:service:serviceName:DeeWebsiteMessagingService {"command":"REGISTER_CONNECTION"}FABE');
 
@@ -328,7 +288,7 @@ trait AlexaWebsocket
         return trim( $msg) ;        
     }
 
-    private function readHex(string $data, int $index,int $length) {
+    protected function readHex(string $data, int $index,int $length) {
         $str = substr($data, $index, $length);
         return hexdec($str);
     }
@@ -448,18 +408,18 @@ trait AlexaWebsocket
         return $message;
     }
 
-    function uuid4()
+    protected function uuid4()
     {
         return vsprintf( '%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex(random_bytes(16)), 4) );
     }
 
 
-    function encodeNumber( int $value, int $byteLength)
+    protected function encodeNumber( int $value, int $byteLength)
     {
         return sprintf('0x%0'.$byteLength.'x', $value);
     }
 
-    function str2bin( string $string )
+    protected function str2bin( string $string )
     {
         $bin = null;
         foreach( str_split($string) as $char)
@@ -469,7 +429,7 @@ trait AlexaWebsocket
         return $bin;
     }
 
-    function computeChecksum( string $text, int $f, int $k) : int
+    protected function computeChecksum( string $text, int $f, int $k) : int
     {
     /*
         Args:

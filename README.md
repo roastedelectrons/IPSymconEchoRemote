@@ -78,6 +78,10 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
+Version 2.3 (Branch: websocket)
+* Neu: Websockets zur Auswertung der letzten Aktion
+* Change: Erfordert min. IP-Symcon 6.1 (wegen Custom Headers Support des Websockets)
+
 Version 2.2 (2023-04-29)
 * Neu: Favoriten
    * Variable zum einfachen Starten von Musik verschiedener Musikanbieter

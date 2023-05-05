@@ -4,9 +4,9 @@
   "name": "Amazon Echo Remote",
   "url": "http://www.amazon.de/echo",
   "compatibility": {
-    "version": "5.5"
+    "version": "6.1"
   },
-  "version": "2.2",
+  "version": "2.3",
   "build": 26,
   "date": 0
 }
