@@ -1143,7 +1143,7 @@ class AmazonEchoIO extends IPSModule
         return $lastActivity;
     }
 
-    private function CustomCommand(string $url, array $postfields = null, string $method = 'GET')
+    public function CustomCommand(string $url, array $postfields = [], string $method = 'GET')
     {
         $url = str_replace(['{AlexaURL}', '{AmazonURL}'], [$this->GetAlexaURL(), $this->GetAmazonURL()], $url);
 
@@ -1204,22 +1204,7 @@ class AmazonEchoIO extends IPSModule
                 break;
 
             case 'CustomCommand':
-                // DEPRECATED will be replaced by SendEcho
-                $url = null;
-                $postfields = null;
-                $method = null;
-
-                if (isset($payload['postfields'] ))
-                    $postfields = $payload['postfields'];
-
-                if (isset($payload['method'] ))
-                    $postfields = $payload['method'];
-
-                if (isset($payload['url'])) {
-                    $url = $payload['url'];
-                }
-
-                $result = $this->CustomCommand($url, $postfields, $method);
+                $result = $this->CustomCommand( $payload['url'] , $payload['postfields'], $payload['method']);
                 break;
 
             case 'GetDevices':
