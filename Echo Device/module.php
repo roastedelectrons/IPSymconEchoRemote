@@ -758,7 +758,7 @@ class EchoRemote extends IPSModule
      *
      * @return bool
      */
-    public function TuneIn(string $guideId): bool
+    public function TuneIn(string $guideId)
     {
         $getfields = [
             'deviceSerialNumber' => $this->GetDevicenumber(),
@@ -780,7 +780,8 @@ class EchoRemote extends IPSModule
             $this->SetValue('EchoTuneInRemote_' . $this->ReadPropertyString('Devicenumber'), $presetPosition);
         }
         if ($result['http_code'] === 200) {
-            return $this->UpdatePlayerStatus(5);
+            $this->UpdatePlayerStatus(10);
+            return true;
         }
         return false;
     }
