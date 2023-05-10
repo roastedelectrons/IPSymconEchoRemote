@@ -843,7 +843,7 @@ class AmazonEchoIO extends IPSModule
 
         foreach ( $devices as $device )
         {
-            if ( in_array('FLASH_BRIEFING', $device['capabilities']) && $device['deviceFamily'] != 'WHA' )
+            if ( $device['deviceFamily'] == 'ECHO' || $device['deviceFamily'] == 'KNIGHT' || $device['deviceFamily'] == 'ROOK' )
             {
                 $echos[] = [
                     'deviceSerialNumber' => $device['serialNumber' ],
