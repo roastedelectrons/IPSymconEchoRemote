@@ -70,6 +70,10 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
+Version 2.3 (beta build 27)
+* Fix: TextToSpeech an ALL_DEVICES spielt Ansagen nur noch auf Geräte vom Typ ECHO, KNIGHT und ROOK
+* Fix: Lautstärke bei Lautsprecher-Paaren wird nicht mehr auf Null gesetzt
+
 Version 2.2 (2023-04-29)
 * Neu: Favoriten
    * Variable zum einfachen Starten von Musik verschiedener Musikanbieter
