@@ -1975,11 +1975,17 @@ class EchoRemote extends IPSModule
                         trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected shuffle value: ' . $playerInfo['transport']['shuffle']);
                 }
             }
-            $volume = $playerInfo['volume'];
-            if (!is_null($volume)) {
-                if ($this->CheckExistence('EchoVolume') && $playerInfo['volume']['volume'] !== null) {
+
+            if ($this->CheckExistence('EchoVolume') && isset($playerInfo['volume']['volume']) && isset($playerInfo['volume']['muted']) ) {
+
+                if ( $playerInfo['volume']['volume'] > 0 && $playerInfo['volume']['muted'] == false ) // Grouped speakers send always volume=0 and muted=false, therefore do not overwrite volume
+                {
                     $this->SetValue('EchoVolume', $playerInfo['volume']['volume']);
                 }
+                elseif ( $playerInfo['volume']['muted'] == true )
+                {
+                    $this->SetValue('EchoVolume', 0);
+                }                
             }
         }
     }
