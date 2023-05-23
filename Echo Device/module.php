@@ -2653,8 +2653,10 @@ class EchoRemote extends IPSModule
                 ];
             }
         }
-        IPS_SetProperty ( $this->InstanceID, 'FavoritesList', json_encode($favorites) );
-        IPS_ApplyChanges( $this->InstanceID );
+        $this->UpdateFormField('FavoritesList', 'values', json_encode($favorites));
+
+        echo $this->Translate('TuneIn stations copied to favorites! Make sure that all station names in the favorits match those on tunein.com and press *apply changes*.');
+        
         return true;
     }
 
@@ -3387,7 +3389,7 @@ class EchoRemote extends IPSModule
             [
                 'type'    => 'Button',
                 'caption' => 'Copy TuneIn stations to favorites',
-                'onClick' => "if (EchoRemote_CopyTuneInStationsToFavorites(\$id)){echo 'TuneIn stations copied to favorites! Make sure that all station names in the favorits match those on tunein.com';} else {echo 'Error';}"]
+                'onClick' => "EchoRemote_CopyTuneInStationsToFavorites(\$id);"]
             ];
 
         return $form;
