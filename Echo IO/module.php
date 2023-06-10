@@ -914,6 +914,12 @@ class AmazonEchoIO extends IPSModule
             
         $refreshInterval = $cookieRefreshDate - time();
 
+        // Workaround to prevent integer overflow of timer: Refresh cookie at least after 2 weeks.
+        if ($refreshInterval > 3600*24*14)
+        {
+            $refreshInterval = 3600*24*14;
+        }
+
         if ( $refreshInterval > 3600) 
         {
             // Cookie expires in more than 1 houre
