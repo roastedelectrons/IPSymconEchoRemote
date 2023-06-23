@@ -74,7 +74,8 @@ Version 2.2.1 (2023-06-23)
 * Fix: TextToSpeech an ALL_DEVICES spielt Ansagen nur noch auf Geräte vom Typ ECHO, KNIGHT und ROOK
 * Fix: Lautstärke bei Lautsprecher-Paaren wird nicht mehr auf Null gesetzt
 * Fix: Nutze LogMessage bei allen Fehlern (behebt Problem beim Erstellen von Instanzen bei fehlerhafter Internetverbindung)
-* Fix: Nutze UpdateFormField bei Mirgration der TuneIn Stations zu Favoriten
+* Fix: CookieRefreshTimer wird maximal auf zwei Wochen gesetzt
+* Fix: CopyTuneInStationsToFavorites nutzt nun UpdateFormField
 
 Version 2.2 (2023-04-29)
 * Neu: Favoriten
