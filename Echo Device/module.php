@@ -758,7 +758,7 @@ class EchoRemote extends IPSModule
      *
      * @return bool
      */
-    public function TuneIn(string $guideId): bool
+    public function TuneIn(string $guideId)
     {
         $getfields = [
             'deviceSerialNumber' => $this->GetDevicenumber(),
@@ -780,7 +780,8 @@ class EchoRemote extends IPSModule
             $this->SetValue('EchoTuneInRemote_' . $this->ReadPropertyString('Devicenumber'), $presetPosition);
         }
         if ($result['http_code'] === 200) {
-            return $this->UpdatePlayerStatus(5);
+            $this->UpdatePlayerStatus(10);
+            return true;
         }
         return false;
     }
@@ -1974,11 +1975,17 @@ class EchoRemote extends IPSModule
                         trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected shuffle value: ' . $playerInfo['transport']['shuffle']);
                 }
             }
-            $volume = $playerInfo['volume'];
-            if (!is_null($volume)) {
-                if ($this->CheckExistence('EchoVolume') && $playerInfo['volume']['volume'] !== null) {
+
+            if ($this->CheckExistence('EchoVolume') && isset($playerInfo['volume']['volume']) && isset($playerInfo['volume']['muted']) ) {
+
+                if ( $playerInfo['volume']['volume'] > 0 && $playerInfo['volume']['muted'] == false ) // Grouped speakers send always volume=0 and muted=false, therefore do not overwrite volume
+                {
                     $this->SetValue('EchoVolume', $playerInfo['volume']['volume']);
                 }
+                elseif ( $playerInfo['volume']['muted'] == true )
+                {
+                    $this->SetValue('EchoVolume', 0);
+                }                
             }
         }
     }
@@ -2647,8 +2654,10 @@ class EchoRemote extends IPSModule
                 ];
             }
         }
-        IPS_SetProperty ( $this->InstanceID, 'FavoritesList', json_encode($favorites) );
-        IPS_ApplyChanges( $this->InstanceID );
+        $this->UpdateFormField('FavoritesList', 'values', json_encode($favorites));
+
+        echo $this->Translate('TuneIn stations copied to favorites! Make sure that all station names in the favorits match those on tunein.com and press *apply changes*.');
+        
         return true;
     }
 
@@ -3381,7 +3390,7 @@ class EchoRemote extends IPSModule
             [
                 'type'    => 'Button',
                 'caption' => 'Copy TuneIn stations to favorites',
-                'onClick' => "if (EchoRemote_CopyTuneInStationsToFavorites(\$id)){echo 'TuneIn stations copied to favorites! Make sure that all station names in the favorits match those on tunein.com';} else {echo 'Error';}"]
+                'onClick' => "EchoRemote_CopyTuneInStationsToFavorites(\$id);"]
             ];
 
         return $form;

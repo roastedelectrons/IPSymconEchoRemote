@@ -166,7 +166,7 @@ class AmazonEchoIO extends IPSModule
         if ( $this->ReadPropertyString('refresh_token') == "")
         {
             $this->SetStatus(self::STATUS_INST_REFRESH_TOKEN_IS_EMPTY);
-            die('refresh token missing');
+            $this->LogMessage( __FUNCTION__ .': refresh token missing'  , KL_ERROR);
             return false;
         } 
 
@@ -250,11 +250,15 @@ class AmazonEchoIO extends IPSModule
         curl_setopt($ch, CURLOPT_URL, $url);
 
         $result = curl_exec($ch);
-        if (curl_errno($ch)) {
-            trigger_error('Error:' . curl_error($ch));
-        }
         $info = curl_getinfo($ch);
+
         curl_close($ch);
+
+        if ( curl_errno($ch) ) {
+            print_r($result);
+            $this->LogMessage( 'Error in function ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
+            return false;
+        }      
 
         $result = $this->getReturnValues($info, $result);
 
@@ -263,7 +267,7 @@ class AmazonEchoIO extends IPSModule
             $response = json_decode($result['body']);
             if ($response !== false)
             {
-                die( $response->response->error->code.": ".$response->response->error->message );
+                $this->LogMessage('Error:' . $response->response->error->code.": ".$response->response->error->message, KL_ERROR);
             }
             return false;
         }
@@ -382,7 +386,7 @@ class AmazonEchoIO extends IPSModule
         
         $this->LogMessage('Failed to get CSRF', KL_ERROR);
 
-        die('Failed to get CSRF');
+        return false;
 
     }
 
@@ -431,7 +435,8 @@ class AmazonEchoIO extends IPSModule
 
         if ( !$this->ReadPropertyBoolean('active') )
         {
-            die('EchoIO Instance is inactive');
+            $this->LogMessage( __FUNCTION__ .': EchoIO Instance is inactive'  , KL_ERROR);
+            return false;
         }
 
         $result = $this->GetCookieByRefreshToken();
@@ -496,7 +501,8 @@ class AmazonEchoIO extends IPSModule
 
         if ( !$this->ReadPropertyBoolean('active') )
         {
-            die('EchoIO Instance is inactive');
+            $this->LogMessage( __FUNCTION__ .': EchoIO Instance is inactive'  , KL_ERROR);
+            return false;
         }
 
         $guiversion = 0;
@@ -633,7 +639,7 @@ class AmazonEchoIO extends IPSModule
             $this->SendDebug(__FUNCTION__, 'Error: (' . curl_errno($ch) . ') ' . curl_error($ch), 0);
             if ($this->ReadPropertyBoolean('LogMessageEx') )
             {
-                $this->LogMessage('Error: (' . curl_errno($ch) . ') ' . curl_error($ch), KL_ERROR);
+                $this->LogMessage( 'Error in function ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
             }  
             //Workaroud since the Echo Device Instances expext an array response
             return ['http_code' => 502, 'header' => '', 'body' => 'Error: (' . curl_errno($ch) . ') ' . curl_error($ch) ];
@@ -680,12 +686,14 @@ class AmazonEchoIO extends IPSModule
         curl_setopt($ch, CURLOPT_URL, $url);
 
         $result = curl_exec($ch);
-        if (curl_errno($ch)) {
-            trigger_error('Error:' . curl_error($ch));
-            return ['http_code' => 502, 'header' => '', 'body' => 'Error:' . curl_error($ch)];
-        }
         $info = curl_getinfo($ch);
         curl_close($ch);
+
+        if (curl_errno($ch)) {
+            $this->LogMessage( 'Error in function ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
+            return ['http_code' => 502, 'header' => '', 'body' => 'Error:' . curl_error($ch)];
+        }
+
 
         return $this->getReturnValues($info, $result);
     }
@@ -901,7 +909,7 @@ class AmazonEchoIO extends IPSModule
 
         foreach ( $devices as $device )
         {
-            if ( in_array('FLASH_BRIEFING', $device['capabilities']) && $device['deviceFamily'] != 'WHA' )
+            if ( $device['deviceFamily'] == 'ECHO' || $device['deviceFamily'] == 'KNIGHT' || $device['deviceFamily'] == 'ROOK' )
             {
                 $echos[] = [
                     'deviceSerialNumber' => $device['serialNumber' ],
@@ -971,6 +979,12 @@ class AmazonEchoIO extends IPSModule
         }        
             
         $refreshInterval = $cookieRefreshDate - time();
+
+        // Workaround to prevent integer overflow of timer: Refresh cookie at least after 2 weeks.
+        if ($refreshInterval > 3600*24*14)
+        {
+            $refreshInterval = 3600*24*14;
+        }
 
         if ( $refreshInterval > 3600) 
         {
@@ -1736,11 +1750,11 @@ class AmazonEchoIO extends IPSModule
             [
                 'type' => 'Button',
                 'caption' => 'login',
-                'onClick' => "if (EchoIO_LogIn(\$id)){echo 'Die Anmeldung war erfolgreich.';} else {echo 'Bei der Anmeldung ist ein Fehler aufgetreten.';}"],
+                'onClick' => "if (EchoIO_LogIn(\$id)){echo 'Die Anmeldung war erfolgreich.';} else {echo 'Bei der Anmeldung ist ein Fehler aufgetreten. Siehe Meldungen.';}"],
             [
                 'type' => 'Button',
                 'caption' => 'logoff',
-                'onClick' => "if (EchoIO_LogOff(\$id)){echo 'Die Abmeldung war erfolgreich.';} else {echo 'Bei der Abmeldung ist ein Fehler aufgetreten.';}"],
+                'onClick' => "if (EchoIO_LogOff(\$id)){echo 'Die Abmeldung war erfolgreich.';} else {echo 'Bei der Abmeldung ist ein Fehler aufgetreten. Siehe Meldungen.';}"],
             [
                 'type' => 'Button',
                 'caption' => 'Login Status',
@@ -1764,7 +1778,7 @@ class AmazonEchoIO extends IPSModule
             [
                 'code' => 214,
                 'icon' => 'error',
-                'caption' => 'not authenticated.'],
+                'caption' => 'Not authenticated! See message log for more information.'],
             [
                 'code' => 215,
                 'icon' => 'error',

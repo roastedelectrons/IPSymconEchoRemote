@@ -5,12 +5,12 @@
 
 IPSymconEchoRemote 2
 ===
-Modul für IP-Symcon zur Steuerung der Musikwiedergabe und Durchführung von Ansagen (Text-To-Speech) auf Echo-Geräten. Es ermöglicht außerdem das Starten von Routinen, Versand von Push-Nachrichten an die Alexa-App, Auswertung der letzten Aktionen der Echo-Geräte sowie diverser Informationen wie Weckzeiten und Listen.
+Modul für IP-Symcon zur Steuerung der Musikwiedergabe und Sprachansagen (Text-To-Speech) auf Echo-Geräten. Es ermöglicht außerdem das Starten von Routinen, Versand von Push-Nachrichten an die Alexa-App, Auswertung der letzten Aktionen der Echo-Geräte sowie diverser Informationen wie Weckzeiten und ToDo-Listen.
 
 **BREAKING-CHANGE:**
-Ab Version 2.0. erfolgt die Authentifizierung ausschließlich mittels Refresh-Token, der einmalig (mit einem externen Tool) generiert und im Modul hinterlegt werden muss.
+Ab Version 2.0 erfolgt die Authentifizierung ausschließlich mittels Refresh-Token, der einmalig (mit einem externen Tool) generiert und im Modul hinterlegt werden muss.
 
-*Disclaimer: Das Modul verwendet eine nicht-dokumentierte Schnittstelle zu alexa.amazon.de. Daher kann die Funktion ohne Ankündigung jederzeit eingestellt werden. Bevorzugt sollte daher auf alternative Lösungen, die offizielle API's verwenden, gewechselt werden.*
+*DISCLAIMER: Das Modul verwendet eine nicht-dokumentierte Schnittstelle zu alexa.amazon.de. Daher kann die Funktion ohne Ankündigung jederzeit eingestellt werden.*
 
 ## Inhaltsverzeichnis
 
@@ -26,24 +26,16 @@ Ab Version 2.0. erfolgt die Authentifizierung ausschließlich mittels Refresh-To
 - __Echo IO__ ([Dokumentation](Echo%20IO))  
 	Modul zu Authenzifizierung mit dem Amazon-Alexa-Account.
 
-- __Amazon Echo Configurator__ ([Dokumentation](Amazon%20Echo%20Configurator))  
+- __Echo Configurator__ ([Dokumentation](Amazon%20Echo%20Configurator))  
 	Konfigurator zum Erstellen und Einrichten der Echo Device Instanzen.
 
 ## Einrichtung 
 
-### Migration
-
-#### Altes Modul deinstallieren
-1. In der IP-Symcon Verwaltungskonsole den Module Store öffenen.
-2. Unter *Installiert > Echo Remote* das Modul öffnen und auf *Entfernen* klicken.
-
-   **Wichtig: Die Frage, ob auch die Instanzen entfernt werden sollen, mit NEIN beantworten!**
-
-#### Neues Modul installieren
-1. Im Objektbaum das Module Control öffnen (*Kerninstanzen > Modules*).
-2. Mit Klick auf das +-Zeichen das folgende Repository hinzufügen: https://github.com/roastedelectrons/IPSymconEchoRemote
-3. Im Objektbaum die EchoIO Instanz öffenen und den generierten Refresh-Token einfügen und auf *übernehmen* klicken.
-
+### Modul und Instanzen installieren
+1. Im Module-Store das Modul *Echo Remote 2* installieren.
+2. Im Objektbaum, der IP-Symcon Verwaltungskonsole eine *Amazon Echo Remote IO*-Instanz erstellen und den Refresh-Token (siehe unten) einfügen.
+3. Anschließend eine *Amazon Echo Remote Konfigurator*-Instanz erstellen.
+4. *Amazon Echo Remote Konfigurator* öffnen und für die gewünschten Echo-Geräte jeweils eine *Echo Remote* Instanz erstellen.
 
 ###  Refresh-Token generieren
 Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Windos, MacOS, Linux)](https://github.com/adn77/alexa-cookie-cli/releases/latest) auf einem beliebigen Rechner erstellt werden. Hierzu sind die folgenden Schritte notwendig:
@@ -81,6 +73,13 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 Version 2.3 (Branch: websocket)
 * Neu: Websockets zur Auswertung der letzten Aktion
 * Change: Erfordert min. IP-Symcon 6.1 (wegen Custom Headers Support des Websockets)
+
+Version 2.2.1 (2023-06-23)
+* Fix: TextToSpeech an ALL_DEVICES spielt Ansagen nur noch auf Geräte vom Typ ECHO, KNIGHT und ROOK
+* Fix: Lautstärke bei Lautsprecher-Paaren wird nicht mehr auf Null gesetzt
+* Fix: Nutze LogMessage bei allen Fehlern (behebt Problem beim Erstellen von Instanzen bei fehlerhafter Internetverbindung)
+* Fix: CookieRefreshTimer wird maximal auf zwei Wochen gesetzt
+* Fix: CopyTuneInStationsToFavorites nutzt nun UpdateFormField
 
 Version 2.2 (2023-04-29)
 * Neu: Favoriten

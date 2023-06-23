@@ -13,7 +13,7 @@
       "Echo language": "Echo Sprache",
       "Login Status": "Anmeldestatus",
       "refresh token must not be empty": "Refresh Token darf nicht leer sein",
-      "not authenticated.": "Nicht angemeldet.",
+      "Not authenticated! See message log for more information.": "Nicht angemeldet! Siehe Meldungs-Log für mehr Informationen.",
       "last device": "letztes Gerät",
       "Expert settings": "Experteneinstellungen",
       "Update interval": "Aktualisierungsintervall",
