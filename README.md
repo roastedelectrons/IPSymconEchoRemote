@@ -70,9 +70,11 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.3 (beta build 27)
+Version 2.2.1 (2023-06-23)
 * Fix: TextToSpeech an ALL_DEVICES spielt Ansagen nur noch auf Geräte vom Typ ECHO, KNIGHT und ROOK
 * Fix: Lautstärke bei Lautsprecher-Paaren wird nicht mehr auf Null gesetzt
+* Fix: Nutze LogMessage bei allen Fehlern (behebt Problem beim Erstellen von Instanzen bei fehlerhafter Internetverbindung)
+* Fix: Nutze UpdateFormField bei Mirgration der TuneIn Stations zu Favoriten
 
 Version 2.2 (2023-04-29)
 * Neu: Favoriten
