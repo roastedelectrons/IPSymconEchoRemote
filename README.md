@@ -70,8 +70,9 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.3 (Branch: websocket)
-* Neu: Websockets zur Auswertung der letzten Aktion
+Version 2.3 BETA (2023-06-27)
+* Neu: Verwendet Websockets zur Auswertung der letzten Aktivität (Sprachbefehl und Gerät) - kein Polling mehr notwendig
+* Fix: Dateipfad des Cookies konnte nach Migration von IP-Symcon auf andere Plattform nicht gefunden werden 
 * Change: Erfordert min. IP-Symcon 6.1 (wegen Custom Headers Support des Websockets)
 
 Version 2.2.1 (2023-06-23)
