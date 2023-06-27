@@ -1685,7 +1685,7 @@ class AmazonEchoIO extends IPSModule
             [
                 'type' => 'Label',
                 'link' => 'true',
-                'caption' => 'To generate the refresh token, follow the instructions from: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung'],              
+                'caption' => 'To generate the refresh token, follow the instructions on: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung'],              
             [
                 'type'    => 'ExpansionPanel',
                 'caption' => 'Expert settings',
@@ -1735,20 +1735,17 @@ class AmazonEchoIO extends IPSModule
     {
         $form = [
             [
-                'type' => 'Label',
-                'caption' => 'Test the Registration:'],
-            [
                 'type' => 'Button',
                 'caption' => 'login',
-                'onClick' => "if (EchoIO_LogIn(\$id)){echo 'Die Anmeldung war erfolgreich.';} else {echo 'Bei der Anmeldung ist ein Fehler aufgetreten. Siehe Meldungen.';}"],
+                'onClick' => "if (EchoIO_LogIn(\$id)){echo '".$this->Translate('Login was successful')."';} else {echo '".$this->Translate('An error has occurred. See the message log for more information.')."';}"],
             [
                 'type' => 'Button',
                 'caption' => 'logoff',
-                'onClick' => "if (EchoIO_LogOff(\$id)){echo 'Die Abmeldung war erfolgreich.';} else {echo 'Bei der Abmeldung ist ein Fehler aufgetreten. Siehe Meldungen.';}"],
+                'onClick' => "if (EchoIO_LogOff(\$id)){echo '".$this->Translate('Logout was successful')."';} else {echo '".$this->Translate('An error has occurred. See the message log for more information.')."';}"],
             [
                 'type' => 'Button',
                 'caption' => 'Login Status',
-                'onClick' => "if (EchoIO_CheckLoginStatus(\$id)){echo 'Sie sind angemeldet.';} else {echo 'Sie sind nicht angemeldet.';}"]];
+                'onClick' => "if (EchoIO_CheckLoginStatus(\$id)){echo '".$this->Translate('You are logged in')."';} else {echo '".$this->Translate('You are not logged in')."';}"]];
 
         return $form;
     }

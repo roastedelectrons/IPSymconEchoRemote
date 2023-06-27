@@ -20,8 +20,14 @@
       "Get last action": "Letzte Aktion auswerten",
       "Cookie expiration date": "Ablaufdatum des Cookies",
       "Last action": "Letzte Aktion",
+      "To generate the refresh token, follow the instructions on: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung": "Zum Erzeugen des Refresh Token, die folgende Anleitung befolgen: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung",
       "Extented log messages": "Erweiterte Log Meldungen",
-      "Websocket (for evaluation of last activity)": "Websocket (zur Auswertung der letzten Aktion)"
+      "Websocket (for evaluation of last activity)": "Websocket (zur Auswertung der letzten Aktion)",
+      "Login was successful": "Die Anmeldung war erfolgreich",
+      "Logout was successful": "Die Abmeldung war erfolgreich",
+      "An error has occurred. See the message log for more information.": "Es ist ein Fehler aufgetreten. Siehe Meldungsfenster für weitere Informationen.",
+      "You are logged in": "Sie sind angemeldet",
+      "You are not logged in": "Sie sind nicht angemeldet"
     }
   }
 }
