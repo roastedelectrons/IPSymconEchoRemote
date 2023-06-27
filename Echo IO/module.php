@@ -40,7 +40,6 @@ class AmazonEchoIO extends IPSModule
         );
 
         $this->RegisterAttributeString('devices', '[]');
-        $this->RegisterAttributeString('CookiesFileName', IPS_GetKernelDir() . 'alexa_cookie_'. $this->InstanceID .'.txt');
         $this->RegisterAttributeString( 'LastActivityID', '' ); 
         $this->RegisterAttributeInteger('LastCookieRefresh', 0);
         $this->RegisterAttributeInteger('CookieExpirationDate', 0);
@@ -108,20 +107,6 @@ class AmazonEchoIO extends IPSModule
             return;
         }
 
-        // Migration of cookie file name
-        if ( $this->ReadAttributeString('CookiesFileName') == IPS_GetKernelDir() . 'alexa_cookie.txt' )
-        {
-            $oldFileName = $this->ReadAttributeString('CookiesFileName');
-            $newFileName = IPS_GetKernelDir() . 'alexa_cookie_'. $this->InstanceID .'.txt'; 
-
-            $this->WriteAttributeString('CookiesFileName', $newFileName);
-
-            if ( file_exists($oldFileName) )
-            {
-                rename($oldFileName, $newFileName);
-            }
-            
-        }
         // Migration of Idents
         if ( @$this->GetIDForIdent('last_device') !== false ) IPS_SetIdent( $this->GetIDForIdent('last_device'), 'LastDevice');
         if ( @$this->GetIDForIdent('cookie_expiration_date') !== false ) IPS_SetIdent( $this->GetIDForIdent('cookie_expiration_date'), 'CookieExpirationDate');
@@ -278,7 +263,7 @@ class AmazonEchoIO extends IPSModule
 
             if ($cookieTXT != "" ) 
             {
-                file_put_contents($this->ReadAttributeString('CookiesFileName') , $cookieTXT);
+                file_put_contents($this->getCookiesFileName(), $cookieTXT);
                 return true;
             }
         }
@@ -390,10 +375,15 @@ class AmazonEchoIO extends IPSModule
 
     }
 
+    private function getCookiesFileName()
+    {
+        return IPS_GetKernelDir() . 'alexa_cookie_'. $this->InstanceID .'.txt';
+    }
+
     private function getCsrfFromCookie()
     {
 
-        $CookiesFileName = $this->ReadAttributeString('CookiesFileName');
+        $CookiesFileName = $this->getCookiesFileName();
 
         if (file_exists($CookiesFileName)) {
             //get CSRF from cookie file
@@ -413,7 +403,7 @@ class AmazonEchoIO extends IPSModule
 
         $expirationDate = 0;
 
-        $CookiesFileName = $this->ReadAttributeString('CookiesFileName');
+        $CookiesFileName = $this->getCookiesFileName();
 
         if (file_exists($CookiesFileName)) {
             
@@ -477,7 +467,7 @@ class AmazonEchoIO extends IPSModule
         if ($return['http_code'] === 200) { //OK
             $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
             $this->WriteAttributeInteger('CookieExpirationDate', 0); 
-            return $this->deleteFile($this->ReadAttributeString('CookiesFileName'));
+            return $this->deleteFile($this->getCookiesFileName());
         }
 
         return false;
@@ -610,7 +600,7 @@ class AmazonEchoIO extends IPSModule
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1];
 
 
-        $options[CURLOPT_COOKIEFILE] = $this->ReadAttributeString('CookiesFileName'); //this file is read
+        $options[CURLOPT_COOKIEFILE] = $this->getCookiesFileName(); //this file is read
 
 
         if ($postfields !== null) 
@@ -671,8 +661,8 @@ class AmazonEchoIO extends IPSModule
         curl_setopt($ch, CURLOPT_TIMEOUT, 6); 
         curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_COOKIEFILE, $this->ReadAttributeString('CookiesFileName')); //this file is read
-        curl_setopt($ch, CURLOPT_COOKIEJAR, $this->ReadAttributeString('CookiesFileName'));  //this file is written
+        curl_setopt($ch, CURLOPT_COOKIEFILE, $this->getCookiesFileName() ); //this file is read
+        curl_setopt($ch, CURLOPT_COOKIEJAR, $this->getCookiesFileName() );  //this file is written
         curl_setopt($ch, CURLOPT_USERAGENT, $this->ReadPropertyString('browser'));
         curl_setopt($ch, CURLOPT_ENCODING, '');
         curl_setopt($ch, CURLOPT_HEADER, true);
