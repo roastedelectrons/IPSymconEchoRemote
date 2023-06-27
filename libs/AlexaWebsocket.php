@@ -64,7 +64,7 @@ trait AlexaWebsocket
         if ($method == 1)
         {
             $accountSerial = $this->wsGetValueFromCookie( 'ubid-acbde' );
-            $url = 'wss://dp-gw-na.'.$this->GetAmazonURL().'/?x-amz-device-type=ALEGCNGL9K0HM&x-amz-device-serial='.$accountSerial;  //.'-'.(time()*1000);
+            $url = 'wss://dp-gw-na.'.$this->GetAmazonURL().'/?x-amz-device-type=ALEGCNGL9K0HM&x-amz-device-serial='.$accountSerial.'-'. time() ; // url has to be unique, therefore add timestamp
         }
         else 
         {
