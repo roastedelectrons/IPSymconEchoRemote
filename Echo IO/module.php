@@ -108,8 +108,8 @@ class AmazonEchoIO extends IPSModule
         }
 
         // Migration of Idents
-        if ( @$this->GetIDForIdent('last_device') !== false ) IPS_SetIdent( $this->GetIDForIdent('last_device'), 'LastDevice');
-        if ( @$this->GetIDForIdent('cookie_expiration_date') !== false ) IPS_SetIdent( $this->GetIDForIdent('cookie_expiration_date'), 'CookieExpirationDate');
+        if ( @$this->GetIDForIdent('last_device') !== false && @$this->GetIDForIdent('LastDevice') === false ) IPS_SetIdent( $this->GetIDForIdent('last_device'), 'LastDevice');
+        if ( @$this->GetIDForIdent('cookie_expiration_date') !== false && @$this->GetIDForIdent('CookieExpirationDate') === false  ) IPS_SetIdent( $this->GetIDForIdent('cookie_expiration_date'), 'CookieExpirationDate');
 
         // Connect to websocket client
         if ($this->ReadPropertyBoolean('Websocket'))
