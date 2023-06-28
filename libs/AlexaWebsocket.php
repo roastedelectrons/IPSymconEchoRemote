@@ -115,7 +115,7 @@ trait AlexaWebsocket
 
     protected function wsGetValueFromCookie( $name )
     {
-        $CookiesFileName = $this->ReadAttributeString('CookiesFileName');
+        $CookiesFileName = $this->getCookiesFileName();
 
         if (file_exists($CookiesFileName)) {
             //get CSRF from cookie file
@@ -133,7 +133,7 @@ trait AlexaWebsocket
     protected function wsGetCookie()
     {
 
-        $CookiesFileName = $this->ReadAttributeString('CookiesFileName');
+        $CookiesFileName = $this->getCookiesFileName();
 
         $cookie = "";
         if (file_exists($CookiesFileName)) {
