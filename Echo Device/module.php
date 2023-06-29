@@ -259,16 +259,16 @@ class EchoRemote extends IPSModule
         }
         if ($Ident === 'EchoFavorites') {
             $this->SetValue('EchoFavorites', $Value);
-            $Value = json_decode($Value, true);
-            if ($Value !== false)
+            $Value = json_decode( (string) $Value, true);
+            if ($Value !== null)
             {
                 $this->PlayMusic($Value['searchPhrase'], $Value['musicProvider']);
             }          
         }
         if ($Ident === 'EchoFavoritesPlaylist') {
             $this->SetValue('EchoFavoritesPlaylist', $Value);
-            $Value = json_decode($Value, true);
-            if ($Value !== false){
+            $Value = json_decode( (string) $Value, true);
+            if ($Value !== null){
                 $current = $Value['current'];
                 $Value = $Value['entries'][$current ];
                 $this->PlayMusic($Value['searchPhrase'], $Value['musicProvider']);
@@ -676,7 +676,8 @@ class EchoRemote extends IPSModule
 
     public function SetDeviceSettings( string $settingName, string $value)
     {
-        $deviceAccountId = json_decode( $this->ReadAttributeString('DeviceInfo'), true)['deviceAccountId'];
+        $deviceInfo = $this->GetDeviceInfo();
+        $deviceAccountId = $deviceInfo['deviceAccountId'];
 
         $payload['url']     = '/api/v1/devices/' . $deviceAccountId .'/settings/'. $settingName;
         $payload['method']  = 'PUT'; 
@@ -689,7 +690,8 @@ class EchoRemote extends IPSModule
 
     public function GetDeviceSettings( string $settingName)
     {
-        $deviceAccountId = json_decode( $this->ReadAttributeString('DeviceInfo'), true)['deviceAccountId'];
+        $deviceInfo = $this->GetDeviceInfo();
+        $deviceAccountId = $deviceInfo['deviceAccountId'];
 
         $payload['url']     = '/api/v1/devices/' . $deviceAccountId .'/settings/'. $settingName;
         $payload['method']  = 'GET'; 
@@ -1527,15 +1529,11 @@ class EchoRemote extends IPSModule
 
     private function GetMusicProviersFormField()
     {
-        $providers =  $this->ReadAttributeString('MusicProviders');
+        $providers = json_decode( $this->ReadAttributeString('MusicProviders'), true) ;
 
-        if ($providers == '')
+        if ($providers == null)
         {
             $providers = $this->GetMusicProviders();
-        }
-        else
-        {
-            $providers = json_decode($providers, true);
         }
 
         $formField = array();
@@ -2395,19 +2393,18 @@ class EchoRemote extends IPSModule
     private function GetDeviceInfo()
     {
         
-        $deviceInfo = $this->ReadAttributeString('DeviceInfo');
+        $deviceInfo = json_decode( $this->ReadAttributeString('DeviceInfo') , true);
 
-        if ($deviceInfo == '')
+        if ($deviceInfo == null)
         {
             $deviceInfo = $this->RequestDeviceInfo();
             if ($deviceInfo !== false)
             {
                 $this->WriteAttributeString('DeviceInfo', json_encode($deviceInfo));
-                return $deviceInfo;
             }
         }
 
-        return json_decode($deviceInfo, true);
+        return $deviceInfo;
 
     }
 
@@ -2605,12 +2602,13 @@ class EchoRemote extends IPSModule
      */
     private function GetTuneInStationID(int $preset): string
     {
-        $list_json = $this->ReadPropertyString('TuneInStations');
-        $list = json_decode($list_json, true);
+        $list = json_decode( $this->ReadPropertyString('TuneInStations') , true);
+
+        if ( $list == null ) return '';
+
         $stationid = '';
         foreach ($list as $station) {
             if ($preset === $station['position']) {
-                $station_name = $station['station'];
                 $stationid = $station['station_id'];
             }
         }
@@ -2626,8 +2624,10 @@ class EchoRemote extends IPSModule
     private function GetTuneInStationPresetPosition(string $guideId)
     {
         $presetPosition = false;
-        $list_json = $this->ReadPropertyString('TuneInStations');
-        $list = json_decode($list_json, true);
+        $list = json_decode( $this->ReadPropertyString('TuneInStations') , true);
+
+        if ( $list == null ) return false;
+
         foreach ($list as $station) {
             if ($guideId === $station['station_id']) {
                 $presetPosition = $station['position'];
@@ -2974,8 +2974,14 @@ class EchoRemote extends IPSModule
      */
     private function GetCustomerID(): string
     {
-        $deviceInfo = json_decode( $this->ReadAttributeString('DeviceInfo'), true);
-        return $deviceInfo ['deviceOwnerCustomerId'];
+        $deviceInfo = $this->GetDeviceInfo();
+
+        if (isset($deviceInfo ['deviceOwnerCustomerId']) )
+        {
+            return $deviceInfo ['deviceOwnerCustomerId'];
+        }
+        
+        return '';
     }
 
     /** GetLanguage

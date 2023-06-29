@@ -271,7 +271,7 @@ class AmazonEchoIO extends IPSModule
         return false;
     }
 
-    private function convertJSONtoPlainTxtCookie( $cookieJSON )
+    private function convertJSONtoPlainTxtCookie( string $cookieJSON )
     {
 
         $amazonURL = ".".$this->GetAmazonURL();
@@ -910,7 +910,7 @@ class AmazonEchoIO extends IPSModule
         return $echos;
     }
 
-    private function getClusterMembers( $serialNumber )
+    private function getClusterMembers( string $serialNumber )
     {
         
         $devices = $this->GetDeviceList();
@@ -1339,16 +1339,12 @@ class AmazonEchoIO extends IPSModule
         return [];
     }
 
-    private function GetDeviceVolume( $deviceSerial, $deviceType )
+    private function GetDeviceVolume(string $deviceSerial, string $deviceType )
     {
 
-        $buffer = $this->GetBuffer('DeviceVolumes');
+        $deviceVolumes = json_decode( $this->GetBuffer('DeviceVolumes'), true);
 
-        if ($buffer != '')
-        {
-            $deviceVolumes = json_decode ($buffer, true);
-        }
-        else
+        if ($deviceVolumes == null)
         {
             $deviceVolumes = $this->UpdateAllDeviceVolumes();
         }

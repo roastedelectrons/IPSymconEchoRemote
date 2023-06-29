@@ -308,7 +308,7 @@ trait AlexaWebsocket
             $message['content'] = substr($data, $idx, -4);
             if ( substr( $message['content'], 0, 1) == '{' && substr( $message['content'], -1, 1) == '}') 
             {
-                if ( json_decode($message['content'], true) !== false )
+                if ( json_decode($message['content'], true) != null )
                 {
                     $message['content'] = json_decode($message['content'], true);
                 }
