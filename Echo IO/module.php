@@ -194,13 +194,12 @@ class AmazonEchoIO extends IPSModule
         $result = curl_exec($ch);
         $info = curl_getinfo($ch);
 
-        curl_close($ch);
-
         if ( curl_errno($ch) ) {
-            print_r($result);
             $this->LogMessage( 'Error in function ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
             return false;
-        }      
+        } 
+        
+        curl_close($ch);
 
         $result = $this->getReturnValues($info, $result);
 
@@ -628,14 +627,14 @@ class AmazonEchoIO extends IPSModule
         curl_setopt($ch, CURLOPT_URL, $url);
 
         $result = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
 
         if (curl_errno($ch)) {
             $this->LogMessage( 'Error in function ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
             return ['http_code' => 502, 'header' => '', 'body' => 'Error:' . curl_error($ch)];
         }
 
+        $info = curl_getinfo($ch);
+        curl_close($ch);
 
         return $this->getReturnValues($info, $result);
     }
