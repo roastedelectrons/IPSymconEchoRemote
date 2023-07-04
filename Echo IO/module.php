@@ -1240,10 +1240,8 @@ class AmazonEchoIO extends IPSModule
     public function ReceiveData($JSONString)
     {
         $data = json_decode($JSONString);
-        //IPS_LogMessage('Splitter RECV', utf8_decode($data->Buffer));
 
-        $msg = $this->wsDecodeMessageAH(utf8_decode($data->Buffer));
-        //print_r($msg);
+        $msg = $this->wsDecodeMessageAH($data->Buffer);
 
         // Handshake
         if ($msg['service'] == 'TUNE')
