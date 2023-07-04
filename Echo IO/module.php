@@ -1545,21 +1545,43 @@ class AmazonEchoIO extends IPSModule
             'behaviorId' => 'PREVIEW',
             'sequenceJson' => $sequenceJson,
             'status' => 'ENABLED'];
+       
 
-        $this->SendDebug(__FUNCTION__, $postfields, 0);
-
-        if ( IPS_SemaphoreEnter ( 'BehaviorsPreview.'.$this->InstanceID , 6000) )
+        if ( IPS_SemaphoreEnter ( 'BehaviorsPreview.'.$this->InstanceID , 10000) )
         {
 
+            // Throttle requests due to rate limit
+            $delay = microtime(true) - floatval( $this->GetBuffer( 'BehaviorsPreviewRequestTimestamp' ));
+
+            if ( $delay < 2.0)
+            {
+                IPS_Sleep(2000 - $delay*1000);
+            }
+
+
+            $this->SendDebug(__FUNCTION__, $postfields, 0);
             $result = $this->SendEcho($url, $postfields);
 
-            // Rate limit for BehaviorsPreview requests: 1 request per 2 seconds
-            IPS_Sleep( 2000 );
+            if ($result['http_code'] == 429 )
+            {
+                // Rate limit for BehaviorsPreview requests: wait 2.5s and try again
+                IPS_Sleep( 2500 );
+                $this->SendDebug(__FUNCTION__, $postfields, 0);
+                $result = $this->SendEcho($url, $postfields);
+            }
+
+            $this->SetBuffer( 'BehaviorsPreviewRequestTimestamp', (string) microtime(true) );
+
             IPS_SemaphoreLeave('BehaviorsPreview.'.$this->InstanceID );
         }
         else
         {
             $result = ['http_code' => 502, 'header' => '', 'body' => 'Too many parallel BehaviorsPreview requests.' ];
+        }
+
+        if ( $result['http_code'] != 200 )
+        {
+            trigger_error($result['body']);
         }
 
         return $result;
