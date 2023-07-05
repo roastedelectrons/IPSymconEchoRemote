@@ -1359,7 +1359,6 @@ class AmazonEchoIO extends IPSModule
     
     private function BehaviorsPreview( array $postfields)
     {
-        $url = 'https://alexa.' . $this->GetAmazonURL() . '/api/behaviors/preview';
         $locale = $this->GetLanguage();
         $type = $postfields['type'];
 
@@ -1537,49 +1536,13 @@ class AmazonEchoIO extends IPSModule
         // Replace placeholder
         str_replace( 'ALEXA_CURRENT_LOCALE', $this->GetLanguage() ,$sequenceJson);
 
-        unset($postfields);
-        $postfields = [
+        $automation = [
             'behaviorId' => 'PREVIEW',
             'sequenceJson' => $sequenceJson,
-            'status' => 'ENABLED'];
-       
-
-        if ( IPS_SemaphoreEnter ( 'BehaviorsPreview.'.$this->InstanceID , 10000) )
-        {
-
-            // Throttle requests due to rate limit
-            $delay = microtime(true) - floatval( $this->GetBuffer( 'BehaviorsPreviewRequestTimestamp' ));
-
-            if ( $delay < 2.0)
-            {
-                IPS_Sleep(2000 - $delay*1000);
-            }
-
-
-            $this->SendDebug(__FUNCTION__, $postfields, 0);
-            $result = $this->SendEcho($url, $postfields);
-
-            if ($result['http_code'] == 429 )
-            {
-                // Rate limit for BehaviorsPreview requests: wait 2.5s and try again
-                IPS_Sleep( 2500 );
-                $this->SendDebug(__FUNCTION__, $postfields, 0);
-                $result = $this->SendEcho($url, $postfields);
-            }
-
-            $this->SetBuffer( 'BehaviorsPreviewRequestTimestamp', (string) microtime(true) );
-
-            IPS_SemaphoreLeave('BehaviorsPreview.'.$this->InstanceID );
-        }
-        else
-        {
-            $result = ['http_code' => 502, 'header' => '', 'body' => 'Too many parallel BehaviorsPreview requests.' ];
-        }
-
-        if ( $result['http_code'] != 200 )
-        {
-            trigger_error($result['body']);
-        }
+            'status' => 'ENABLED'
+        ];
+        
+        $result = $this->RunBehavior($automation);
 
         return $result;
     }
@@ -1624,32 +1587,67 @@ class AmazonEchoIO extends IPSModule
 
     }
 
-    private function BehaviorsPreviewAutomation(array $deviceinfos, array $automation)
+    private function RunBehavior( array $automation )
     {
         $url = 'https://alexa.' . $this->GetAmazonURL() . '/api/behaviors/preview';
 
+        $postfields['behaviorId'] = $automation['behaviorId'];
+        $postfields['sequenceJson'] = $automation['sequenceJson'];
+        $postfields['status'] = 'ENABLED';
+
+        if ( IPS_SemaphoreEnter ( 'BehaviorsPreview.'.$this->InstanceID , 10000) )
+        {
+
+            // Throttle requests due to rate limit
+            $delay = microtime(true) - floatval( $this->GetBuffer( 'BehaviorsPreviewRequestTimestamp' ));
+
+            if ( $delay < 2.0)
+            {
+                IPS_Sleep(2000 - $delay*1000);
+            }
+
+
+            $this->SendDebug(__FUNCTION__, $postfields, 0);
+            $result = $this->SendEcho($url, $postfields);
+
+            if ($result['http_code'] == 429 )
+            {
+                // Rate limit for BehaviorsPreview requests: wait 2.5s and try again
+                IPS_Sleep( 2500 );
+                $this->SendDebug(__FUNCTION__, $postfields, 0);
+                $result = $this->SendEcho($url, $postfields);
+            }
+
+            $this->SetBuffer( 'BehaviorsPreviewRequestTimestamp', (string) microtime(true) );
+
+            IPS_SemaphoreLeave('BehaviorsPreview.'.$this->InstanceID );
+        }
+        else
+        {
+            $result = ['http_code' => 502, 'header' => '', 'body' => 'Too many parallel requests.' ];
+        }
+
+        if ( $result['http_code'] != 200 )
+        {
+            trigger_error($result['body']);
+        }
+
+        return $result;
+    }
+
+    private function BehaviorsPreviewAutomation(array $deviceinfos, array $automation)
+    {
         $postfields = [
                 'behaviorId' => $automation['automationId'],
                 'sequenceJson' => json_encode($automation['sequence']),
-                'status' => 'ENABLED'];
+                'status' => 'ENABLED'
+            ];
 
         $postfields = str_replace(
             ['ALEXA_CURRENT_DEVICE_TYPE', 'ALEXA_CURRENT_DSN'], [$deviceinfos['deviceType'], $deviceinfos['deviceSerialNumber']], $postfields
         );
-        $utterance = '';
 
-        foreach ($automation['triggers'] as $trigger) {
-            if (isset($trigger['payload']['utterance'])) {
-                $utterance = $trigger['payload']['utterance'];
-            }
-            if (empty($automation['name'])) {
-                $automation_name = '';
-            } else {
-                $automation_name = $automation['name'];
-            }
-        }
-        $this->SendDebug('Trigger Automation', 'automation name: ' . $automation_name . ', automation utterance: ' . $utterance, 0);
-        return $this->SendEcho($url, $postfields);
+        return $this->RunBehavior( $postfields);
     }
 
     private function GetDNDState()

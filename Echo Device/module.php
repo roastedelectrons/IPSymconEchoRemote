@@ -113,7 +113,7 @@ class EchoRemote extends IPSModule
         $this->RegisterTimer('EchoAlarm', 0, 'EchoRemote_RaiseAlarm(' . $this->InstanceID . ');');
         $this->RegisterAttributeFloat('LastDeviceTimestamp', 0);
         $this->RegisterAttributeString('LastActivityID', '' ); 
-        $this->RegisterAttributeString('routines', '[]');
+        $this->RegisterAttributeString('Automations', '[]');
         $this->RegisterPropertyBoolean('routines_wf', false);
         $this->RegisterAttributeString('DeviceInfo', '');
         $this->RegisterAttributeString('MusicProviders', '');
@@ -1570,12 +1570,21 @@ class EchoRemote extends IPSModule
         if ($result['http_code'] !== 200) {
             return [];
         }
+
+        $this->WriteAttributeString('Automations', $result['body']);
+
         return json_decode($result['body'], true);
     }
 
     private function GetAutomationsList()
     {
-        $automations = $this->GetAllAutomations();
+        $automations = json_decode( $this->ReadAttributeString('Automations'), true );
+
+        if ( $automations == null )
+        {
+            $automations = $this->GetAllAutomations();
+        }
+
         $list = [];
         if(!empty($automations))
         {
