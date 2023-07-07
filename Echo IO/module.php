@@ -1595,11 +1595,11 @@ class AmazonEchoIO extends IPSModule
         $postfields['sequenceJson'] = $automation['sequenceJson'];
         $postfields['status'] = 'ENABLED';
 
-        if ( IPS_SemaphoreEnter ( 'BehaviorsPreview.'.$this->InstanceID , 10000) )
+        if ( IPS_SemaphoreEnter ( 'RunBehavior.'.$this->InstanceID , 10000) )
         {
 
             // Throttle requests due to rate limit
-            $delay = microtime(true) - floatval( $this->GetBuffer( 'BehaviorsPreviewRequestTimestamp' ));
+            $delay = microtime(true) - floatval( $this->GetBuffer( 'RunBehaviorRequestTimestamp' ));
 
             if ( $delay < 2.0)
             {
@@ -1618,9 +1618,9 @@ class AmazonEchoIO extends IPSModule
                 $result = $this->SendEcho($url, $postfields);
             }
 
-            $this->SetBuffer( 'BehaviorsPreviewRequestTimestamp', (string) microtime(true) );
+            $this->SetBuffer( 'RunBehaviorRequestTimestamp', (string) microtime(true) );
 
-            IPS_SemaphoreLeave('BehaviorsPreview.'.$this->InstanceID );
+            IPS_SemaphoreLeave('RunBehavior.'.$this->InstanceID );
         }
         else
         {
