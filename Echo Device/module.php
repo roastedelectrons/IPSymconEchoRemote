@@ -325,7 +325,8 @@ class EchoRemote extends IPSModule
             }
         }
         if ($Ident === 'Automation') {
-            $this->StartAlexaRoutineByKey($Value);
+            $name = $this->GetAutomationNameByKey($Value);
+            $this->StartAlexaRoutineByName($name);
         }
 
     }
@@ -1563,6 +1564,18 @@ class EchoRemote extends IPSModule
      */
     public function GetAllAutomations()
     {
+        $automations = json_decode( $this->ReadAttributeString('Automations'), true );
+
+        if ( $automations == null )
+        {
+            $automations = $this->RequestAllAutomations();
+        }
+
+        return $automations;
+    }
+
+    private function RequestAllAutomations()
+    {
         $payload['url'] = '/api/behaviors/v2/automations';
 
         $result = (array) $this->SendDataPacket('SendEcho', $payload);
@@ -1575,6 +1588,22 @@ class EchoRemote extends IPSModule
 
         return json_decode($result['body'], true);
     }
+
+
+    public function UpdateAutomations()
+    {
+
+        if ($this->RequestAllAutomations() == []) {
+            return false;
+        }
+       
+        $this->UpdateAutomationVariableProfile();
+        $this->UpdateFormField('routines', 'values', json_encode($this->GetAutomationsList()));
+
+        return true;
+    }
+
+
 
     private function GetAutomationsList()
     {
@@ -1613,6 +1642,40 @@ class EchoRemote extends IPSModule
         }
         return $list;
     }
+
+    private function UpdateAutomationVariableProfile()
+    {
+        $automations = $this->GetAllAutomations();
+        // automation variable
+        $associations = [];
+        $max = count($automations);
+        foreach ($automations as $key => $automation) {
+            $routine_id = $key;
+            // $automationId = $automation['automationId'];
+            $routine_name = $automation['name'];
+            $routine_utterance = '';
+            if(isset($automation['triggers'][0]['payload']['utterance']))
+            {
+                $routine_utterance = $automation['triggers'][0]['payload']['utterance'];
+            }
+            else{
+                $routine_utterance = 'no utterance';
+            }
+            if(is_null($routine_name))
+            {
+                $routine_name = '';
+            }
+            $association_name = $routine_name;
+            if($routine_name == '')
+            {
+                $association_name = $routine_utterance;
+            }
+            $associations[] = [$routine_id, $association_name, '', -1];
+        }
+        $this->RegisterProfileAssociation('Echo.Automation.'.$this->InstanceID , 'Execute', '', '', 0, $max, 0, 0, VARIABLETYPE_INTEGER, $associations);
+    }
+
+
 
     /** Echo Show Display off
      *
@@ -1671,56 +1734,27 @@ class EchoRemote extends IPSModule
      */
     public function StartAlexaRoutine(string $utterance): bool
     {
-        $automations = $this->GetAllAutomations();
-        if(!empty($automations))
-        {
-            //search Automation of utterance
-            $automation = $this->GetAutomation($utterance, $automations);
-            if ($automation) {
-                //play automation
-                $payload = [
-                    'device'             => [
-                        'deviceSerialNumber' => $this->GetDevicenumber(),
-                        'deviceType'         => $this->GetDevicetype(),
-                    ],
-                    'automation'         => $automation
-                ];
+        $this->UpdateAutomations();
 
-                $result = (array) $this->SendDataPacket('BehaviorsPreviewAutomation', $payload);
-                return $result['http_code'] === 200;
-            }
+        $automation = $this->GetAutomationByUtterance($utterance);
+
+        if ($automation) {
+            //play automation
+            $payload = [
+                'device'             => [
+                    'deviceSerialNumber' => $this->GetDevicenumber(),
+                    'deviceType'         => $this->GetDevicetype(),
+                ],
+                'automation'         => $automation
+            ];
+
+            $result = (array) $this->SendDataPacket('BehaviorsPreviewAutomation', $payload);
+            return $result['http_code'] === 200;
         }
+
         return false;
     }
 
-    /** Start Alexa routine by routine name
-     * @param int $routine_key
-     *
-     * @return bool
-     */
-    private function StartAlexaRoutineByKey(int $routine_key): bool
-    {
-        $automations = $this->GetAllAutomations();
-        if(!empty($automations))
-        {
-            //search Automation of utterance
-            $automation = $this->GetAutomationByKey($routine_key, $automations);
-            if ($automation) {
-                //play automation
-                $payload = [
-                    'device'             => [
-                        'deviceSerialNumber' => $this->GetDevicenumber(),
-                        'deviceType'         => $this->GetDevicetype(),
-                    ],
-                    'automation'         => $automation
-                ];
-
-                $result = (array) $this->SendDataPacket('BehaviorsPreviewAutomation', $payload);
-                return $result['http_code'] === 200;
-            }
-        }
-        return false;
-    }
 
     /** Start Alexa routine by routine name
      * @param string $routine_name
@@ -1729,25 +1763,24 @@ class EchoRemote extends IPSModule
      */
     public function StartAlexaRoutineByName(string $routine_name): bool
     {
-        $automations = $this->GetAllAutomations();
-        if(!empty($automations))
-        {
-            //search Automation of utterance
-            $automation = $this->GetAutomationByName($routine_name, $automations);
-            if ($automation) {
-                //play automation
-                $payload = [
-                    'device'             => [
-                        'deviceSerialNumber' => $this->GetDevicenumber(),
-                        'deviceType'         => $this->GetDevicetype(),
-                    ],
-                    'automation'         => $automation
-                ];
+        $this->UpdateAutomations();
 
-                $result = (array) $this->SendDataPacket('BehaviorsPreviewAutomation', $payload);
-                return $result['http_code'] === 200;
-            }
+        $automation = $this->GetAutomationByName($routine_name);
+
+        if ($automation) {
+            //play automation
+            $payload = [
+                'device'             => [
+                    'deviceSerialNumber' => $this->GetDevicenumber(),
+                    'deviceType'         => $this->GetDevicetype(),
+                ],
+                'automation'         => $automation
+            ];
+
+            $result = (array) $this->SendDataPacket('BehaviorsPreviewAutomation', $payload);
+            return $result['http_code'] === 200;
         }
+
         return false;
     }
 
@@ -2337,38 +2370,9 @@ class EchoRemote extends IPSModule
         // Subtitle 2 as HTML
         $this->MaintainVariable('Subtitle_2_HTML', $this->Translate('Subtitle 2'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('Subtitle2'));
 
-        if ($this->ReadPropertyBoolean('routines_wf')) {
-            $automations = $this->GetAllAutomations();
-            // automation variable
-            $associations = [];
-            $max = count($automations);
-            foreach ($automations as $key => $automation) {
-                $routine_id = $key;
-                // $automationId = $automation['automationId'];
-                $routine_name = $automation['name'];
-                $routine_utterance = '';
-                if(isset($automation['triggers'][0]['payload']['utterance']))
-                {
-                    $routine_utterance = $automation['triggers'][0]['payload']['utterance'];
-                }
-                else{
-                    $routine_utterance = 'no utterance';
-                }
-                if(is_null($routine_name))
-                {
-                    $routine_name = '';
-                }
-                $association_name = $routine_name;
-                if($routine_name == '')
-                {
-                    $association_name = $routine_utterance;
-                }
-                $associations[] = [$routine_id, $association_name, '', -1];
-            }
-            $this->RegisterProfileAssociation('Echo.Remote.Automation', 'Execute', '', '', 0, $max, 0, 0, VARIABLETYPE_INTEGER, $associations);
-            $this->RegisterVariableInteger('Automation', 'Automation', 'Echo.Remote.Automation', $this->_getPosition());
-            $this->EnableAction('Automation');
-        }
+        $this->UpdateAutomations();
+        $this->MaintainVariable('Automation', $this->Translate('Automations (Routines)'), 1, 'Echo.Automation.'.$this->InstanceID , $this->_getPosition(), $this->ReadPropertyBoolean('routines_wf'));
+        @$this->EnableAction('Automation');
 
         $keep = in_array('FLASH_BRIEFING', $caps, true) && $this->ReadPropertyBoolean('LastAction');
         $this->MaintainVariable('last_action', $this->Translate('Last Action'), 1, '~UnixTimestamp', $this->_getPosition(), $keep);
@@ -2689,8 +2693,10 @@ class EchoRemote extends IPSModule
         return $this->SendDataPacket('SendEcho', $payload);
     }
 
-    private function GetAutomation($utterance, $automations)
+    private function GetAutomationByUtterance($utterance)
     {
+        $automations = $this->GetAllAutomations();
+
         foreach ($automations as $automation) {
             foreach ($automation['triggers'] as $trigger) {
                 if (isset($trigger['payload']['utterance']) && $trigger['payload']['utterance'] === $utterance) {
@@ -2702,8 +2708,10 @@ class EchoRemote extends IPSModule
         return false;
     }
 
-    private function GetAutomationByName($routine_name, $automations)
+    private function GetAutomationByName($routine_name)
     {
+        $automations = $this->GetAllAutomations();
+
         foreach ($automations as $automation) {
             if($automation['name'] === $routine_name)
             {
@@ -2713,12 +2721,13 @@ class EchoRemote extends IPSModule
         return false;
     }
 
-    private function GetAutomationByKey($routine_key, $automations)
+    private function GetAutomationNameByKey($routine_key)
     {
+        $automations = $this->GetAllAutomations();
         foreach ($automations as $key => $automation) {
             if($key === $routine_key)
             {
-                return $automation;
+                return $automation['name'];
             }
         }
         return false;
@@ -3124,6 +3133,10 @@ class EchoRemote extends IPSModule
                         'type'    => 'CheckBox',
                         'caption' => 'setup variable for Alexa routines'],
                     [
+                        'type'    => 'Button',
+                        'caption' => 'Update Routines',
+                        'onClick' => "ECHOREMOTE_UpdateAutomations(\$id);"],
+                    [
                         'type'     => 'List',
                         'name'     => 'routines',
                         'caption'  => 'Alexa Routines',
@@ -3131,7 +3144,7 @@ class EchoRemote extends IPSModule
                         'add'      => false,
                         'delete'   => false,
                         'sort'     => [
-                            'column'    => 'routine_name',
+                            'column'    => 'routine_id',
                             'direction' => 'ascending'],
                         'columns'  => [
                             [

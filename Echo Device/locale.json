@@ -89,6 +89,8 @@
       "Speak Text": "Spreche Text",
       "Alexa Routines": "Alexa Routinen",
       "setup variable for Alexa routines": "Variable für Alexa Routinen anlegen",
+      "Update Routines": "Aktualisiere Routinen",
+      "Automations (Routines)": "Automationen (Routinen)",
       "routine id": "Routinen ID",
       "routine name": "Routinen Name",
       "routine utterance": "Routine Sprechweise (utterance)",
