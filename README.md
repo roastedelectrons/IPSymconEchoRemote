@@ -70,10 +70,14 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.3 BETA (2023-06-27)
+Version 2.3 BETA (2023-07-09)
 * Neu: Verwendet Websockets zur Auswertung der letzten Aktivität (Sprachbefehl und Gerät) - kein Polling mehr notwendig
-* Fix: Dateipfad des Cookies konnte nach Migration von IP-Symcon auf andere Plattform nicht gefunden werden 
+* Change: Optimiertes Handling von mehreren gleichzeitigen/hintereinanderfolgenden Automations-Befehlen (z.B. TextToSpeech, StartAlexaRoutine,...) um das Rate-Limit der API nicht zu überschreiten
+* Change: Optimierung beim Aktualisieren von Routinen und den entsprechenden Variablenprofilen
 * Change: Erfordert min. IP-Symcon 6.1 (wegen Custom Headers Support des Websockets)
+* Fix: Anpassungen für Symcon 7.0 (Php 8.2) zur Vermeidung von type_errors
+* Fix: Dateipfad des Cookies konnte nach Migration von IP-Symcon auf andere Plattform nicht gefunden werden 
+
 
 Version 2.2.1 (2023-06-23)
 * Fix: TextToSpeech an ALL_DEVICES spielt Ansagen nur noch auf Geräte vom Typ ECHO, KNIGHT und ROOK
