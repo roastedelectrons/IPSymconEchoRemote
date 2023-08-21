@@ -52,6 +52,11 @@ trait AlexaWebsocket
 
         if ( $wsID > 0)
         {
+            /* @ Symcon Module-Store Review:
+                Die Verwendung von IPS_SetProperty ist in diesem Anwendungsfall notwendig und abgesprochen.
+                Wenn das Cookie nicht mehr gültig ist, muss ein aktuelles Cookie durch das Modul in den Header geschrieben werden.
+                Die entsprechenden Eigenschaften sind auch über GetConfigurationForParent im EchoIO für Eingaben durch den Nutzer gesperrt.
+            */
             IPS_SetProperty($wsID, 'Active', $config['Active']);
             IPS_SetProperty($wsID, 'URL', $config['URL']);
             IPS_SetProperty($wsID, 'Headers', $config['Headers']);

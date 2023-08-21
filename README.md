@@ -70,7 +70,7 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.3 (2023-08-10)
+Version 2.3 (2023-08-21)
 * Neu: Websockets 
    * Auswertung der letzten Aktivität (Sprachbefehl und Gerät) erfolgt nun sofort per Push - kein Polling mehr notwendig
    * EchoIO-Instanz ist nun ein Splitter (Name und Prefix bleiben aus Kompatibilitätsgründen bestehen)
@@ -79,7 +79,8 @@ Version 2.3 (2023-08-10)
    * Optimierung beim Aktualisieren von Routinen und den entsprechenden Variablenprofilen
 * Change: Erfordert min. IP-Symcon 6.1 (wegen Custom Headers Support des Websockets)
 * Fix: Anpassungen für Symcon 7.0 (Php 8.2) zur Vermeidung von type_errors
-* Fix: Dateipfad des Cookies konnte nach Migration von IP-Symcon auf andere Plattform nicht gefunden werden 
+* Fix: Dateipfad des Cookies konnte nach Migration von IP-Symcon auf andere Plattform nicht gefunden werden
+* Fix: In der Konfiguration von Ereignissen werden die Aktionen dieses Moduls nur noch angezeigt, wenn als Ziel auch eine Echo Remote Instanz ausgewählt ist
 
 
 Version 2.2.1 (2023-06-23)
