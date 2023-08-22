@@ -1119,15 +1119,24 @@ class AmazonEchoIO extends IPSModule
             {
                 return [];
             }
+            
 
-            if ( isset($payload['activities'][0]) && isset($payload['activities'][0]['sourceDeviceIds'][0]) )
+            foreach ($payload['activities'] as $activity)
             {
-                $lastActivity['id'] =  $payload['activities'][0]['id'];
-                $lastActivity['creationTimestamp'] =  round( ($payload['activities'][0]['creationTimestamp'] / 1000), 3);
-                $lastActivity['utterance'] = json_decode($payload['activities'][0]['description'] , true)['summary'];
-                $lastActivity['deviceType'] =  $payload['activities'][0]['sourceDeviceIds'][0]['deviceType'];
-                $lastActivity['serialNumber'] =  $payload['activities'][0]['sourceDeviceIds'][0]['serialNumber'];
+                if ( isset($activity['activityStatus']) && $activity['activityStatus'] == 'SUCCESS')
+                {
+                    $lastActivity['id'] =  $activity['id'];
+                    $lastActivity['creationTimestamp'] =  round( ($activity['creationTimestamp'] / 1000), 3);
+                    $lastActivity['utterance'] = json_decode($activity['description'] , true)['summary'];
+                    $lastActivity['deviceType'] =  $activity['sourceDeviceIds'][0]['deviceType'];
+                    $lastActivity['serialNumber'] =  $activity['sourceDeviceIds'][0]['serialNumber'];
+                    $lastActivity['deviceName'] = $this->GetDevice($lastActivity['serialNumber'], $lastActivity['deviceType'])['accountName'];
+
+                    break;
+                }
+
             }
+
         }
 
         if ($lastActivity != [])
