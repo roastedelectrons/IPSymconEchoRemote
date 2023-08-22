@@ -44,7 +44,6 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterAttributeInteger('LastCookieRefresh', 0);
         $this->RegisterAttributeInteger('CookieExpirationDate', 0);
 
-        //$this->RegisterTimer('TimerLastDevice', 0, 'ECHOIO_GetLastActivity(' . $this->InstanceID . ');');
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
         $this->RegisterTimer('UpdateStatus', 0, 'ECHOIO_UpdateStatus(' . $this->InstanceID . ');');
 
@@ -173,31 +172,8 @@ class AmazonEchoIO extends IPSModule
         // Update devices and get DeviceList
         $this->UpdateDeviceList();
 
-        $devices = $this->GetDeviceList();
-
-        if (empty($devices)) {
-            $this->SendDebug(__FUNCTION__, 'DeviceInfo missing', 0);
-        } else {
-            $device_association = [];
-            $max = 1;
-            foreach ($devices as $key => $device) {
-                $accountName = $device['accountName'];
-                $device_serialNumber = $device['serialNumber'];
-                $device_association[] = [$key + 1, $accountName, '', -1];
-                $max = $max + 1;
-            }
-            $this->SendDebug('Devices Profile', json_encode($device_association), 0);
-            $this->RegisterProfileAssociation(
-                'EchoRemote.LastDevice', '', '', '', 1, $max, 0, 0, VARIABLETYPE_INTEGER, $device_association);
-            $this->RegisterVariableInteger('LastDevice', $this->Translate('last device'), 'EchoRemote.LastDevice', 1);
-            /*
-            if ($TimerLastAction) {
-                $this->SetTimerInterval('TimerLastDevice', 2000);
-            } else {
-                $this->SetTimerInterval('TimerLastDevice', 0);
-            }
-            */
-        }
+        $this->RegisterVariableProfileLastDevice();
+        $this->RegisterVariableString('LastDevice', $this->Translate('last device'), 'EchoRemote.LastDevice', 1);   
 
         $this->SetTimerInterval('UpdateStatus', $this->ReadPropertyInteger('UpdateInterval') * 1000);
     }
@@ -878,7 +854,14 @@ class AmazonEchoIO extends IPSModule
         $devices = $devices_arr['devices'];
 
         // Save device list to attribute
-        $this->WriteAttributeString('devices', json_encode($devices));
+        if ( $this->ReadAttributeString('devices') != json_encode($devices) ){
+
+            $this->WriteAttributeString('devices', json_encode($devices));
+
+            // Update Variable Profile for LastDevice if DeviceList has changed
+            $this->RegisterVariableProfileLastDevice();
+        }
+    
 
         foreach($devices as $device)
         {
@@ -1017,24 +1000,32 @@ class AmazonEchoIO extends IPSModule
      * @param $Vartype
      * @param $Associations
      */
-    protected function RegisterProfileAssociation($Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $Stepsize, $Digits, $Vartype, $Associations)
+    protected function RegisterProfileAssociation(string $Name, string $Icon, string $Prefix, string $Suffix, int $MinValue, int $MaxValue, float $Stepsize, int $Digits, int $Vartype, array $Associations)
     {
         if (is_array($Associations) && count($Associations) === 0) {
             $MinValue = 0;
             $MaxValue = 0;
         }
+
+        // If profile already exists for wrong variable type, delete it
+        if ( IPS_GetVariableProfile($Name)['ProfileType'] !=  $Vartype ){
+            IPS_DeleteVariableProfile($Name);
+        }
+
         $this->RegisterProfile($Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $Stepsize, $Digits, $Vartype);
 
-        if (is_array($Associations)) {
-            foreach ($Associations as $Association) {
-                IPS_SetVariableProfileAssociation($Name, $Association[0], $Association[1], $Association[2], $Association[3]);
-            }
-        } else {
-            $Associations = $this->$Associations;
-            foreach ($Associations as $code => $association) {
-                IPS_SetVariableProfileAssociation($Name, $code, $this->Translate($association), $Icon, -1);
+        // Remove old associations
+        if ($Vartype !== 0) { // 0 boolean, 1 int, 2 float, 3 string
+            foreach (IPS_GetVariableProfile($Name)['Associations'] as $Association) {
+                IPS_SetVariableProfileAssociation($Name, $Association['Value'], '', '', -1);
             }
         }
+
+        // Set new associations
+        foreach ($Associations as $Association) {
+            IPS_SetVariableProfileAssociation($Name, $Association[0], $Association[1], $Association[2], $Association[3]);
+        }
+
     }
 
     /**
@@ -1070,6 +1061,19 @@ class AmazonEchoIO extends IPSModule
                 $Name, $MinValue, $MaxValue, $StepSize
             ); // string $ProfilName, float $Minimalwert, float $Maximalwert, float $Schrittweite
         }
+    }
+
+    private function RegisterVariableProfileLastDevice()
+    {
+        $devices = $this->GetDeviceList();
+        $deviceAssociation = [];
+
+        foreach ($devices as $key => $device) {
+            $deviceAssociation[] = [$device['serialNumber'], $device['accountName'], '', -1];
+        }
+
+        $this->RegisterProfileAssociation('EchoRemote.LastDevice', '', '', '', 0, 0, 0, 0, VARIABLETYPE_STRING, $deviceAssociation);
+            
     }
 
     /**
@@ -1143,13 +1147,11 @@ class AmazonEchoIO extends IPSModule
         {
             if ( $lastActivity['id'] != $this->ReadAttributeString( 'LastActivityID' ) )
             {
-                $devices = $this->GetDeviceList();
-                $key = array_search($lastActivity['serialNumber'] , array_column( $devices, 'serialNumber') );
-                $this->SetValue('LastDevice', $key + 1);
+                $this->SetValue('LastDevice', $lastActivity['serialNumber'] );
                 $this->SetValue('LastAction', $lastActivity['utterance'] );
+                $this->SendDataToChild( $lastActivity['serialNumber'] , $lastActivity['deviceType'] , 'LastAction', $lastActivity);
                 $this->WriteAttributeString( 'LastActivityID', $lastActivity['id']);                
             }
-            $this->SendDataToChild( $lastActivity['serialNumber'] , $lastActivity['deviceType'] , 'LastAction', $lastActivity);
         }
 
         return $lastActivity;

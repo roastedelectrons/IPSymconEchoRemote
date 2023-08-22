@@ -70,6 +70,11 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
+Version 2.3.1 (BETA)
+* Fix: GetLastDevice liefert wieder deviceName zurück
+* Fix: Wenn mehrere Echo-Geräte einen Sprachbefehl erkannt habe, werden nur die Variablen LastDevice und LastAction des Gerätes aktualisiert, dass die Aktion auch tatsächlich ausgeführt hat
+* Change: Variable LastDevice ist nun vom Typ String: Variablen-Wert:DeviceSerial, Profil-Wert:Gerätename
+
 Version 2.3 (2023-08-21)
 * Neu: Websockets 
    * Auswertung der letzten Aktivität (Sprachbefehl und Gerät) erfolgt nun sofort per Push - kein Polling mehr notwendig
