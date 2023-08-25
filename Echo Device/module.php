@@ -230,9 +230,11 @@ class EchoRemote extends IPSModule
                     break;
                 case self::STOP:
                 case self::PAUSE: // Pause / Stop
+                    $this->SetValue('EchoRemote', self::PAUSE);
                     $this->Pause();
                     break;
                 case self::PLAY: // Play
+                    $this->SetValue('EchoRemote', self::PLAY);
                     $this->Play();
                     break;
                 case self::NEXT: // Next
@@ -1143,27 +1145,47 @@ class EchoRemote extends IPSModule
             $musicProviderId = 'DEFAULT';
         }
 
-        $operationPayload = [
-            'deviceSerialNumber'    => $this->GetDevicenumber(),
-            'deviceType'            => $this->GetDevicetype(),   
-            'customerId'            => $this->GetCustomerID(),
-            'locale'                => 'ALEXA_CURRENT_LOCALE',            
-            'searchPhrase'          => $searchPhrase,
-            'sanitizedSearchPhrase' => $this->sanitizeSearchPhrase( $searchPhrase ),
-            'musicProviderId'       => $musicProviderId
-        ];
+        $deviceInfo = $this->GetDeviceInfo();
 
-        $payload  = [
-            'type'              => 'Alexa.Music.PlaySearchPhrase',
-            'skillId'           => 'amzn1.ask.1p.music',
-            'operationPayload'  => $operationPayload
-        ];
+        if ( $deviceInfo['deviceFamily'] == 'WHA')
+        {
 
-        $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+            if ($musicProviderId != 'DEFAULT'){
+                $providerCmd = ' von '. $this->GetMusicProviderName($musicProviderId);
+            } else {
+                $providerCmd = '';
+            }
+
+            $cmd = 'spiel '. $this->sanitizeSearchPhrase( $searchPhrase ). $providerCmd . ' auf Gruppe '. $deviceInfo['accountName'];
+
+            $result = $this->TextCommand($cmd );
+           
+        }
+        else 
+        {
+            $operationPayload = [
+                'deviceType'            => $this->GetDevicetype(),  
+                'deviceSerialNumber'    => $this->GetDevicenumber(), 
+                'customerId'            => $this->GetCustomerID(),
+                'locale'                => 'ALEXA_CURRENT_LOCALE', 
+                'musicProviderId'       => $musicProviderId,           
+                'searchPhrase'          => $searchPhrase,
+                'sanitizedSearchPhrase' => $this->sanitizeSearchPhrase( $searchPhrase )
+            ];
+    
+            $payload  = [
+                'type'              => 'Alexa.Music.PlaySearchPhrase',
+                'skillId'           => 'amzn1.ask.1p.music',
+                'operationPayload'  => $operationPayload
+            ];
+    
+            $result =  $this->SendDataPacket( 'BehaviorsPreview', $payload );
+
+            $result = ($result['http_code'] === 200); 
+        }
 
         $this->UpdatePlayerStatus(5);
-
-        return $result['http_code'] === 200; 
+        return $result;
     }
 
     private function sanitizeSearchPhrase(  $searchPhrase )

@@ -1384,6 +1384,7 @@ class AmazonEchoIO extends IPSModule
         }
 
         $nodes = array();
+        $nodeType = 'SerialNode';
 
         // Get target devices, e.g. single device, multiroom-group members or announcements members
 
@@ -1529,13 +1530,36 @@ class AmazonEchoIO extends IPSModule
                 ];
             }
         } 
-        else 
+        else
         {
+            // All other command types 
+
             $nodes[] = $this->createNode( $type, $operationPayload, $skillId);
+
+            if ( isset($operationPayload['deviceSerialNumber']) )
+            {
+                $members = $this->getClusterMembers( $operationPayload['deviceSerialNumber'] );
+
+                if ( $members !== array() )
+                {
+                    $nodes = array();
+                    // In case of Multiroom Group, send the command only to one groupmember
+                    foreach ($members as $member)
+                    {
+                        $operationPayload['deviceSerialNumber'] = $member['deviceSerialNumber'];
+                        $operationPayload['deviceType'] = $member['deviceType'];
+                        $nodes[] = $this->createNode( $type, $operationPayload, $skillId);
+                        break;
+                    }
+                    
+                }
+            } 
+
+            $nodeType = 'ParallelNode';
         }
 
 
-        $startNode = $this->buildSequenceNodeStructure($nodes); 
+        $startNode = $this->buildSequenceNodeStructure($nodes, $nodeType); 
 
         $sequence = [
             '@type' => 'com.amazon.alexa.behaviors.model.Sequence',
@@ -1545,7 +1569,7 @@ class AmazonEchoIO extends IPSModule
         $sequenceJson = json_encode($sequence);
 
         // Replace placeholder
-        str_replace( 'ALEXA_CURRENT_LOCALE', $this->GetLanguage() ,$sequenceJson);
+        $sequenceJson = str_replace( 'ALEXA_CURRENT_LOCALE', $this->GetLanguage(), $sequenceJson);
 
         $automation = [
             'behaviorId' => 'PREVIEW',

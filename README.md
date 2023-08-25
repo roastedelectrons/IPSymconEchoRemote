@@ -70,7 +70,10 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.3.1 (BETA)
+Version 2.4 (BETA)
+* Neu: Musikwiedergabe auf Multiroom-Gruppen (PlayMusic und Favoriten)
+   **Hinweis*: Wird Musik auf einer Multiroom-Gruppe gestartet, erfolgt die Anzeige und Steuerung nur in der Instanz der Multiroom-Gruppe und nicht mehr in den Instanzen der enthaltenen Einzelgeräte.
+* Neu: Sonstige Befehle an Multiroom-Gruppen werden nur auf dem ersten Einzelgerät ausgeführt, wenn der Befehl nicht Multiroom-fähig ist.
 * Fix: GetLastDevice liefert wieder deviceName zurück
 * Fix: Wenn mehrere Echo-Geräte einen Sprachbefehl erkannt habe, werden nur die Variablen LastDevice und LastAction des Gerätes aktualisiert, dass die Aktion auch tatsächlich ausgeführt hat
 * Change: Variable LastDevice ist nun vom Typ String: Variablen-Wert:DeviceSerial, Profil-Wert:Gerätename
