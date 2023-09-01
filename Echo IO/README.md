@@ -23,7 +23,7 @@ Anmeldung am Amazon-Account.
 
 |Ident| Typ| Profil| Beschreibung |
 |-----| -----| -----| ----- |
-|last_device |int |EchoRemote.LastDevice |letztes Gerät |
+|last_device |string |Echo.LastDevice |letztes Gerät |
 |cookie_expiration_date |int |~UnixTimestamp |Cookie expiration date |
 
 ## PHP-Befehlsreferenz
@@ -36,9 +36,9 @@ ECHOIO_LogIn( int $InstanceID );
 |-----| -----| ----- |
 |$InstanceID |int | |
 
-### GetLastDevice
+### GetLastActivity
 ```php
-ECHOIO_GetLastDevice( int $InstanceID );
+ECHOIO_GetLastActivity( int $InstanceID );
 ```
 |Parameter| Typ| Beschreibung |
 |-----| -----| ----- |

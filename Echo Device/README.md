@@ -89,7 +89,7 @@ Modul zur Steuerung der Musikwiedergabe, Text-Ansagen und Ausführung von Routin
 
 |Ident| Typ| Profil| Beschreibung |
 |-----| -----| -----| ----- |
-|EchoRemote |integer |~PlaybackPreviousNext |Fernbedienung |
+|EchoRemote |integer |~PlaybackPreviousNextNoStop |Fernbedienung |
 |EchoShuffle |boolean |~Shuffle |Zufallswiedergabe |
 |EchoRepeat |boolean |~Switch |Wiederholen |
 |EchoVolume |integer |~Volume |Lautstärke |
@@ -97,7 +97,7 @@ Modul zur Steuerung der Musikwiedergabe, Text-Ansagen und Ausführung von Routin
 |EchoInfo |string |~HTMLBox |Info |
 |EchoFavorites |string |Echo.Favorites.&lt;InstanceID&gt; |Favoriten |
 |EchoFavoritesPlaylist |string |~Playlist |Favoriten (Playlist) |
-|EchoTuneInRemote_&lt;Deviceserial&gt; |integer |Echo.TuneInStation.&lt;Deviceserial&gt;|TuneIn Radio |
+|EchoTuneInRemote_&lt;Deviceserial&gt; |integer |Echo.TuneInStation.&lt;InstanceID&gt;|TuneIn Radio |
 |Title |string |~Song |Titel |
 |Subtitle_1 |string |~Artist |Interpret (Untertitel 1) |
 |Subtitle_2 |string | |Album (Untertitel 2) |
@@ -110,7 +110,7 @@ Modul zur Steuerung der Musikwiedergabe, Text-Ansagen und Ausführung von Routin
 |lastAlarmTime |integer |~UnixTimestamp |letzter Alarm |
 |ShoppingList |string |~HTMLBox |Einkaufsliste |
 |TaskList |string |~HTMLBox |Task Liste |
-|Automation |integer |Echo.Remote.Automation |Automation |
+|Automation |integer |Echo.Automation |Automation |
 |OnlineStatus |boolean |~Switch |Online Status |
 
 ## PHP-Befehlsreferenz

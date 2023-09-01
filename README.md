@@ -79,8 +79,10 @@ Version 2.4 (BETA)
 * Fix: Wenn mehrere Echo-Geräte einen Sprachbefehl erkannt habe, werden nur die Variablen LastDevice und LastAction des Gerätes aktualisiert, dass die Aktion auch tatsächlich ausgeführt hat
 * Fix: Assoziationen von Variablenprofilen werden nur noch dann neu gespeichert, wenn sie sich geändert haben
 * Fix: UpdateStatus verlässt Semaphore nun korrekt
+* Fix: Bevor Variablen-Werte gesetzt werden, wird geprüft, ob die Variable existiert
 * Change: Variable LastDevice ist nun vom Typ String: Variablen-Wert:DeviceSerial, Profil-Wert:Gerätename
 * Change: Variable Remote verwendet nun das Profil ~PlaybackPreviousNextNoStop
+* Change: Namen von Variablenprofilen vereinheitlicht
 
 Version 2.3 (2023-08-21)
 * Neu: Websockets 
@@ -89,10 +91,11 @@ Version 2.3 (2023-08-21)
 * Optimierungen: 
    * Optimiertes Handling von mehreren gleichzeitigen/hintereinanderfolgenden Automations-Befehlen (z.B. TextToSpeech, StartAlexaRoutine,...) um das Rate-Limit der API nicht zu überschreiten
    * Optimierung beim Aktualisieren von Routinen und den entsprechenden Variablenprofilen
-* Change: Erfordert min. IP-Symcon 6.1 (wegen Custom Headers Support des Websockets)
 * Fix: Anpassungen für Symcon 7.0 (Php 8.2) zur Vermeidung von type_errors
 * Fix: Dateipfad des Cookies konnte nach Migration von IP-Symcon auf andere Plattform nicht gefunden werden
 * Fix: In der Konfiguration von Ereignissen werden die Aktionen dieses Moduls nur noch angezeigt, wenn als Ziel auch eine Echo Remote Instanz ausgewählt ist
+* Change: Erfordert min. IP-Symcon 6.1 (wegen Custom Headers Support des Websockets)
+* Change: GetLastDevice in GetLastActivity umbenannt
 
 
 Version 2.2.1 (2023-06-23)
