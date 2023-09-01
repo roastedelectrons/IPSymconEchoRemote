@@ -2203,9 +2203,9 @@ class EchoRemote extends IPSModule
             ]
         );
         
-        if ( IPS_VariableProfileExists('~PlaybackPreviousNext') )
+        if ( IPS_VariableProfileExists('~PlaybackPreviousNextNoStop') )
         {
-            $profile = '~PlaybackPreviousNext';
+            $profile = '~PlaybackPreviousNextNoStop';
         }
         else
         {
