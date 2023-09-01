@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/EchoBufferHelper.php';
 require_once __DIR__ . '/../libs/EchoDebugHelper.php';
+require_once __DIR__ . '/../libs/VariableProfileHelper.php';
 //</editor-fold>
 
 // Modul für Amazon Echo Remote
@@ -13,6 +14,8 @@ class EchoRemote extends IPSModule
 {
     use EchoBufferHelper;
     use EchoDebugHelper;
+    use VariableProfileHelper;
+    
     private const STATUS_INST_DEVICETYPE_IS_EMPTY = 210; // devicetype must not be empty.
     private const STATUS_INST_DEVICENUMBER_IS_EMPTY = 211; // devicenumber must not be empty
 
@@ -2169,8 +2172,8 @@ class EchoRemote extends IPSModule
         $this->RegisterProfileAssociation(
             'Echo.Remote', 'Remote', '', '', 0, 5, 0, 0, VARIABLETYPE_INTEGER, [
                 [self::PREVIOUS, $this->Translate('Previous'), 'HollowLargeArrowLeft', -1],
-                [self::PAUSE, $this->Translate('Pause/Stop'), 'Sleep', -1],
                 [self::PLAY, $this->Translate('Play'), 'Script', -1],
+                [self::PAUSE, $this->Translate('Pause/Stop'), 'Sleep', -1],
                 [self::NEXT, $this->Translate('Next'), 'HollowLargeArrowRight', -1]
             ]
         );
@@ -2495,86 +2498,6 @@ class EchoRemote extends IPSModule
         return ['http_code' => 502, 'header' => '', 'body' => ''];        
     }
 
-    /** register profiles
-     *
-     *
-     * @param $Name
-     * @param $Icon
-     * @param $Prefix
-     * @param $Suffix
-     * @param $MinValue
-     * @param $MaxValue
-     * @param $StepSize
-     * @param $Digits
-     * @param $Vartype
-     */
-    private function RegisterProfile($Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $StepSize, $Digits, $Vartype): void
-    {
-        if (IPS_VariableProfileExists($Name)) {
-            $profile = IPS_GetVariableProfile($Name);
-            if ($profile['ProfileType'] !== $Vartype) {
-                $this->SendDebug('Profile', 'Variable profile type does not match for profile ' . $Name, 0);
-            }
-        } else {
-            IPS_CreateVariableProfile($Name, $Vartype); // 0 boolean, 1 int, 2 float, 3 string
-            $this->SendDebug('Variablenprofil angelegt', $Name, 0);
-        }
-
-        IPS_SetVariableProfileIcon($Name, $Icon);
-        IPS_SetVariableProfileText($Name, $Prefix, $Suffix);
-        if ($Vartype == VARIABLETYPE_FLOAT)
-            IPS_SetVariableProfileDigits($Name, $Digits); //  Nachkommastellen
-        if ($Vartype == VARIABLETYPE_FLOAT || $Vartype == VARIABLETYPE_INTEGER)
-            IPS_SetVariableProfileValues($Name, $MinValue, $MaxValue, $StepSize); // string $ProfilName, float $Minimalwert, float $Maximalwert, float $Schrittweite
-        $this->SendDebug(
-            'Variablenprofil konfiguriert',
-            'Name: ' . $Name . ', Icon: ' . $Icon . ', Prefix: ' . $Prefix . ', $Suffix: ' . $Suffix . ', Digits: ' . $Digits . ', MinValue: '
-            . $MinValue . ', MaxValue: ' . $MaxValue . ', StepSize: ' . $StepSize, 0
-        );
-    }
-
-    /** register profile association
-     *
-     * @param $Name
-     * @param $Icon
-     * @param $Prefix
-     * @param $Suffix
-     * @param $MinValue
-     * @param $MaxValue
-     * @param $Stepsize
-     * @param $Digits
-     * @param $Vartype
-     * @param $Associations
-     */
-    private function RegisterProfileAssociation($Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $Stepsize, $Digits, $Vartype,
-                                                $Associations): void
-    {
-        if (is_array($Associations) && count($Associations) === 0) {
-            $MinValue = 0;
-            $MaxValue = 0;
-        }
-        $this->RegisterProfile($Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $Stepsize, $Digits, $Vartype);
-
-        if (is_array($Associations)) {
-            //zunächst werden alte Assoziationen gelöscht
-            //bool IPS_SetVariableProfileAssociation ( string $ProfilName, float $Wert, string $Name, string $Icon, integer $Farbe )
-            if ($Vartype !== 0) { // 0 boolean, 1 int, 2 float, 3 string
-                foreach (IPS_GetVariableProfile($Name)['Associations'] as $Association) {
-                    IPS_SetVariableProfileAssociation($Name, $Association['Value'], '', '', -1);
-                }
-            }
-
-            //dann werden die aktuellen eingetragen
-            foreach ($Associations as $Association) {
-                IPS_SetVariableProfileAssociation($Name, $Association[0], $Association[1], $Association[2], $Association[3]);
-            }
-        } else {
-            $Associations = $this->$Associations;
-            foreach ($Associations as $code => $association) {
-                IPS_SetVariableProfileAssociation($Name, $code, $this->Translate($association), $Icon, -1);
-            }
-        }
-    }
 
     private function SetEchoInterval(): void
     {
@@ -2867,34 +2790,40 @@ class EchoRemote extends IPSModule
 </main>
 </body>
 </html>';
-        if ($this->CheckExistence('EchoInfo') )
-        {
+
+        if ($this->CheckExistence('EchoInfo')) {
             $this->SetValue('EchoInfo', $html);
         }     
 
         if ($this->ReadPropertyBoolean('ExtendedInfo')) {
-            $this->SetValue('Title', $title);
-            $this->SetValue('Subtitle_1', $subtitle_1);
-            $this->SetValue('Subtitle_2', $subtitle_2);
+            if ($this->CheckExistence('Title') )
+                $this->SetValue('Title', $title);
+
+            if ($this->CheckExistence('Subtitle_1') )
+                $this->SetValue('Subtitle_1', $subtitle_1);
+
+            if ($this->CheckExistence('Subtitle_2') )
+                $this->SetValue('Subtitle_2', $subtitle_2);
+
             if ($this->GetBuffer('CoverURL') != $imageurl) {
                 $this->SetBuffer('CoverURL', $imageurl);
                 $this->RefreshCover($imageurl);
             }
         }
 
-        if ($this->ReadPropertyBoolean('Cover')) {
+        if ($this->CheckExistence('Cover_HTML')) {
             $this->SetValue('Cover_HTML', '<img src="' . $imageurl . '" alt="cover" />');
         }
 
-        if ($this->ReadPropertyBoolean('Title')) {
+        if ($this->CheckExistence('Title_HTML')) {
             $this->SetValue('Title_HTML', '<div class="echo_title">' . $title . '</div>');
         }
 
-        if ($this->ReadPropertyBoolean('Subtitle1')) {
+        if ($this->CheckExistence('Subtitle_1_HTML')) {
             $this->SetValue('Subtitle_1_HTML', '<div class="echo_subtitle1">' . $subtitle_1 . '</div>');
         }
 
-        if ($this->ReadPropertyBoolean('Subtitle2')) {
+        if ($this->CheckExistence('Subtitle_2_HTML')) {
             $this->SetValue('Subtitle_2_HTML', '<div class="echo_subtitle2">' . $subtitle_2 . '</div>');
         }
     }

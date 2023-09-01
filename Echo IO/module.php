@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/EchoBufferHelper.php';
 require_once __DIR__ . '/../libs/EchoDebugHelper.php';
 require_once __DIR__ . '/../libs/AlexaWebsocket.php';
+require_once __DIR__ . '/../libs/VariableProfileHelper.php';
 
 // Modul für Amazon Echo Remote
 
@@ -13,6 +14,7 @@ class AmazonEchoIO extends IPSModule
     use EchoBufferHelper;
     use EchoDebugHelper;
     use AlexaWebsocket;
+    use VariableProfileHelper;
 
     private const STATUS_INST_WEBSOCKET_ERROR = 200; // websocket error
     private const STATUS_INST_NOT_AUTHENTICATED = 214; // authentication must be performed.
@@ -986,82 +988,6 @@ class AmazonEchoIO extends IPSModule
         
     }
 
-    /**
-     * register profile association.
-     *
-     * @param $Name
-     * @param $Icon
-     * @param $Prefix
-     * @param $Suffix
-     * @param $MinValue
-     * @param $MaxValue
-     * @param $Stepsize
-     * @param $Digits
-     * @param $Vartype
-     * @param $Associations
-     */
-    protected function RegisterProfileAssociation(string $Name, string $Icon, string $Prefix, string $Suffix, int $MinValue, int $MaxValue, float $Stepsize, int $Digits, int $Vartype, array $Associations)
-    {
-        if (is_array($Associations) && count($Associations) === 0) {
-            $MinValue = 0;
-            $MaxValue = 0;
-        }
-
-        // If profile already exists for wrong variable type, delete it
-        if ( IPS_GetVariableProfile($Name)['ProfileType'] !=  $Vartype ){
-            IPS_DeleteVariableProfile($Name);
-        }
-
-        $this->RegisterProfile($Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $Stepsize, $Digits, $Vartype);
-
-        // Remove old associations
-        if ($Vartype !== 0) { // 0 boolean, 1 int, 2 float, 3 string
-            foreach (IPS_GetVariableProfile($Name)['Associations'] as $Association) {
-                IPS_SetVariableProfileAssociation($Name, $Association['Value'], '', '', -1);
-            }
-        }
-
-        // Set new associations
-        foreach ($Associations as $Association) {
-            IPS_SetVariableProfileAssociation($Name, $Association[0], $Association[1], $Association[2], $Association[3]);
-        }
-
-    }
-
-    /**
-     * register profiles.
-     *
-     * @param $Name
-     * @param $Icon
-     * @param $Prefix
-     * @param $Suffix
-     * @param $MinValue
-     * @param $MaxValue
-     * @param $StepSize
-     * @param $Digits
-     * @param $Vartype
-     */
-    protected function RegisterProfile($Name, $Icon, $Prefix, $Suffix, $MinValue, $MaxValue, $StepSize, $Digits, $Vartype)
-    {
-        if (!IPS_VariableProfileExists($Name)) {
-            IPS_CreateVariableProfile($Name, $Vartype); // 0 boolean, 1 int, 2 float, 3 string,
-        } else {
-            $profile = IPS_GetVariableProfile($Name);
-            if ($profile['ProfileType'] != $Vartype) {
-                $this->_debug('profile', 'Variable profile type does not match for profile ' . $Name);
-            }
-        }
-        $profile = IPS_GetVariableProfile($Name);
-        $profile_type = $profile['ProfileType'];
-        IPS_SetVariableProfileIcon($Name, $Icon);
-        IPS_SetVariableProfileText($Name, $Prefix, $Suffix);
-        if ($profile_type != VARIABLETYPE_STRING) {
-            IPS_SetVariableProfileDigits($Name, $Digits); //  Nachkommastellen
-            IPS_SetVariableProfileValues(
-                $Name, $MinValue, $MaxValue, $StepSize
-            ); // string $ProfilName, float $Minimalwert, float $Maximalwert, float $Schrittweite
-        }
-    }
 
     private function RegisterVariableProfileLastDevice()
     {
