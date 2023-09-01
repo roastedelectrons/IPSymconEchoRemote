@@ -1922,10 +1922,11 @@ class EchoRemote extends IPSModule
 
         if ( !IPS_SemaphoreEnter ( 'UpdateStatus.'.$this->InstanceID , 1000) )
         {
+            $this->SendDebug( __FUNCTION__, 'Can not enter semaphore: '.'UpdateStatus.'.$this->InstanceID  , 0);
             return false;
         } 
-
-        $this->UpdatePlayerStatus();
+              
+        $this->UpdatePlayerStatus(0);
 
         // Update do-not-disturb-state
         if ($this->ReadPropertyBoolean('DND')) {
@@ -1940,28 +1941,24 @@ class EchoRemote extends IPSModule
         //update ShoppingList
         if ($this->ReadPropertyBoolean('ShoppingList')) {
             $shoppingList = (array) $this->GetToDos('SHOPPING_ITEM', false);
-            if ($shoppingList === false) {
-                return false;
-            }
-
-            $html = $this->GetListPage($shoppingList);
-            //neuen Wert setzen.
-            if ($html !== $this->GetValue('ShoppingList')) {
-                $this->SetValue('ShoppingList', $html);
+            if ($shoppingList !== false) {
+                $html = $this->GetListPage($shoppingList);
+                //neuen Wert setzen.
+                if ($html !== $this->GetValue('ShoppingList')) {
+                    $this->SetValue('ShoppingList', $html);
+                }
             }
         }
 
         //update TaskList
         if ($this->ReadPropertyBoolean('TaskList')) {
             $taskList = (array) $this->GetToDos('TASK', false);
-            if ($taskList === false) {
-                return false;
-            }
-
-            $html = $this->GetListPage($taskList);
-            //neuen Wert setzen.
-            if ($html !== $this->GetValue('TaskList')) {
-                $this->SetValue('TaskList', $html);
+            if ($taskList !== false) {
+                $html = $this->GetListPage($taskList);
+                //neuen Wert setzen.
+                if ($html !== $this->GetValue('TaskList')) {
+                    $this->SetValue('TaskList', $html);
+                }
             }
         }
 
