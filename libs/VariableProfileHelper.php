@@ -100,4 +100,23 @@ trait VariableProfileHelper
         }
 
     }  
+
+    protected function UnregisterProfile(string $Name)
+    {
+        if (!IPS_VariableProfileExists($Name)) {
+            return;
+        }
+        foreach (IPS_GetVariableList() as $VarID) {
+            if (IPS_GetParent($VarID) == $this->InstanceID) {
+                continue;
+            }
+            if (IPS_GetVariable($VarID)['VariableCustomProfile'] == $Name) {
+                return;
+            }
+            if (IPS_GetVariable($VarID)['VariableProfile'] == $Name) {
+                return;
+            }
+        }
+        IPS_DeleteVariableProfile($Name);
+    }
 }

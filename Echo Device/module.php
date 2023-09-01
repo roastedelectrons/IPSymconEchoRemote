@@ -15,7 +15,7 @@ class EchoRemote extends IPSModule
     use EchoBufferHelper;
     use EchoDebugHelper;
     use VariableProfileHelper;
-    
+
     private const STATUS_INST_DEVICETYPE_IS_EMPTY = 210; // devicetype must not be empty.
     private const STATUS_INST_DEVICENUMBER_IS_EMPTY = 211; // devicenumber must not be empty
 
@@ -125,6 +125,31 @@ class EchoRemote extends IPSModule
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
+    }
+
+    public function Destroy() {
+
+        // boolean profiles
+        $this->UnregisterProfile('Echo.Mute');
+        $this->UnregisterProfile('Echo.Remote.DND');
+
+        // integer profiles
+        $this->UnregisterProfile('Echo.Remote');
+        $this->UnregisterProfile('Echo.Actions');
+        $this->UnregisterProfile('Echo.Automation');
+        $this->UnregisterProfile('Echo.TuneInStation.'.$this->InstanceID);
+
+        // string profiles
+        $this->UnregisterProfile('Echo.Favorites.'.$this->InstanceID);
+
+        // legacy profiles
+        $this->UnregisterProfile('Echo.Automation.'.$this->InstanceID);
+        $this->UnregisterProfile('Echo.Remote.Mute');
+        $this->UnregisterProfile('Echo.Remote.Automation');
+        //$this->UnregisterProfile('Echo.TuneInStation.'.$this->ReadPropertyString('Devicenumber'));
+
+        //Never delete this line!
+        parent::Destroy();
     }
 
     public function ApplyChanges()
@@ -1697,7 +1722,7 @@ class EchoRemote extends IPSModule
             }
             $associations[] = [$routine_id, $association_name, '', -1];
         }
-        $this->RegisterProfileAssociation('Echo.Automation.'.$this->InstanceID , 'Execute', '', '', 0, $max, 0, 0, VARIABLETYPE_INTEGER, $associations);
+        $this->RegisterProfileAssociation('Echo.Automation', 'Execute', '', '', 0, $max, 0, 0, VARIABLETYPE_INTEGER, $associations);
     }
 
 
@@ -2315,7 +2340,7 @@ class EchoRemote extends IPSModule
                 foreach (json_decode($this->ReadPropertyString('TuneInStations'), true) as $tuneInStation) {
                     $associations[] = [$tuneInStation['position'], $tuneInStation['station'], '', -1];
                 }
-                $profileName = 'Echo.TuneInStation.' . $devicenumber;
+                $profileName = 'Echo.TuneInStation.' . $this->InstanceID;
                 $this->RegisterProfileAssociation($profileName, 'Music', '', '', 0, 0, 0, 0, VARIABLETYPE_INTEGER, $associations);
             } 
         }
@@ -2396,7 +2421,7 @@ class EchoRemote extends IPSModule
         $this->MaintainVariable('Subtitle_2_HTML', $this->Translate('Subtitle 2'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('Subtitle2'));
 
         $this->UpdateAutomations();
-        $this->MaintainVariable('Automation', $this->Translate('Automations (Routines)'), 1, 'Echo.Automation.'.$this->InstanceID , $this->_getPosition(), $this->ReadPropertyBoolean('routines_wf'));
+        $this->MaintainVariable('Automation', $this->Translate('Automations (Routines)'), 1, 'Echo.Automation', $this->_getPosition(), $this->ReadPropertyBoolean('routines_wf'));
         @$this->EnableAction('Automation');
 
         $keep = in_array('FLASH_BRIEFING', $caps, true) && $this->ReadPropertyBoolean('LastAction');

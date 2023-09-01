@@ -53,6 +53,18 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
     }
 
+    public function Destroy() {
+
+        // string profiles
+        $this->UnregisterProfile('Echo.LastDevice.'.$this->InstanceID);
+
+        // legacy profiles
+        $this->UnregisterProfile('EchoRemote.LastDevice');
+
+        //Never delete this line!
+        parent::Destroy();
+    }
+
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
         // Kernel message
@@ -175,7 +187,7 @@ class AmazonEchoIO extends IPSModule
         $this->UpdateDeviceList();
 
         $this->RegisterVariableProfileLastDevice();
-        $this->RegisterVariableString('LastDevice', $this->Translate('last device'), 'EchoRemote.LastDevice', 1);   
+        $this->RegisterVariableString('LastDevice', $this->Translate('last device'), 'Echo.LastDevice.'.$this->InstanceID, 1);   
 
         $this->SetTimerInterval('UpdateStatus', $this->ReadPropertyInteger('UpdateInterval') * 1000);
     }
@@ -998,7 +1010,7 @@ class AmazonEchoIO extends IPSModule
             $deviceAssociation[] = [$device['serialNumber'], $device['accountName'], '', -1];
         }
 
-        $this->RegisterProfileAssociation('EchoRemote.LastDevice', '', '', '', 0, 0, 0, 0, VARIABLETYPE_STRING, $deviceAssociation);
+        $this->RegisterProfileAssociation('Echo.LastDevice.'.$this->InstanceID, '', '', '', 0, 0, 0, 0, VARIABLETYPE_STRING, $deviceAssociation);
             
     }
 
