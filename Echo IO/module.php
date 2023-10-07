@@ -11,10 +11,10 @@ require_once __DIR__ . '/../libs/VariableProfileHelper.php';
 
 class AmazonEchoIO extends IPSModule
 {
-    use EchoBufferHelper;
-    use EchoDebugHelper;
-    use AlexaWebsocket;
-    use VariableProfileHelper;
+    use IPSymconEchoRemote\EchoBufferHelper;
+    use IPSymconEchoRemote\EchoDebugHelper;
+    use IPSymconEchoRemote\AlexaWebsocket;
+    use IPSymconEchoRemote\VariableProfileHelper;
 
     private const STATUS_INST_WEBSOCKET_ERROR = 200; // websocket error
     private const STATUS_INST_NOT_AUTHENTICATED = 214; // authentication must be performed.

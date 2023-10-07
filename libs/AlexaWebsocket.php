@@ -7,6 +7,8 @@
 *
 */
 
+namespace IPSymconEchoRemote;
+
 trait AlexaWebsocket
 {
     protected $protocol = "A:H";

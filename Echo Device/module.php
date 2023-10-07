@@ -12,9 +12,9 @@ require_once __DIR__ . '/../libs/VariableProfileHelper.php';
 
 class EchoRemote extends IPSModule
 {
-    use EchoBufferHelper;
-    use EchoDebugHelper;
-    use VariableProfileHelper;
+    use IPSymconEchoRemote\EchoBufferHelper;
+    use IPSymconEchoRemote\EchoDebugHelper;
+    use IPSymconEchoRemote\VariableProfileHelper;
 
     private const STATUS_INST_DEVICETYPE_IS_EMPTY = 210; // devicetype must not be empty.
     private const STATUS_INST_DEVICENUMBER_IS_EMPTY = 211; // devicenumber must not be empty

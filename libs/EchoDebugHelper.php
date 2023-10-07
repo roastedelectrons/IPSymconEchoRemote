@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace IPSymconEchoRemote;
+
 /**
  * DebugHelper ergänzt SendDebug um die Möglichkeit Array und Objekte auszugeben.
  */

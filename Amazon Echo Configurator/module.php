@@ -7,8 +7,8 @@ require_once __DIR__ . '/../libs/EchoDebugHelper.php';
 
 class AmazonEchoConfigurator extends IPSModule
 {
-    use EchoBufferHelper;
-    use EchoDebugHelper;
+    use IPSymconEchoRemote\EchoBufferHelper;
+    use IPSymconEchoRemote\EchoDebugHelper;
     private const DEVICETYPES = [
         'A2E0SNTXJVT7WK'   => ['name' => 'Fire TV'],
         'A12GXV8XMS007S'   => ['name' => 'Fire TV (2.Gen)'],
