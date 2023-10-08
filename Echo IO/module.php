@@ -32,7 +32,7 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterPropertyBoolean('active', false);
         $this->RegisterPropertyInteger('language', 0);
         $this->RegisterPropertyString('refresh_token', '');    
-        $this->RegisterPropertyBoolean('TimerLastAction', true);
+        $this->RegisterPropertyBoolean('TimerLastAction', false);
         $this->RegisterPropertyBoolean('Websocket', true);
         $this->RegisterPropertyBoolean('LogMessageEx', false);
         $this->RegisterPropertyInteger('UpdateInterval', 60);
@@ -48,6 +48,7 @@ class AmazonEchoIO extends IPSModule
 
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
         $this->RegisterTimer('UpdateStatus', 0, 'ECHOIO_UpdateStatus(' . $this->InstanceID . ');');
+        $this->RegisterTimer('GetLastActivity', 0, 'ECHOIO_GetLastActivity(' . $this->InstanceID . ');');
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -88,23 +89,6 @@ class AmazonEchoIO extends IPSModule
             }
         }
 
-        // Message from parent connection (websocket)
-        if ($SenderID != 0)
-        {
-
-            switch ($Message) {
-                case IM_CHANGESTATUS:
-                    if ($Data[0] == 200) {
-                        // Watchdog will handle reconnect
-                        $this->SetStatus(self::STATUS_INST_WEBSOCKET_ERROR);
-                    }
-                    break; 
-         
-                default:
-                    break;
-            }
-        }
-
     }
 
 
@@ -124,22 +108,13 @@ class AmazonEchoIO extends IPSModule
         if ( @$this->GetIDForIdent('last_device') !== false && @$this->GetIDForIdent('LastDevice') === false ) IPS_SetIdent( $this->GetIDForIdent('last_device'), 'LastDevice');
         if ( @$this->GetIDForIdent('cookie_expiration_date') !== false && @$this->GetIDForIdent('CookieExpirationDate') === false  ) IPS_SetIdent( $this->GetIDForIdent('cookie_expiration_date'), 'CookieExpirationDate');
 
-        // Connect to websocket client
-        if ($this->ReadPropertyBoolean('Websocket'))
+        // Disconnect from websocket client, because it is no longer supported
+        $parentID = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+        if ( $parentID > 0 )
         {
-            $this->RequireParent('{D68FD31F-0E90-7019-F16C-1949BD3079EF}');
-            $parentID = IPS_GetInstance( $this->InstanceID)['ConnectionID'];
-
-            $this->RegisterMessage($parentID , IM_CHANGESTATUS);
-        }
-        else
-        {
-            $parentID = IPS_GetInstance($this->InstanceID)['ConnectionID'];
-            if ( $parentID > 0 )
-            {
-                IPS_DisconnectInstance($this->InstanceID);
-                $this->UnregisterMessage($parentID , IM_CHANGESTATUS);
-            }
+            $this->wsSetConfiguration(0);
+            IPS_DisconnectInstance($this->InstanceID);
+            $this->UnregisterMessage($parentID , IM_CHANGESTATUS);
         }
 
 
@@ -154,8 +129,8 @@ class AmazonEchoIO extends IPSModule
             //$this->SetTimerInterval('TimerLastDevice', 0);
             $this->SetTimerInterval('RefreshCookie', 0);
             $this->SetTimerInterval('UpdateStatus', 0);
+            $this->SetTimerInterval('GetLastActivity', 0);
             $this->SetStatus(IS_INACTIVE);
-            $this->wsSetConfiguration(1);
             return;
         }
 
@@ -175,13 +150,6 @@ class AmazonEchoIO extends IPSModule
                 return;
         }
 
-        if ( IPS_GetInstance($parentID)['InstanceStatus'] !== 102 )
-        {
-            $this->wsSetConfiguration(1);
-        }
-        
-        
-        $TimerLastAction = $this->ReadPropertyBoolean('TimerLastAction');
 
         // Update devices and get DeviceList
         $this->UpdateDeviceList();
@@ -190,6 +158,12 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterVariableString('LastDevice', $this->Translate('last device'), 'Echo.LastDevice.'.$this->InstanceID, 1);   
 
         $this->SetTimerInterval('UpdateStatus', $this->ReadPropertyInteger('UpdateInterval') * 1000);
+
+        if ( $this->ReadPropertyBoolean('TimerLastAction')){
+            $this->SetTimerInterval('GetLastActivity', 2500);
+        } else {
+            $this->SetTimerInterval('GetLastActivity', 0);
+        }   
     }
 
 
@@ -1030,15 +1004,15 @@ class AmazonEchoIO extends IPSModule
     public function GetLastActivity()
     {
 
-        if ( IPS_SemaphoreEnter ( 'GetLastActivity.'.$this->InstanceID , 5000) )
+        if ( IPS_SemaphoreEnter ( 'GetLastActivity.'.$this->InstanceID , 2500) )
         {
             // Throttle requests due to rate limit
             $delay = microtime(true) - floatval( $this->GetBuffer( 'GetLastActivityRequestTimestamp' ));
 
-            if ( $delay < 2.5)
+            if ( $delay < 2.0)
             {
                 $this->SendDebug(__FUNCTION__, 'waiting', 0);
-                IPS_Sleep(2500 - $delay*1000);
+                IPS_Sleep(2000 - $delay*1000);
             }
 
             $result = $this->SendEcho('https://' . $this->GetAlexaURL() .'/api/activities?startTime=&size=10&offset=1' , null, 'GET');
@@ -1673,6 +1647,10 @@ class AmazonEchoIO extends IPSModule
                 'link' => 'true',
                 'caption' => 'To generate the refresh token, follow the instructions on: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung'],              
             [
+                'name' => 'TimerLastAction',
+                'type' => 'CheckBox',
+                'caption' => 'Fetch last activity and device (Note: This function results in significant network and internet traffic, as a request is made to the server every 2.5 seconds)'],
+            [
                 'type'    => 'ExpansionPanel',
                 'caption' => 'Expert settings',
                 'expanded' => false,
@@ -1683,10 +1661,6 @@ class AmazonEchoIO extends IPSModule
                         'caption' => 'Update interval',
                         'suffix'  => 'seconds',
                         'minimum' => 0],
-                    [
-                        'name' => 'Websocket',
-                        'type' => 'CheckBox',
-                        'caption' => 'Websocket (for evaluation of last activity)'],
                     [
                         'name' => 'LogMessageEx',
                         'type' => 'CheckBox',

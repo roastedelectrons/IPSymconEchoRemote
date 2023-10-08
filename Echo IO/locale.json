@@ -17,7 +17,7 @@
       "last device": "letztes Gerät",
       "Expert settings": "Experteneinstellungen",
       "Update interval": "Aktualisierungsintervall",
-      "Get last action": "Letzte Aktion auswerten",
+      "Fetch last activity and device (Note: This function results in significant network and internet traffic, as a request is made to the server every 2.5 seconds)": "Letzte Aktivität und Gerät abfragen (Hinweis: Diese Funktion führt zu erheblichem Netzwerk- und Internetverkehr, da alle 2.5 Sekunden eine Anfrage an den Server gestellt wird)",
       "Cookie expiration date": "Ablaufdatum des Cookies",
       "Last action": "Letzte Aktion",
       "To generate the refresh token, follow the instructions on: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung": "Zum Erzeugen des Refresh Token, die folgende Anleitung befolgen: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung",

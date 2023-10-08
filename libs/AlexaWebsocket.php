@@ -48,7 +48,12 @@ trait AlexaWebsocket
 
     protected function wsSetConfiguration( int $method = 1 )
     {
-        $config = $this->wsGetConfiguration( $method);
+        $config['Active'] = false;
+        $config['URL'] = '';
+        $config['Headers'] = '';
+
+        if ($method > 0)
+            $config = $this->wsGetConfiguration( $method);
 
         $wsID = $this->wsGetInstanceID();
 
