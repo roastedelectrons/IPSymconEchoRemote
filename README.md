@@ -70,7 +70,7 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.4 (BETA)
+Version 2.4 (BETA 2023-10-10)
 * Neu: Musikwiedergabe auf Multiroom-Gruppen (PlayMusic und Favoriten)
    **Hinweis*: Wird Musik auf einer Multiroom-Gruppe gestartet, erfolgt die Anzeige und Steuerung nur in der Instanz der Multiroom-Gruppe und nicht mehr in den Instanzen der enthaltenen Einzelgeräte.
 * Neu: Sonstige Befehle an Multiroom-Gruppen werden nur auf dem ersten Einzelgerät ausgeführt, wenn der Befehl nicht Multiroom-fähig ist.
@@ -80,9 +80,11 @@ Version 2.4 (BETA)
 * Fix: Assoziationen von Variablenprofilen werden nur noch dann neu gespeichert, wenn sie sich geändert haben
 * Fix: UpdateStatus verlässt Semaphore nun korrekt
 * Fix: Bevor Variablen-Werte gesetzt werden, wird geprüft, ob die Variable existiert
+* Fix: Nutze namesapces um Konflikte mit anderen Modulen zu vermeiden
 * Change: Variable LastDevice ist nun vom Typ String: Variablen-Wert:DeviceSerial, Profil-Wert:Gerätename
 * Change: Variable Remote verwendet nun das Profil ~PlaybackPreviousNextNoStop
 * Change: Namen von Variablenprofilen vereinheitlicht
+* Change: Letzte Aktivität wird wieder zyklisch abgefragt, da Websockets nicht mehr unterstützt werden
 
 Version 2.3 (2023-08-21)
 * Neu: Websockets 
