@@ -1149,6 +1149,21 @@ class AmazonEchoIO extends IPSModule
                 $result = $this->GetLanguage();
                 break;
 
+            case 'UpdateAutomations':
+                $url = 'https://'. $this->GetAlexaURL() . $data['Payload']['url'];
+                $method = '';
+                $postfields = null;
+                if ( isset($data['Payload']['method'])) $method = $data['Payload']['method'];
+                if ( isset($data['Payload']['postfields'])) $postfields = $data['Payload']['postfields'];
+
+                $result = $this->SendEcho($url, $postfields, $method);
+
+                if ($result['http_code'] === 200) {
+                    $this->SendDataToChild('ALL_DEVICES', 'ALL_DEVICE_TYPES', 'Automations', $result['body'] );
+                }
+
+                break;
+
             default:
                 trigger_error('Type \'' . $data['Type'] . '\' not yet supported');
                 return false;

@@ -131,21 +131,22 @@ class EchoRemote extends IPSModule
 
         // boolean profiles
         $this->UnregisterProfile('Echo.Mute');
-        $this->UnregisterProfile('Echo.Remote.DND');
+        $this->UnregisterProfile('Echo.DND');
 
         // integer profiles
         $this->UnregisterProfile('Echo.Remote');
         $this->UnregisterProfile('Echo.Actions');
-        $this->UnregisterProfile('Echo.Automation');
+        $this->UnregisterProfile('Echo.Automation.'.$this->InstanceID);
         $this->UnregisterProfile('Echo.TuneInStation.'.$this->InstanceID);
 
         // string profiles
         $this->UnregisterProfile('Echo.Favorites.'.$this->InstanceID);
 
         // legacy profiles
-        $this->UnregisterProfile('Echo.Automation.'.$this->InstanceID);
         $this->UnregisterProfile('Echo.Remote.Mute');
         $this->UnregisterProfile('Echo.Remote.Automation');
+        $this->UnregisterProfile('Echo.Automation');
+        $this->UnregisterProfile('Echo.Remote.DND');
         //$this->UnregisterProfile('Echo.TuneInStation.'.$this->ReadPropertyString('Devicenumber'));
 
         //Never delete this line!
@@ -170,7 +171,7 @@ class EchoRemote extends IPSModule
         $this->RegisterVariables();
         //Apply filter
         $devicenumber = $this->ReadPropertyString('Devicenumber');
-        $this->SetReceiveDataFilter('.*' . $devicenumber . '.*');
+        $this->SetReceiveDataFilter('.*(' . $devicenumber . '|ALL_DEVICES'.').*');
     }
 
 
@@ -199,7 +200,7 @@ class EchoRemote extends IPSModule
         $data = json_decode($JSONString);
         $this->SendDebug('Receive Data', $JSONString, 0);
 
-        if ( $data->DeviceSerial != $this->ReadPropertyString('Devicenumber') )
+        if ( $data->DeviceSerial != $this->ReadPropertyString('Devicenumber') &&  $data->DeviceSerial != 'ALL_DEVICES')
             return;
 
         switch ($data->Type)
@@ -242,6 +243,15 @@ class EchoRemote extends IPSModule
                 {
                     $this->SetValue('OnlineStatus', $data->Payload->online);
                 }                
+                break;
+
+            case 'Automations':
+                if ($this->ReadAttributeString('Automations') != $data->Payload)
+                {
+                    $this->WriteAttributeString('Automations', $data->Payload);  
+                    $this->UpdateAutomationVariableProfile();
+                    $this->UpdateFormField('routines', 'values', json_encode($this->GetAutomationsList()));
+                }
                 break;
         }
 
@@ -1618,17 +1628,17 @@ class EchoRemote extends IPSModule
 
         if ( $automations == null )
         {
-            $automations = $this->RequestAllAutomations();
+            $automations = $this->UpdateAutomations();
         }
 
         return $automations;
     }
 
-    private function RequestAllAutomations()
+    public function UpdateAutomations()
     {
         $payload['url'] = '/api/behaviors/v2/automations';
 
-        $result = (array) $this->SendDataPacket('SendEcho', $payload);
+        $result = (array) $this->SendDataPacket('UpdateAutomations', $payload);
 
         if ($result['http_code'] !== 200) {
             return [];
@@ -1640,29 +1650,10 @@ class EchoRemote extends IPSModule
     }
 
 
-    public function UpdateAutomations()
-    {
-
-        if ($this->RequestAllAutomations() == []) {
-            return false;
-        }
-       
-        $this->UpdateAutomationVariableProfile();
-        $this->UpdateFormField('routines', 'values', json_encode($this->GetAutomationsList()));
-
-        return true;
-    }
-
-
 
     private function GetAutomationsList()
     {
-        $automations = json_decode( $this->ReadAttributeString('Automations'), true );
-
-        if ( $automations == null )
-        {
-            $automations = $this->GetAllAutomations();
-        }
+        $automations = $this->GetAllAutomations();
 
         $list = [];
         if(!empty($automations))
@@ -1722,7 +1713,7 @@ class EchoRemote extends IPSModule
             }
             $associations[] = [$routine_id, $association_name, '', -1];
         }
-        $this->RegisterProfileAssociation('Echo.Automation', 'Execute', '', '', 0, $max, 0, 0, VARIABLETYPE_INTEGER, $associations);
+        $this->RegisterProfileAssociation('Echo.Automation.'.$this->InstanceID, 'Execute', '', '', 0, $max, 0, 0, VARIABLETYPE_INTEGER, $associations);
     }
 
 
@@ -1925,7 +1916,7 @@ class EchoRemote extends IPSModule
             $this->SendDebug( __FUNCTION__, 'Can not enter semaphore: '.'UpdateStatus.'.$this->InstanceID  , 0);
             return false;
         } 
-              
+
         $this->UpdatePlayerStatus(0);
 
         // Update do-not-disturb-state
@@ -2388,11 +2379,11 @@ class EchoRemote extends IPSModule
         // Do not disturb
         $keep = $this->ReadPropertyBoolean('DND');
         $this->RegisterProfileAssociation(
-            'Echo.Remote.DND', 'Speaker', '', '', 0, 1, 0, 0, VARIABLETYPE_BOOLEAN, [
+            'Echo.DND', 'Speaker', '', '', 0, 1, 0, 0, VARIABLETYPE_BOOLEAN, [
                 [false, $this->Translate('Do not disturb off'), 'Speaker', 0x00ff55],
                 [true, $this->Translate('Do not disturb'), 'Speaker', 0xff3300]]
         );
-        $this->MaintainVariable('DND', $this->Translate('Do not disturb'), 0, 'Echo.Remote.DND', $this->_getPosition(), $keep );
+        $this->MaintainVariable('DND', $this->Translate('Do not disturb'), 0, 'Echo.DND', $this->_getPosition(), $keep );
         @$this->MaintainAction('DND', $keep);
 
         //support of alarm
@@ -2417,8 +2408,8 @@ class EchoRemote extends IPSModule
         // Subtitle 2 as HTML
         $this->MaintainVariable('Subtitle_2_HTML', $this->Translate('Subtitle 2'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('Subtitle2'));
 
-        $this->UpdateAutomations();
-        $this->MaintainVariable('Automation', $this->Translate('Automations (Routines)'), 1, 'Echo.Automation', $this->_getPosition(), $this->ReadPropertyBoolean('routines_wf'));
+        $this->UpdateAutomationVariableProfile();
+        $this->MaintainVariable('Automation', $this->Translate('Automations (Routines)'), 1, 'Echo.Automation.'.$this->InstanceID, $this->_getPosition(), $this->ReadPropertyBoolean('routines_wf'));
         @$this->EnableAction('Automation');
 
         $keep = in_array('FLASH_BRIEFING', $caps, true) && $this->ReadPropertyBoolean('LastAction');
@@ -3108,7 +3099,7 @@ class EchoRemote extends IPSModule
                     [
                         'type'    => 'Button',
                         'caption' => 'Update Routines',
-                        'onClick' => "ECHOREMOTE_UpdateAutomations(\$id);"],
+                        'onClick' => "EchoRemote_UpdateAutomations(\$id);"],
                     [
                         'type'     => 'List',
                         'name'     => 'routines',
