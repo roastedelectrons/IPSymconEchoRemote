@@ -80,7 +80,7 @@ Version 2.4 (BETA 2023-10-10)
 * Fix: Assoziationen von Variablenprofilen werden nur noch dann neu gespeichert, wenn sie sich geändert haben
 * Fix: UpdateStatus verlässt Semaphore nun korrekt
 * Fix: Bevor Variablen-Werte gesetzt werden, wird geprüft, ob die Variable existiert
-* Fix: Nutze namesapces um Konflikte mit anderen Modulen zu vermeiden
+* Fix: Nutze namespaces um Konflikte mit anderen Modulen zu vermeiden
 * Change: Variable LastDevice ist nun vom Typ String: Variablen-Wert:DeviceSerial, Profil-Wert:Gerätename
 * Change: Variable Remote verwendet nun das Profil ~PlaybackPreviousNextNoStop
 * Change: Namen von Variablenprofilen vereinheitlicht
