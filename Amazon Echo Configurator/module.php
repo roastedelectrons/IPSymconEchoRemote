@@ -43,6 +43,7 @@ class AmazonEchoConfigurator extends IPSModule
         'A2H4LV5GIZ1JFT'   => ['name' => 'Echo Dot (4.Gen with Clock)'],
         'A2DS1Q2TPDJ48U'   => ['name' => 'Echo Dot (5.Gen with Clock)'],
         'A4ZXE0RM7LQ7A'    => ['name' => 'Echo Dot (5.Gen)'],
+        'ASQZWP4GPYUT7'    => ['name' => 'Echo Pop'],
         'A1J16TEDOYCZTN'   => ['name' => 'Amazon Tablet'],
         'A38EHHIB10L47V'   => ['name' => 'Fire HD 8 Tablet'],
         'A112LJ20W14H95'   => ['name' => 'Media Display'],
