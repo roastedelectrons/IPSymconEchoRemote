@@ -1016,7 +1016,10 @@ class AmazonEchoIO extends IPSModule
                 IPS_Sleep(2000 - $delay*1000);
             }
 
-            $result = $this->SendEcho('https://' . $this->GetAlexaURL() .'/api/activities?startTime=&size=10&offset=1' , null, 'GET');
+            $startTime =intval( $this->GetBuffer('LastActivityTimestamp') );
+            $endTime = (time() + 60*60)*1000;
+    
+            $result = $this->SendEcho('https://www.' . $this->GetAmazonURL().'/alexa-privacy/apd/rvh/customer-history-records?startTime=' . $startTime . '&endTime=' . $endTime . '&recordType=VOICE_HISTORY' . '&maxRecordSize=1', null, 'GET');
 
             $this->SetBuffer( 'GetLastActivityRequestTimestamp', microtime(true));
             IPS_SemaphoreLeave ( 'GetLastActivity.'.$this->InstanceID );
@@ -1036,19 +1039,39 @@ class AmazonEchoIO extends IPSModule
             {
                 return [];
             }
-            
 
-            foreach ($payload['activities'] as $activity)
+            foreach ($payload['customerHistoryRecords'] as $activity)
             {
-                if ( isset($activity['activityStatus']) && $activity['activityStatus'] == 'SUCCESS')
+                if ( isset($activity['utteranceType']) && in_array($activity['utteranceType'], array('GENERAL')) ) // 'ROUTINES_OR_TAP_TO_ALEXA'
                 {
-                    $lastActivity['id'] =  $activity['id'];
-                    $lastActivity['creationTimestamp'] =  round( ($activity['creationTimestamp'] / 1000), 3);
-                    $lastActivity['utterance'] = json_decode($activity['description'] , true)['summary'];
-                    $lastActivity['deviceType'] =  $activity['sourceDeviceIds'][0]['deviceType'];
-                    $lastActivity['serialNumber'] =  $activity['sourceDeviceIds'][0]['serialNumber'];
-                    $lastActivity['deviceName'] = $this->GetDevice($lastActivity['serialNumber'], $lastActivity['deviceType'])['accountName'];
+                    $ids = explode('#', $activity['recordKey']); //0:customerID, 1:timestamp, 2:deviceType, 2:deviceSerial
+                    $lastActivity['id'] =  $activity['recordKey'];
+                    $lastActivity['timestamp'] =  round( ($activity['timestamp'] / 1000), 3);
+                    $lastActivity['timestampMilliseconds'] = $activity['timestamp'];
+                    $lastActivity['deviceType'] =  $ids[2];
+                    $lastActivity['serialNumber'] =  $ids[3];
+                    $lastActivity['deviceName'] = $activity['device']['deviceName'];
+                    $lastActivity['utteranceType'] = $activity['utteranceType'];
+                    $lastActivity['intent'] = $activity['intent'];
+                    $lastActivity['utterance'] = '';
+                    $lastActivity['response'] = '';
+                    $lastActivity['person']  = '';
 
+                    foreach($activity['voiceHistoryRecordItems'] as $recordItem) {
+
+                        if ($recordItem['recordItemType'] == 'CUSTOMER_TRANSCRIPT' || $recordItem['recordItemType'] == 'ASR_REPLACEMENT_TEXT') {
+                            $lastActivity['utterance'] = $recordItem['transcriptText'];
+                        }
+
+                        if ($recordItem['recordItemType'] == 'ALEXA_RESPONSE' || $recordItem['recordItemType'] == 'TTS_REPLACEMENT_TEXT') {
+                            $lastActivity['response'] = $recordItem['transcriptText'];
+                        }
+                    }
+
+                    if (isset($activity['personsInfo'][0]['personFirstName'])) {
+                        $lastActivity['person'] = $activity['personsInfo'][0]['personFirstName'];
+                    }
+                    
                     break;
                 }
 
@@ -1063,12 +1086,43 @@ class AmazonEchoIO extends IPSModule
                 $this->SetValue('LastDevice', $lastActivity['serialNumber'] );
                 $this->SetValue('LastAction', $lastActivity['utterance'] );
                 $this->SendDataToChild( $lastActivity['serialNumber'] , $lastActivity['deviceType'] , 'LastAction', $lastActivity);
-                $this->WriteAttributeString( 'LastActivityID', $lastActivity['id']);                
+                $this->WriteAttributeString( 'LastActivityID', $lastActivity['id']);        
+                $this->SetBuffer('LastActivityTimestamp',  $lastActivity['timestampMilliseconds']);        
             }
         }
 
         return $lastActivity;
     }
+
+    /*
+     * Deprecated
+     */ 
+    private function GetActivities()
+    {
+        $result = $this->SendEcho('https://' . $this->GetAlexaURL() .'/api/activities?startTime=&size=10&offset=1' , null, 'GET');
+
+        if (isset($result['http_code']) && $result['http_code'] == 200) {
+            return json_decode($result['body'], true);
+         }
+ 
+         return [];
+    }
+
+    public function GetCustomerHistoryRecords()
+    {
+        $startTime = (time() - 24*60*60)*1000;
+        $endTime = (time() + 60*60)*1000;
+
+        $result = $this->SendEcho('https://www.' . $this->GetAmazonURL().'/alexa-privacy/apd/rvh/customer-history-records?startTime=' . $startTime . '&endTime=' . $endTime . '&recordType=VOICE_HISTORY' . '&maxRecordSize=1', null, 'GET');
+
+        if (isset($result['http_code']) && $result['http_code'] == 200) {
+           return json_decode($result['body'], true);
+        }
+
+        return [];
+    }
+
+
 
     public function CustomCommand(string $url, array $postfields = [], string $method = 'GET')
     {
