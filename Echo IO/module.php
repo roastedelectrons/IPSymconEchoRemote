@@ -36,10 +36,6 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterPropertyBoolean('Websocket', true);
         $this->RegisterPropertyBoolean('LogMessageEx', false);
         $this->RegisterPropertyInteger('UpdateInterval', 60);
-        
-        $this->RegisterPropertyString(
-            'browser', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gecko/20100101 Firefox/58.0'
-        );
 
         $this->RegisterAttributeString('devices', '[]');
         $this->RegisterAttributeString( 'LastActivityID', '' ); 
@@ -188,7 +184,7 @@ class AmazonEchoIO extends IPSModule
         curl_setopt($ch, CURLOPT_TIMEOUT, 6);   
         curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->ReadPropertyString('browser'));
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->GetUserAgent());
         curl_setopt($ch, CURLOPT_ENCODING, '');
         curl_setopt($ch, CURLOPT_HEADER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
@@ -309,7 +305,7 @@ class AmazonEchoIO extends IPSModule
         ];
 
         $headers = [
-            'User-Agent: ' . $this->ReadPropertyString('browser'),
+            'User-Agent: ' . $this->GetUserAgent(),
             'DNT: 1',
             'Connection: keep-alive',
             'Referer: https://alexa.' . $this->GetAmazonURL() . '/spa/index.html',
@@ -626,7 +622,7 @@ class AmazonEchoIO extends IPSModule
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_COOKIEFILE, $this->getCookiesFileName() ); //this file is read
         curl_setopt($ch, CURLOPT_COOKIEJAR, $this->getCookiesFileName() );  //this file is written
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->ReadPropertyString('browser'));
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->GetUserAgent());
         curl_setopt($ch, CURLOPT_ENCODING, '');
         curl_setopt($ch, CURLOPT_HEADER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
@@ -658,7 +654,7 @@ class AmazonEchoIO extends IPSModule
         $csrf = $this->getCsrfFromCookie();
 
         $headers = [
-            'User-Agent: ' . $this->ReadPropertyString('browser'),
+            'User-Agent: ' . $this->GetUserAgent(),
             'DNT: 1',
             'Connection: keep-alive',
             'Content-Type: application/json; charset=UTF-8',            
@@ -749,6 +745,11 @@ class AmazonEchoIO extends IPSModule
         }
 
         return $language_string;
+    }
+
+    private function GetUserAgent()
+    {
+        return 'AppleWebKit PitanguiBridge/2.2.556530.0-[HARDWARE=iPhone14_7][SOFTWARE=16.6][DEVICE=iPhone]';
     }
 
     private function deleteFile(string $FileName): bool
