@@ -33,6 +33,7 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterPropertyInteger('language', 0);
         $this->RegisterPropertyString('refresh_token', '');    
         $this->RegisterPropertyBoolean('TimerLastAction', false);
+        $this->RegisterPropertyBoolean('VariablesLastActivity', true);    
         $this->RegisterPropertyBoolean('Websocket', true);
         $this->RegisterPropertyBoolean('LogMessageEx', false);
         $this->RegisterPropertyInteger('UpdateInterval', 60);
@@ -115,7 +116,7 @@ class AmazonEchoIO extends IPSModule
 
 
         $this->RegisterVariableInteger('CookieExpirationDate', $this->Translate('Cookie expiration date'), '~UnixTimestamp', 0);
-        $this->RegisterVariableString('LastAction', $this->Translate('Last action'), '', 0);
+
 
         $active = $this->ReadPropertyBoolean('active');
 
@@ -150,8 +151,15 @@ class AmazonEchoIO extends IPSModule
         // Update devices and get DeviceList
         $this->UpdateDeviceList();
 
-        $this->RegisterVariableProfileLastDevice();
-        $this->RegisterVariableString('LastDevice', $this->Translate('last device'), 'Echo.LastDevice.'.$this->InstanceID, 1);   
+        $this->RegisterVariableProfileLastDevice(); 
+
+        $keep = $this->ReadPropertyBoolean('VariablesLastActivity');
+        $this->MaintainVariable('LastDevice', $this->Translate('Last activity: device'), 3, 'Echo.LastDevice.'.$this->InstanceID, 10, $keep); 
+        $this->MaintainVariable('LastActivityTimestamp', $this->Translate('Last activity: timestamp'), 1, "~UnixTimestamp", 11, $keep );
+        $this->MaintainVariable('LastAction', $this->Translate('Last activity: command'), 3, '', 12, $keep);
+        $this->MaintainVariable('LastActivityResponse', $this->Translate('Last activity: response'), 3, "", 13, $keep );
+        $this->MaintainVariable('LastActivityIntent', $this->Translate('Last activity: intent'), 3, "", 14, $keep );
+        $this->MaintainVariable('LastActivityPerson', $this->Translate('Last activity: person'), 3, "", 15, $keep );
 
         $this->SetTimerInterval('UpdateStatus', $this->ReadPropertyInteger('UpdateInterval') * 1000);
 
@@ -1052,6 +1060,7 @@ class AmazonEchoIO extends IPSModule
                     $lastActivity['serialNumber'] =  $ids[3];
                     $lastActivity['deviceName'] = $activity['device']['deviceName'];
                     $lastActivity['utteranceType'] = $activity['utteranceType'];
+                    $lastActivity['domain'] = $activity['domain'];
                     $lastActivity['intent'] = $activity['intent'];
                     $lastActivity['utterance'] = '';
                     $lastActivity['response'] = '';
@@ -1083,11 +1092,20 @@ class AmazonEchoIO extends IPSModule
         {
             if ( $lastActivity['id'] != $this->ReadAttributeString( 'LastActivityID' ) )
             {
-                $this->SetValue('LastDevice', $lastActivity['serialNumber'] );
-                $this->SetValue('LastAction', $lastActivity['utterance'] );
+                $this->SetValueEx('LastDevice', $lastActivity['serialNumber'] );
+                $this->SetValueEx('LastAction', $lastActivity['utterance'] );
+                $this->SetValueEx('LastActivityTimestamp', intval($lastActivity['timestamp']) );
+                $this->SetValueEx('LastActivityIntent', $lastActivity['intent'] );
+                $this->SetValueEx('LastActivityResponse', $lastActivity['response'] );
+                $this->SetValueEx('LastActivityPerson', $lastActivity['person'] );
                 $this->SendDataToChild( $lastActivity['serialNumber'] , $lastActivity['deviceType'] , 'LastAction', $lastActivity);
                 $this->WriteAttributeString( 'LastActivityID', $lastActivity['id']);        
                 $this->SetBuffer('LastActivityTimestamp',  $lastActivity['timestampMilliseconds']);        
+            }
+
+            if (@$this->GetValue('LastActivityPerson') != $lastActivity['person'])
+            {
+                $this->SetValueEx('LastActivityPerson', $lastActivity['person'] );
             }
         }
 
@@ -1674,6 +1692,13 @@ class AmazonEchoIO extends IPSModule
         return $this->SendEcho($url);
     }
 
+    private function SetValueEx( $ident, $value)
+    {
+        if(@$this->GetIDForIdent($ident) > 0)
+        {
+            $this->SetValue($ident, $value);
+        }    
+    }
 
     /**
      * build configuration form.
@@ -1720,6 +1745,10 @@ class AmazonEchoIO extends IPSModule
                 'name' => 'TimerLastAction',
                 'type' => 'CheckBox',
                 'caption' => 'Fetch last activity and device (Note: This function results in significant network and internet traffic, as a request is made to the server every 2.5 seconds)'],
+            [
+                'name' => 'VariablesLastActivity',
+                'type' => 'CheckBox',
+                'caption' => 'setup variables for last activity'],
             [
                 'type'    => 'ExpansionPanel',
                 'caption' => 'Expert settings',
