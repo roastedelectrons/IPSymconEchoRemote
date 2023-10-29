@@ -70,15 +70,16 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.4 (2023-10-23)
+Version 2.4 (2023-10-29)
 * Neu: Musikwiedergabe auf Multiroom-Gruppen (mittels PlayMusic() und Favoriten)
    * *Hinweis*: Wird Musik auf einer Multiroom-Gruppe gestartet, erfolgt die Anzeige und Steuerung nur in der Instanz der Multiroom-Gruppe und nicht mehr in den Instanzen der Einzelgeräte.
    * Sonstige Befehle an Multiroom-Gruppen werden nur auf dem ersten Einzelgerät ausgeführt, wenn der Befehl nicht Multiroom-fähig ist.
 
 * Letzte Aktivität und letztes Gerät:
-   * Change: Letzte Aktivität wird wieder zyklisch abgefragt (ggf. in EchoIO-Instanz aktivieren), da Websockets nicht mehr unterstützt werden. Der WebSocket-Client (seit 2.3) kann nach dem Update manuell gelöscht werden. 
+   * Change: Letzte Aktivität wird wieder zyklisch über neue API abgefragt (ggf. in EchoIO-Instanz aktivieren), da Websockets nicht mehr unterstützt werden. Der WebSocket-Client (seit 2.3) kann nach dem Update manuell gelöscht werden. 
+   * Neu: Variablen für Antwort, Person (Anzeige ca. 20 Sekunden verzögert), Intent und Zeit der letzten Aktivität
    * Fix: Wenn mehrere Echo-Geräte einen Sprachbefehl erkannt habe, werden nur die Variablen LastDevice und LastAction des Gerätes aktualisiert, das die Aktion auch tatsächlich ausgeführt hat
-   * Fix: GetLastDevice liefert wieder deviceName zurück
+   * Fix: GetLastActivity liefert wieder deviceName zurück
    * Change: Variable LastDevice ist nun vom Typ String: Variablen-Wert:DeviceSerial, Profil-Wert:Gerätename
 
 * Variablen und Profile:

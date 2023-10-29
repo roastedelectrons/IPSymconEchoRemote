@@ -16,15 +16,27 @@ Anmeldung am Amazon-Account.
 |active | CheckBox | aktiv|
 |language | Select | Echo Sprache|
 |refresh_token | PasswordTextBox | Refresh-Token|
-|TimerLastAction | CheckBox | Letzte Aktion auswerten|
+|TimerLastAction | CheckBox | Letzte Aktivität und Gerät abfragen (Hinweis: Diese Funktion führt zu erheblichem Netzwerk- und Internetverkehr, da alle 2.5 Sekunden eine Anfrage an den Server gestellt wird)|
+|VariablesLastActivity | CheckBox | Variablen für letzte Aktivität anlegen|
+
+***Experteneinstellungen***
+
+|Eigenschaft| Typ| Beschreibung |
+|-----| -----| ----- |
+|UpdateInterval | NumberSpinner | Aktualisierungsintervall|
 |LogMessageEx | CheckBox | Erweiterte Log Meldungen|
 
 ## Statusvariablen und Profile
 
 |Ident| Typ| Profil| Beschreibung |
 |-----| -----| -----| ----- |
-|last_device |string |Echo.LastDevice |letztes Gerät |
-|cookie_expiration_date |int |~UnixTimestamp |Cookie expiration date |
+|CookieExpirationDate |int |~UnixTimestamp |Ablaufdatum des Cookies |
+|LastActivityPerson |string | |Letzte Aktivität: Person (Anzeige ca. 20 Sekunden verzögert)|
+|LastActivityTimestamp |int |~UnixTimestamp |Letzte Aktivität: Zeit |
+|LastActivityResponse |string | |Letzte Aktivität: Antwort |
+|LastAction |string | |Letzte Aktivität: Befehl |
+|LastDevice |string |Echo.LastDevice.&lt;InstanceID&gt; |Letzte Aktivität: Gerät |
+|LastActivityIntent |string | |Letzte Aktivität: Intent |
 
 ## PHP-Befehlsreferenz
 
