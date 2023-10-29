@@ -570,7 +570,7 @@ class AmazonEchoIO extends IPSModule
         $options[CURLOPT_COOKIEFILE] = $this->getCookiesFileName(); //this file is read
 
 
-        if ($postfields !== null) 
+        if ($postfields != null) 
         {
             $this->SendDebug(__FUNCTION__, 'Postfields: ' . json_encode($postfields), 0);
             $options[CURLOPT_POSTFIELDS] = json_encode($postfields);
@@ -1142,7 +1142,7 @@ class AmazonEchoIO extends IPSModule
 
 
 
-    public function CustomCommand(string $url, array $postfields = [], string $method = 'GET')
+    public function CustomCommand(string $url, array $postfields = null, string $method = null)
     {
         $url = str_replace(['{AlexaURL}', '{AmazonURL}'], [$this->GetAlexaURL(), $this->GetAmazonURL()], $url);
 

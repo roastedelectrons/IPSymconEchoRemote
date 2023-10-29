@@ -2069,7 +2069,7 @@ class EchoRemote extends IPSModule
     }
 
 
-    public function CustomCommand(string $url, array $postfields = [], string $method = '')
+    public function CustomCommand(string $url, array $postfields = null, string $method = null)
     {
         $search = [
             '{DeviceSerialNumber}',
@@ -2089,7 +2089,7 @@ class EchoRemote extends IPSModule
 
         $url = str_replace($search, $replace, $url);
 
-        if ($postfields != [] ) {
+        if ($postfields != null ) {
             $postJson = json_encode($postfields, JSON_UNESCAPED_SLASHES);
             $postJson = str_replace($search, $replace, $postJson);
             $postfields = json_decode($postJson, true);

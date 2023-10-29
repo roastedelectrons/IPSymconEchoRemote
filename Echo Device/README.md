@@ -224,7 +224,7 @@ ECHOREMOTE_CopyTuneInStationsToFavorites( int $InstanceID );
 
 ### CustomCommand
 ```php
-ECHOREMOTE_CustomCommand( int $InstanceID, string $url, string $postfields, string $method );
+ECHOREMOTE_CustomCommand( int $InstanceID, string $url, array $postfields, string $method );
 ```
 |Parameter| Typ| Beschreibung |
 |-----| -----| ----- |
