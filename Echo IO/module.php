@@ -1073,7 +1073,7 @@ class AmazonEchoIO extends IPSModule
                         }
 
                         if ($recordItem['recordItemType'] == 'ALEXA_RESPONSE' || $recordItem['recordItemType'] == 'TTS_REPLACEMENT_TEXT') {
-                            $lastActivity['response'] = $recordItem['transcriptText'];
+                            $lastActivity['response'] .= $recordItem['transcriptText'] . ' ';
                         }
                     }
 
