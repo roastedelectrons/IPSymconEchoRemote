@@ -180,6 +180,7 @@ class AmazonEchoIO extends IPSModule
         ];
 
         $url = "https://api.".$this->GetAmazonURL()."/ap/exchangetoken/cookies";
+        $this->SendDebug(__FUNCTION__, 'url: ' . $url, 0);
 
         $post['requested_token_type'] = 'auth_cookies';
         $post['app_name'] = 'Amazon Alexa';
@@ -188,8 +189,8 @@ class AmazonEchoIO extends IPSModule
         $post['source_token'] = $this->ReadPropertyString('refresh_token');
 
         $ch = curl_init(); 
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);    
-        curl_setopt($ch, CURLOPT_TIMEOUT, 6);   
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);    
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);   
         curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_USERAGENT, $this->GetUserAgent());
@@ -204,9 +205,11 @@ class AmazonEchoIO extends IPSModule
 
         $result = curl_exec($ch);
         $info = curl_getinfo($ch);
+        $this->SendDebug(__FUNCTION__ , 'Curl info: ' . json_encode($info), 0);
 
         if ( curl_errno($ch) ) {
             $this->LogMessage( 'Error in function ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
+            $this->SendDebug(__FUNCTION__ , 'Curl error: ' . curl_error($ch) .' ('. curl_errno($ch) . ')', 0);
             return false;
         } 
         
