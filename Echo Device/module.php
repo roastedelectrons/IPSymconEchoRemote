@@ -1996,13 +1996,14 @@ class EchoRemote extends IPSModule
                         break;
         
                     case null:
+                    case 'FINISHED':
                     case 'PAUSED':
                     case 'IDLE':
                         $this->SetValue('EchoRemote', self::PAUSE);
                         break;
         
                     default:
-                        trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected state: ' . $playerInfo['state']);
+                        $this->SendDebug( __FUNCTION__, 'Unexpected state: ' . $playerInfo['state'], 0);
                 }
             }
     
@@ -2031,7 +2032,7 @@ class EchoRemote extends IPSModule
                         break;
     
                     default:
-                        trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected repeat value: ' . $playerInfo['transport']['repeat']);
+                        $this->SendDebug( __FUNCTION__, 'Unexpected repeat value:: ' . $playerInfo['transport']['repeat'], 0);
                 }
             }
     
@@ -2050,7 +2051,7 @@ class EchoRemote extends IPSModule
                         break;
     
                     default:
-                        trigger_error('Instanz #' . $this->InstanceID . ' - Unexpected shuffle value: ' . $playerInfo['transport']['shuffle']);
+                        $this->SendDebug( __FUNCTION__, 'Unexpected shuffle value: ' . $playerInfo['transport']['shuffle'], 0);
                 }
             }
 
