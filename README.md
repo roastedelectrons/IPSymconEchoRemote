@@ -70,6 +70,12 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
+Version 2.4.1 (2024-01-10)
+* Fix: Fehler beim Updaten der Automationen
+* Change: Unbekannte PlayerStates werden ins Debug geschrieben und erzeuge keine Fehlermeldng mehr
+* Change: Timeouts erhöht
+* Change: Fehlermeldungen, wenn Rate Limit überschritten wird
+
 Version 2.4 (2023-10-29)
 * Neu: Musikwiedergabe auf Multiroom-Gruppen (mittels PlayMusic() und Favoriten)
    * *Hinweis*: Wird Musik auf einer Multiroom-Gruppe gestartet, erfolgt die Anzeige und Steuerung nur in der Instanz der Multiroom-Gruppe und nicht mehr in den Instanzen der Einzelgeräte.
