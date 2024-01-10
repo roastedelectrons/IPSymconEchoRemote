@@ -561,8 +561,8 @@ class AmazonEchoIO extends IPSModule
         $options = [
             CURLOPT_URL => $url,
             CURLOPT_HTTPHEADER => $header,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_TIMEOUT => 6, //timeout after 6 seconds
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 10, //timeout after 6 seconds
             CURLOPT_HEADER => true,
             CURLINFO_HEADER_OUT => true,
             CURLOPT_ENCODING => '',
@@ -613,12 +613,31 @@ class AmazonEchoIO extends IPSModule
         curl_close($ch);
         //eine Fehlerbehandlung macht hier leider keinen Sinn, da 400 auch kommt, wenn z.b. der Bildschirm (Show) ausgeschaltet ist
 
+        $returnValues = $this->getReturnValues($info, $result);
+
         if ($info['http_code'] == 401)
         {
             $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
         }
 
-        return $this->getReturnValues($info, $result);
+        if ($info['http_code'] == 400) 
+        {
+            $response = json_decode($returnValues['body'], true);
+            if ($response !== false)
+            {
+                //$this->LogMessage('Error:'. $info['http_code']. ' ' . $returnValues['body'], KL_ERROR);
+                if ($response['message'] !== null){
+                    trigger_error($response['message']);
+                }
+            }
+        }
+
+        if ($info['http_code'] == 429) 
+        {
+            trigger_error('Too many requests!');
+        }
+
+        return $returnValues;
     }
 
 
