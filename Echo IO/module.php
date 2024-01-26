@@ -1665,9 +1665,9 @@ class AmazonEchoIO extends IPSModule
             // Throttle requests due to rate limit
             $delay = microtime(true) - floatval( $this->GetBuffer( 'RunBehaviorRequestTimestamp' ));
 
-            if ( $delay < 2.0)
+            if ( $delay < 3.0)
             {
-                IPS_Sleep(2000 - $delay*1000);
+                IPS_Sleep(3000 - $delay*1000);
             }
 
 
@@ -1677,7 +1677,7 @@ class AmazonEchoIO extends IPSModule
             if ($result['http_code'] == 429 )
             {
                 // Rate limit for BehaviorsPreview requests: wait 2.5s and try again
-                IPS_Sleep( 2500 );
+                IPS_Sleep( 3000 );
                 $this->SendDebug(__FUNCTION__, $postfields, 0);
                 $result = $this->SendEcho($url, $postfields);
             }
