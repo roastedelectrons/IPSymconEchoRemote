@@ -45,7 +45,7 @@ class AmazonEchoIO extends IPSModule
 
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
         $this->RegisterTimer('UpdateStatus', 0, 'ECHOIO_UpdateStatus(' . $this->InstanceID . ');');
-        $this->RegisterTimer('GetLastActivity', 0, 'ECHOIO_GetLastActivity(' . $this->InstanceID . ');');
+        //$this->RegisterTimer('GetLastActivity', 0, 'ECHOIO_GetLastActivity(' . $this->InstanceID . ');');
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -123,10 +123,9 @@ class AmazonEchoIO extends IPSModule
         if (!$active)
         {
             $this->LogOff();
-            //$this->SetTimerInterval('TimerLastDevice', 0);
             $this->SetTimerInterval('RefreshCookie', 0);
             $this->SetTimerInterval('UpdateStatus', 0);
-            $this->SetTimerInterval('GetLastActivity', 0);
+            //$this->SetTimerInterval('GetLastActivity', 0);
             $this->SetStatus(IS_INACTIVE);
             return;
         }
@@ -161,13 +160,21 @@ class AmazonEchoIO extends IPSModule
         $this->MaintainVariable('LastActivityIntent', $this->Translate('Last activity: intent'), 3, "", 14, $keep );
         $this->MaintainVariable('LastActivityPerson', $this->Translate('Last activity: person'), 3, "", 15, $keep );
 
-        $this->SetTimerInterval('UpdateStatus', $this->ReadPropertyInteger('UpdateInterval') * 1000);
+        $interval = $this->ReadPropertyInteger('UpdateInterval') * 1000;
 
+        if ($interval > 0 && $interval < 60000){
+            $interval = 60000;
+        }
+
+        $this->SetTimerInterval('UpdateStatus', $interval);
+
+        /*
         if ( $this->ReadPropertyBoolean('TimerLastAction')){
-            $this->SetTimerInterval('GetLastActivity', 2500);
+            $this->SetTimerInterval('GetLastActivity', $interval);
         } else {
             $this->SetTimerInterval('GetLastActivity', 0);
-        }   
+        }  
+        */
     }
 
 
@@ -1764,10 +1771,6 @@ class AmazonEchoIO extends IPSModule
                 'link' => 'true',
                 'caption' => 'To generate the refresh token, follow the instructions on: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung'],              
             [
-                'name' => 'TimerLastAction',
-                'type' => 'CheckBox',
-                'caption' => 'Fetch last activity and device (Note: This function results in significant network and internet traffic, as a request is made to the server every 2.5 seconds)'],
-            [
                 'name' => 'VariablesLastActivity',
                 'type' => 'CheckBox',
                 'caption' => 'setup variables for last activity'],
@@ -1781,7 +1784,7 @@ class AmazonEchoIO extends IPSModule
                         'type'    => 'NumberSpinner',
                         'caption' => 'Update interval',
                         'suffix'  => 'seconds',
-                        'minimum' => 0],
+                        'minimum' => 60],
                     [
                         'name' => 'LogMessageEx',
                         'type' => 'CheckBox',
