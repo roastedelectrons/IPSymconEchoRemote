@@ -20,6 +20,9 @@ class AmazonEchoIO extends IPSModule
     private const STATUS_INST_NOT_AUTHENTICATED = 214; // authentication must be performed.
     private const STATUS_INST_REFRESH_TOKEN_IS_EMPTY = 215; // authentication must be performed.
 
+    private const UserAgentBrowser  = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15';
+    private const UserAgentApp      = 'AppleWebKit PitanguiBridge/2.2.556530.0-[HARDWARE=iPhone14_7][SOFTWARE=16.6][DEVICE=iPhone]';
+
     public function Create()
     {
         //Never delete this line!
@@ -42,6 +45,7 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterAttributeString( 'LastActivityID', '' ); 
         $this->RegisterAttributeInteger('LastCookieRefresh', 0);
         $this->RegisterAttributeInteger('CookieExpirationDate', 0);
+        $this->RegisterAttributeString( 'CsrfToken', '' ); 
 
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
         $this->RegisterTimer('UpdateStatus', 0, 'ECHOIO_UpdateStatus(' . $this->InstanceID . ');');
@@ -394,6 +398,40 @@ class AmazonEchoIO extends IPSModule
 
     }
 
+    private function getCsrfToken()
+    {
+        // csfr-token is needed for customer-history-records requests
+
+        $url = 'https://www.' . $this->GetAmazonURL() . '/alexa-privacy/apd/rvh';
+
+        $headers[] = 'User-Agent: '. self::UserAgentBrowser;
+        $headers[] = 'DNT: 1';
+        $headers[] = 'Connection: keep-alive';
+        $headers[] = 'Content-Type: application/json; charset=UTF-8';
+
+        $result = $this->HttpRequest($url, $headers, null, 'GET');
+
+        if ($result['http_code'] == 200){
+            $csrfToken = $this->getStringBetween($result['body'], '<meta name="csrf-token" content="',  '" />');
+
+            if ($csrfToken != ''){
+                $this->WriteAttributeString('CsrfToken', $csrfToken );
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function getStringBetween($string, $start, $end)
+    {
+        $ini = strpos($string, $start);
+        if ($ini == 0) return '';
+        $ini += strlen($start);
+        $len = strpos($string, $end, $ini) - $ini;
+        return substr($string, $ini, $len);
+    }
+
     public function LogIn(): bool
     {
         $this->SendDebug(__FUNCTION__, '== started ==', 0);
@@ -415,6 +453,8 @@ class AmazonEchoIO extends IPSModule
 
         if ( !$result )
             return false;
+
+        $this->getCsrfToken();
         
         $this->SetValue('CookieExpirationDate', $this->getExpirationDateFromCookie() );
         $this->WriteAttributeInteger('CookieExpirationDate', $this->getExpirationDateFromCookie() );
@@ -546,7 +586,7 @@ class AmazonEchoIO extends IPSModule
 
         $header = $this->GetHeader();
 
-        return $this->HttpRequest($url, $header, $postfields, null, $method );
+        return $this->HttpRequest($url, $header, $postfields, $method );
     }
 
     /**  Send http request
@@ -559,7 +599,7 @@ class AmazonEchoIO extends IPSModule
      *
      * @return mixed
      */
-    private function HttpRequest(string $url, array $header, array $postfields = null, bool $optpost = null, string $type = null)
+    private function HttpRequest(string $url, array $header, array $postfields = null, string $type = null)
     {
         $this->SendDebug(__FUNCTION__, 'Header: ' . json_encode($header), 0);
 
@@ -584,10 +624,6 @@ class AmazonEchoIO extends IPSModule
         {
             $this->SendDebug(__FUNCTION__, 'Postfields: ' . json_encode($postfields), 0);
             $options[CURLOPT_POSTFIELDS] = json_encode($postfields);
-        }
-
-        if ($optpost !== null && $type == null) {
-            $options[CURLOPT_POST] = $optpost;
         }
 
         if ($type == 'PUT') {
@@ -1056,7 +1092,7 @@ class AmazonEchoIO extends IPSModule
             $startTime =intval( $this->GetBuffer('LastActivityTimestamp') );
             $endTime = (time() + 60*60)*1000;
     
-            $result = $this->SendEcho('https://www.' . $this->GetAmazonURL().'/alexa-privacy/apd/rvh/customer-history-records?startTime=' . $startTime . '&endTime=' . $endTime . '&recordType=VOICE_HISTORY' . '&maxRecordSize=1', null, 'GET');
+            $result = $this->GetCustomerHistoryRecords($startTime, $endTime);
 
             $this->SetBuffer( 'GetLastActivityRequestTimestamp', microtime(true));
             IPS_SemaphoreLeave ( 'GetLastActivity.'.$this->InstanceID );
@@ -1068,16 +1104,9 @@ class AmazonEchoIO extends IPSModule
         
         $lastActivity = [];
 
-        if (isset($result['http_code']) && $result['http_code'] == 200)
+        if (is_array($result) && isset($result['customerHistoryRecords']) )
         {
-            $payload = json_decode($result['body'], true);
-
-            if ($payload === false)
-            {
-                return [];
-            }
-
-            foreach ($payload['customerHistoryRecords'] as $activity)
+            foreach ($result['customerHistoryRecords'] as $activity)
             {
                 if ( isset($activity['utteranceType']) && in_array($activity['utteranceType'], array('GENERAL')) ) // 'ROUTINES_OR_TAP_TO_ALEXA'
                 {
@@ -1141,35 +1170,32 @@ class AmazonEchoIO extends IPSModule
         return $lastActivity;
     }
 
-    /*
-     * Deprecated
-     */ 
-    private function GetActivities()
+    public function GetCustomerHistoryRecords( $startTime, $endTime)
     {
-        $result = $this->SendEcho('https://' . $this->GetAlexaURL() .'/api/activities?startTime=&size=10&offset=1' , null, 'GET');
+        $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2?startTime='. $startTime .'&endTime='. $endTime .'&disableGlobalNav=false';
+
+        $headers = array();
+        $headers[] = 'Content-Type: application/json;charset=utf-8';
+        $headers[] = 'Accept: application/json, text/plain, */*';
+        $headers[] = 'Sec-Fetch-Site: same-origin';
+        $headers[] = 'Sec-Fetch-Mode: cors';
+        $headers[] = 'Origin: https://www.' . $this->GetAmazonURL();
+        $headers[] = 'User-Agent: '. self::UserAgentBrowser;
+        $headers[] = 'Referer: https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh';
+        $headers[] = 'Connection: keep-alive';
+        $headers[] = 'Sec-Fetch-Dest: empty';
+        $headers[] = 'anti-csrftoken-a2z: ' . $this->ReadAttributeString('CsrfToken');
+
+        $postfields['previousRequestToken'] = null;
+
+        $result = $this->HttpRequest($url, $headers, $postfields, 'POST');
 
         if (isset($result['http_code']) && $result['http_code'] == 200) {
             return json_decode($result['body'], true);
-         }
- 
-         return [];
-    }
-
-    public function GetCustomerHistoryRecords()
-    {
-        $startTime = (time() - 24*60*60)*1000;
-        $endTime = (time() + 60*60)*1000;
-
-        $result = $this->SendEcho('https://www.' . $this->GetAmazonURL().'/alexa-privacy/apd/rvh/customer-history-records?startTime=' . $startTime . '&endTime=' . $endTime . '&recordType=VOICE_HISTORY' . '&maxRecordSize=1', null, 'GET');
-
-        if (isset($result['http_code']) && $result['http_code'] == 200) {
-           return json_decode($result['body'], true);
         }
-
-        return [];
+ 
+        return false;
     }
-
-
 
     public function CustomCommand(string $url, array $postfields = null, string $method = null)
     {
