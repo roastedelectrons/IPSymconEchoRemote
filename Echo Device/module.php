@@ -683,7 +683,7 @@ class EchoRemote extends IPSModule
 
         $payload['url'] = '/api/np/player?' . http_build_query($device);
 
-        $result = $this->SendDataPacket('SendEcho', $payload);
+        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
         if(!empty($result))
         {
             if ($result['http_code'] === 200) {
@@ -707,7 +707,7 @@ class EchoRemote extends IPSModule
 
         $payload['url'] = '/api/np/queue?' . http_build_query($device);
 
-        $result = $this->SendDataPacket('SendEcho', $payload);
+        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
         if ($result['http_code'] === 200) {
             //$this->SetValue("EchoVolume", $volume);
             return json_decode($result['body'], true);
@@ -726,7 +726,7 @@ class EchoRemote extends IPSModule
             'value' => $value
         ];
 
-        return $this->SendDataPacket( 'SendEcho', $payload);
+        return $this->SendDataPacket( 'AlexaApiRequest', $payload);
     }
 
     public function GetDeviceSettings( string $settingName)
@@ -737,7 +737,7 @@ class EchoRemote extends IPSModule
         $payload['url']     = '/api/v1/devices/' . $deviceAccountId .'/settings/'. $settingName;
         $payload['method']  = 'GET'; 
 
-        return $this->SendDataPacket( 'SendEcho', $payload);
+        return $this->SendDataPacket( 'AlexaApiRequest', $payload);
     }
 
     /** Shuffle
@@ -816,7 +816,7 @@ class EchoRemote extends IPSModule
         $payload['postfields'] = $postfields;
         $payload['method'] = 'PUT';
 
-        $result = $this->SendDataPacket('SendEcho', $payload);
+        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
 
         $presetPosition = $this->GetTuneInStationPresetPosition($guideId);
         if ($presetPosition) {
@@ -842,7 +842,7 @@ class EchoRemote extends IPSModule
 
         $payload['url'] = '/api/media/state?' . http_build_query($device);
 
-        $result = $this->SendDataPacket('SendEcho', $payload);
+        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
 
         //$url = 'https://{AlexaURL}/api/media/state?deviceSerialNumber=' . $this->GetDevicenumber() . '&deviceType=' . $this->GetDevicetype()
         //       . '&queueId=0e7d86f5-d5a4-4a3a-933e-5910c15d9d4f&shuffling=false&firstIndex=1&lastIndex=1&screenWidth=1920&_=1495289082979';
@@ -862,7 +862,7 @@ class EchoRemote extends IPSModule
     {
         $payload['url'] = '/api/notifications?';
 
-        $result = $this->SendDataPacket('SendEcho', $payload);
+        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
 
         if (isset($result['http_code']) && ($result['http_code'] === 200)) {
             return json_decode($result['body'], true)['notifications'];
@@ -893,7 +893,7 @@ class EchoRemote extends IPSModule
 
         $payload['url'] =  '/api/todos?' . http_build_query($getfields);
 
-        $result = $this->SendDataPacket('SendEcho', $payload);
+        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
 
         if (isset($result['http_code']) && ($result['http_code'] === 200)) {
             return json_decode($result['body'], true)['values'];
@@ -1242,7 +1242,7 @@ class EchoRemote extends IPSModule
         $payload['postfields'] = $postfields;
 
 
-        $result = (array) $this->SendDataPacket('SendEcho', $payload);
+        $result = (array) $this->SendDataPacket('AlexaApiRequest', $payload);
 
         if ( $result['http_code'] === 200)
         {
@@ -1571,7 +1571,7 @@ class EchoRemote extends IPSModule
     {
         $payload['url'] = '/api/behaviors/entities?skillId=amzn1.ask.1p.music';
 
-        $result = $this->SendDataPacket('SendEcho', $payload);
+        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
 
         $list = array( 'DEFAULT' => 'Default');
 
@@ -1767,7 +1767,7 @@ class EchoRemote extends IPSModule
         $payload['postfields'] = $postfields;
         $payload['method'] = 'PUT';
 
-        $result = (array) $this->SendDataPacket('SendEcho', $payload);
+        $result = (array) $this->SendDataPacket('AlexaApiRequest', $payload);
         IPS_Sleep(200);
         $this->GetDoNotDisturbState();
 
@@ -1858,7 +1858,7 @@ class EchoRemote extends IPSModule
     {
         $payload['url'] = '/api/bluetooth?cached=false';
 
-        $result = (array) $this->SendDataPacket('SendEcho', $payload);
+        $result = (array) $this->SendDataPacket('AlexaApiRequest', $payload);
 
         if ($result['http_code'] === 200) {
             $data = json_decode($result['body'], true);
@@ -1891,24 +1891,6 @@ class EchoRemote extends IPSModule
         return $result['http_code'] === 200;
     }
 
-    public function GetLastActivities(int $count)
-    {
-        $getfields = [
-            'size'      => $count,
-            'startTime' => '',
-            'offset'    => 1
-        ];
-
-        $payload['url'] = '/api/activities?' . http_build_query($getfields);
-
-        $result = (array) $this->SendDataPacket('SendEcho', $payload);
-
-        if ($result['http_code'] === 200) {
-            return json_decode($result['body'], true);
-        }
-
-        return false;
-    }
 
     /** Get State Tune In
      *
@@ -2655,7 +2637,7 @@ class EchoRemote extends IPSModule
         $payload['url'] = '/api/np/command?' . http_build_query($device);
         $payload['postfields'] = $postfields;
 
-        return $this->SendDataPacket('SendEcho', $payload);
+        return $this->SendDataPacket('AlexaApiRequest', $payload);
     }
 
     private function GetAutomationByUtterance($utterance)
@@ -2919,23 +2901,6 @@ class EchoRemote extends IPSModule
 </html>';
 
         return $html;
-    }
-
-    private function PlayCloudplayer(bool $shuffle, array $postfields): bool
-    {
-        $getfields = [
-            'deviceSerialNumber'   => $this->GetDevicenumber(),
-            'deviceType'           => $this->GetDevicetype(),
-            'mediaOwnerCustomerId' => $this->GetCustomerID(),
-            'shuffle'              => $shuffle ? 'true' : 'false'
-        ];
-
-        $payload['url'] = '/api/cloudplayer/queue-and-play?' . http_build_query($getfields);
-        $payload['postfields'] = $postfields;
-
-        $return = $this->SendEcho('SendEcho', $payload);
-
-        return $return['http_code'] === 200;
     }
 
 

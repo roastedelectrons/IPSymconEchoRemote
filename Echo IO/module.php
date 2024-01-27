@@ -473,7 +473,7 @@ class AmazonEchoIO extends IPSModule
     public function LogOff(): bool
     {
         $this->SendDebug(__FUNCTION__, '== started ==', 0);
-        $url = $this->GetAlexaURL() . '/logout';
+        $url = 'https://' . $this->GetAlexaURL() . '/logout';
 
         $headers = [
             'DNT: 1',
@@ -512,17 +512,21 @@ class AmazonEchoIO extends IPSModule
             return false;
         }
 
-        $guiversion = 0;
+        $url = 'https://'. $this->GetAlexaURL().'/api/bootstrap?version=0';
 
-        $getfields = ['version' => $guiversion];
+        $headers[] = 'User-Agent: ' . self::UserAgentApp;
+        $headers[] = 'DNT: 1';
+        $headers[] = 'Connection: keep-alive';
+        $headers[] = 'Content-Type: application/json; charset=UTF-8';            
+        $headers[] = 'Origin: https://' . $this->GetAlexaURL();
+        $headers[] = 'csrf: ' . $this->getCsrfFromCookie();
 
-        $url = 'https://' . $this->GetAlexaURL() . '/api/bootstrap?' . http_build_query($getfields);
-        $return_data = $this->HttpRequest($url, $this->GetHeader());
+        $result = $this->HttpRequest($url, $headers);
 
-        if ($return_data['body'] === null) {
+        if ($result['body'] === null) {
             $return = null;
         } else {
-            $return = json_decode($return_data['body'], false);
+            $return = json_decode($result['body'], false);
         }
 
         if ($return === null) {
@@ -531,7 +535,7 @@ class AmazonEchoIO extends IPSModule
             $authenticated = false;
         } elseif (!property_exists($return, 'authentication')) {
             $this->SendDebug(
-                __FUNCTION__, 'Not authenticated (property authentication not found)! ' . $return_data['body'], 0
+                __FUNCTION__, 'Not authenticated (property authentication not found)! ' . $result['body'], 0
             );
 
             $authenticated = false;
@@ -542,7 +546,7 @@ class AmazonEchoIO extends IPSModule
             $authenticated = true;
         } else {
             $this->SendDebug(
-                __FUNCTION__, 'Not authenticated (property authenticated is false)! ' . $return_data['body'], 0
+                __FUNCTION__, 'Not authenticated (property authenticated is false)! ' . $result['body'], 0
             );
 
             $authenticated = false;
@@ -574,7 +578,7 @@ class AmazonEchoIO extends IPSModule
      *
      * @return mixed
      */
-    private function SendEcho(string $url, array $postfields = null, string $method = null)
+    private function AlexaApiRequest(string $url, array $postfields = null, string $method = null)
     {
 
         if ( $this->GetStatus() != 102 )
@@ -584,9 +588,15 @@ class AmazonEchoIO extends IPSModule
             return ['http_code' => 502, 'header' => '', 'body' => 'EchoIO not active. Status: '.$this->GetStatus() ];
         }
 
-        $header = $this->GetHeader();
+        $headers[] = 'User-Agent: ' . self::UserAgentApp;
+        $headers[] = 'DNT: 1';
+        $headers[] = 'Connection: keep-alive';
+        $headers[] = 'Content-Type: application/json; charset=UTF-8';            
+        $headers[] = 'Origin: https://' . $this->GetAlexaURL();
+        $headers[] = 'csrf: ' . $this->getCsrfFromCookie();
 
-        return $this->HttpRequest($url, $header, $postfields, $method );
+
+        return $this->HttpRequest($url, $headers, $postfields, $method );
     }
 
     /**  Send http request
@@ -899,7 +909,7 @@ class AmazonEchoIO extends IPSModule
 
         $url = 'https://' . $this->GetAlexaURL() . '/api/devices-v2/device?' . http_build_query($getfields);
 
-        $result = $this->SendEcho($url);
+        $result = $this->AlexaApiRequest($url);
 
         if ($result['http_code'] !== 200) {
             return $result;
@@ -1172,6 +1182,12 @@ class AmazonEchoIO extends IPSModule
 
     public function GetCustomerHistoryRecords( $startTime, $endTime)
     {
+        if ( $this->GetStatus() != 102 )
+        {
+            $this->SendDebug(__FUNCTION__, 'EchoIO not active. Status: '.$this->GetStatus(), 0);
+            return false;
+        }
+
         $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2?startTime='. $startTime .'&endTime='. $endTime .'&disableGlobalNav=false';
 
         $headers = array();
@@ -1201,7 +1217,7 @@ class AmazonEchoIO extends IPSModule
     {
         $url = str_replace(['{AlexaURL}', '{AmazonURL}'], [$this->GetAlexaURL(), $this->GetAmazonURL()], $url);
 
-        return $this->SendEcho($url, $postfields, $method);
+        return $this->AlexaApiRequest($url, $postfields, $method);
     }
 
     private function SendDataToChild($deviceSerial, $deviceType, $type, $data)
@@ -1239,14 +1255,14 @@ class AmazonEchoIO extends IPSModule
 
         switch ($data['Type']) {
 
-            case 'SendEcho':
+            case 'AlexaApiRequest':
                 $url = 'https://'. $this->GetAlexaURL() . $data['Payload']['url'];
                 $method = '';
                 $postfields = null;
                 if ( isset($data['Payload']['method'])) $method = $data['Payload']['method'];
                 if ( isset($data['Payload']['postfields'])) $postfields = $data['Payload']['postfields'];
 
-                $result = $this->SendEcho($url, $postfields, $method);
+                $result = $this->AlexaApiRequest($url, $postfields, $method);
                 break;
 
             case 'BehaviorsPreview':
@@ -1284,7 +1300,7 @@ class AmazonEchoIO extends IPSModule
                 if ( isset($data['Payload']['method'])) $method = $data['Payload']['method'];
                 if ( isset($data['Payload']['postfields'])) $postfields = $data['Payload']['postfields'];
 
-                $result = $this->SendEcho($url, $postfields, $method);
+                $result = $this->AlexaApiRequest($url, $postfields, $method);
 
                 if ($result['http_code'] === 200) {
                     $this->SendDataToChild('ALL_DEVICES', 'ALL_DEVICE_TYPES', 'Automations', $result['body'] );
@@ -1377,7 +1393,7 @@ class AmazonEchoIO extends IPSModule
 
         $url = 'https://' . $this->GetAlexaURL() . '/api/devices/deviceType/dsn/audio/v1/allDeviceVolumes';
 
-        $result = $this->SendEcho($url); 
+        $result = $this->AlexaApiRequest($url); 
         
         if ($result['http_code'] == 200)
         {
@@ -1698,14 +1714,14 @@ class AmazonEchoIO extends IPSModule
 
 
             $this->SendDebug(__FUNCTION__, $postfields, 0);
-            $result = $this->SendEcho($url, $postfields);
+            $result = $this->AlexaApiRequest($url, $postfields);
 
             if ($result['http_code'] == 429 )
             {
                 // Rate limit for BehaviorsPreview requests: wait 2.5s and try again
                 IPS_Sleep( 3000 );
                 $this->SendDebug(__FUNCTION__, $postfields, 0);
-                $result = $this->SendEcho($url, $postfields);
+                $result = $this->AlexaApiRequest($url, $postfields);
             }
 
             $this->SetBuffer( 'RunBehaviorRequestTimestamp', (string) microtime(true) );
@@ -1744,7 +1760,7 @@ class AmazonEchoIO extends IPSModule
     {
         $url = 'https://' . $this->GetAlexaURL() . '/api/dnd/device-status-list';
 
-        return $this->SendEcho($url);
+        return $this->AlexaApiRequest($url);
     }
 
     private function SetValueEx( $ident, $value)
