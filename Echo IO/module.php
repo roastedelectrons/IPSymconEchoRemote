@@ -479,15 +479,12 @@ class AmazonEchoIO extends IPSModule
             'DNT: 1',
             'Connection: keep-alive']; //the header must not contain any cookie
 
-        $return = $this->HttpRequestCookie($url, $headers);
+        $this->HttpRequest($url, $headers);
 
-        if ($return['http_code'] === 200) { //OK
-            $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
-            $this->WriteAttributeInteger('CookieExpirationDate', 0); 
-            return $this->deleteFile($this->getCookiesFileName());
-        }
-
-        return false;
+        $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
+        $this->WriteAttributeInteger('CookieExpirationDate', 0);
+        $this->WriteAttributeString('CsrfToken', '');
+        return $this->deleteFile($this->getCookiesFileName());
     }
 
     /**
@@ -1188,6 +1185,13 @@ class AmazonEchoIO extends IPSModule
             return false;
         }
 
+        $csrfToken = $this->ReadAttributeString('CsrfToken');
+
+        if ($csrfToken == ''){
+            $this->getCsrfToken();
+            $csrfToken = $this->ReadAttributeString('CsrfToken');
+        }
+
         $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2?startTime='. $startTime .'&endTime='. $endTime .'&disableGlobalNav=false';
 
         $headers = array();
@@ -1200,11 +1204,17 @@ class AmazonEchoIO extends IPSModule
         $headers[] = 'Referer: https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh';
         $headers[] = 'Connection: keep-alive';
         $headers[] = 'Sec-Fetch-Dest: empty';
-        $headers[] = 'anti-csrftoken-a2z: ' . $this->ReadAttributeString('CsrfToken');
+        $headers[] = 'anti-csrftoken-a2z: ' . $csrfToken;
 
         $postfields['previousRequestToken'] = null;
 
         $result = $this->HttpRequest($url, $headers, $postfields, 'POST');
+
+        if (isset($result['http_code']) && $result['http_code'] == 403) {
+            // invalid csrf-token
+            trigger_error('403 Forbidden - csrf-token invalid(?)');
+            $this->WriteAttributeString('CsrfToken', '');
+        }
 
         if (isset($result['http_code']) && $result['http_code'] == 200) {
             return json_decode($result['body'], true);
