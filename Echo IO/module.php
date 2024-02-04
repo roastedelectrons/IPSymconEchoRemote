@@ -40,6 +40,7 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterPropertyBoolean('Websocket', true);
         $this->RegisterPropertyBoolean('LogMessageEx', false);
         $this->RegisterPropertyInteger('UpdateInterval', 60);
+        $this->RegisterPropertyInteger('LastActivityUpdateInterval', 60);
 
         $this->RegisterAttributeString('devices', '[]');
         $this->RegisterAttributeString( 'LastActivityID', '' ); 
@@ -49,7 +50,7 @@ class AmazonEchoIO extends IPSModule
 
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
         $this->RegisterTimer('UpdateStatus', 0, 'ECHOIO_UpdateStatus(' . $this->InstanceID . ');');
-        //$this->RegisterTimer('GetLastActivity', 0, 'ECHOIO_GetLastActivity(' . $this->InstanceID . ');');
+        $this->RegisterTimer('GetLastActivity', 0, 'ECHOIO_GetLastActivity(' . $this->InstanceID . ');');
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -129,7 +130,7 @@ class AmazonEchoIO extends IPSModule
             $this->LogOff();
             $this->SetTimerInterval('RefreshCookie', 0);
             $this->SetTimerInterval('UpdateStatus', 0);
-            //$this->SetTimerInterval('GetLastActivity', 0);
+            $this->SetTimerInterval('GetLastActivity', 0);
             $this->SetStatus(IS_INACTIVE);
             return;
         }
@@ -172,13 +173,17 @@ class AmazonEchoIO extends IPSModule
 
         $this->SetTimerInterval('UpdateStatus', $interval);
 
-        /*
+        
         if ( $this->ReadPropertyBoolean('TimerLastAction')){
+            $interval = $this->ReadPropertyInteger('LastActivityUpdateInterval') * 1000;
+            if ($interval < 3000){
+                $interval = 3000;
+            }
             $this->SetTimerInterval('GetLastActivity', $interval);
         } else {
             $this->SetTimerInterval('GetLastActivity', 0);
         }  
-        */
+        
     }
 
 
@@ -1090,10 +1095,10 @@ class AmazonEchoIO extends IPSModule
             // Throttle requests due to rate limit
             $delay = microtime(true) - floatval( $this->GetBuffer( 'GetLastActivityRequestTimestamp' ));
 
-            if ( $delay < 2.0)
+            if ( $delay < 2.5)
             {
                 $this->SendDebug(__FUNCTION__, 'waiting', 0);
-                IPS_Sleep(2000 - $delay*1000);
+                IPS_Sleep(2500 - $delay*1000);
             }
 
             $startTime =intval( $this->GetBuffer('LastActivityTimestamp') );
@@ -1827,6 +1832,10 @@ class AmazonEchoIO extends IPSModule
                 'type' => 'CheckBox',
                 'caption' => 'setup variables for last activity'],
             [
+                'name' => 'TimerLastAction',
+                'type' => 'CheckBox',
+                'caption' => 'Update last activity periodically (see expert settings for update interval)'],
+            [
                 'type'    => 'ExpansionPanel',
                 'caption' => 'Expert settings',
                 'expanded' => false,
@@ -1837,6 +1846,12 @@ class AmazonEchoIO extends IPSModule
                         'caption' => 'Update interval',
                         'suffix'  => 'seconds',
                         'minimum' => 60],
+                    [
+                        'name'    => 'LastActivityUpdateInterval',
+                        'type'    => 'NumberSpinner',
+                        'caption' => 'Last activity update interval',
+                        'suffix'  => 'seconds',
+                        'minimum' => 3],
                     [
                         'name' => 'LogMessageEx',
                         'type' => 'CheckBox',
