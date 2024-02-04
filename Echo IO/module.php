@@ -40,7 +40,7 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterPropertyBoolean('Websocket', true);
         $this->RegisterPropertyBoolean('LogMessageEx', false);
         $this->RegisterPropertyInteger('UpdateInterval', 60);
-        $this->RegisterPropertyInteger('LastActivityUpdateInterval', 60);
+        $this->RegisterPropertyInteger('GetLastActivityInterval', 60);
 
         $this->RegisterAttributeString('devices', '[]');
         $this->RegisterAttributeString( 'LastActivityID', '' ); 
@@ -175,7 +175,7 @@ class AmazonEchoIO extends IPSModule
 
         
         if ( $this->ReadPropertyBoolean('TimerLastAction')){
-            $interval = $this->ReadPropertyInteger('LastActivityUpdateInterval') * 1000;
+            $interval = $this->ReadPropertyInteger('GetLastActivityInterval') * 1000;
             if ($interval < 3000){
                 $interval = 3000;
             }
@@ -1847,7 +1847,7 @@ class AmazonEchoIO extends IPSModule
                         'suffix'  => 'seconds',
                         'minimum' => 60],
                     [
-                        'name'    => 'LastActivityUpdateInterval',
+                        'name'    => 'GetLastActivityInterval',
                         'type'    => 'NumberSpinner',
                         'caption' => 'Last activity update interval',
                         'suffix'  => 'seconds',
