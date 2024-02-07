@@ -70,11 +70,14 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.4.1 (2024-01-10)
-* Fix: Fehler beim Updaten der Automationen
-* Change: Unbekannte PlayerStates werden ins Debug geschrieben und erzeuge keine Fehlermeldng mehr
-* Change: Timeouts erhöht
+Version 2.4.1 (2024-02-07) 
+* Change: Nutze neue API für letzte Aktivität
+* New: Abfrageintervall für letzte Aktivität kann in Experteneinstellungen eingestellt werden
+* Fix: Wartezeit zwischen zwei Befehlen erhöht, um Rate Limit nicht zu überschreiten
 * Change: Fehlermeldungen, wenn Rate Limit überschritten wird
+* Fix: Fehler beim Updaten der Automationen
+* Change: Unbekannte PlayerStates werden ins Debug geschrieben und erzeugen keine Fehlermeldng mehr
+* Change: Timeouts erhöht
 
 Version 2.4 (2023-10-29)
 * Neu: Musikwiedergabe auf Multiroom-Gruppen (mittels PlayMusic() und Favoriten)
