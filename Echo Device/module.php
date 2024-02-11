@@ -88,6 +88,8 @@ class EchoRemote extends IPSModule
         $this->RegisterPropertyBoolean('ExtendedInfo', true);
         $this->RegisterPropertyBoolean('DND', false);
         $this->RegisterPropertyBoolean('AlarmInfo', false);
+        $this->RegisterPropertyBoolean('AlarmStatus', false);
+        $this->RegisterPropertyBoolean('AlarmStatusOverwrite', false);
         $this->RegisterPropertyBoolean('ShoppingList', false);
         $this->RegisterPropertyBoolean('TaskList', false);
         $this->RegisterPropertyBoolean('Mute', true);
@@ -120,6 +122,7 @@ class EchoRemote extends IPSModule
         $this->RegisterPropertyBoolean('routines_wf', false);
         $this->RegisterAttributeString('DeviceInfo', '');
         $this->RegisterAttributeString('MusicProviders', '');
+        $this->RegisterAttributeString('Notifications', '');
 
         $this->ConnectParent('{C7F853A4-60D2-99CD-A198-2C9025E2E312}');
 
@@ -369,12 +372,15 @@ class EchoRemote extends IPSModule
             $this->StartAlexaRoutineByName($name);
         }
 
+        if (substr( $Ident, 0, 12) == 'AlarmStatus_') {
+            $this->SetValue($Ident, $Value);
+            $alarmIndex = str_replace('_', '-', substr($Ident, 12) );
+            $this->SetAlarmStatus($alarmIndex, $Value);
+        }
+
     }
 
-    /**
-     * Die folgenden Funktionen stehen automatisch zur Verfügung, wenn das Modul über die "Module Control" eingefügt wurden.
-     * Die Funktionen werden, mit dem selbst eingerichteten Prefix, in PHP und JSON-RPC wiefolgt zur Verfügung gestellt:.
-     */
+
     public function RaiseAlarm(): void
     {
         //Alarmzeit setzen
@@ -865,10 +871,46 @@ class EchoRemote extends IPSModule
         $result = $this->SendDataPacket('AlexaApiRequest', $payload);
 
         if (isset($result['http_code']) && ($result['http_code'] === 200)) {
-            return json_decode($result['body'], true)['notifications'];
+            $notifications = json_decode($result['body'], true)['notifications'];
+            $this->WriteAttributeString('Notifications', json_encode($notifications));
+            return $notifications ;
         }
 
         return null;
+    }
+
+
+    public function SetNotification( array $notification): ?array
+    {
+        if ( !isset($notification['id']) ){
+            trigger_error('Notification ID is missing!');
+            return null;
+        }
+
+        $payload['url'] = '/api/notifications/'.$notification['id'];
+        $payload['method'] = 'PUT';
+        $payload['postfields'] = $notification;
+
+        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
+
+        if (isset($result['http_code']) && ($result['http_code'] === 200)) {
+            return json_decode($result['body'], true);
+        }
+
+        return null;
+    }
+
+    private function SetAlarmStatus( $notificationIndex, $state)
+    {
+        $notifications = $this->GetNotifications();
+
+        $alarm = $notifications[ array_search( $notificationIndex, array_column( $notifications, 'notificationIndex') ) ];
+
+        $alarm['status'] = ($state) ? 'ON' : 'OFF';
+
+        $result = $this->SetNotification( $alarm );
+
+        $this->SetValue('AlarmStatus_'.str_replace('-', '_', $notificationIndex), ($result['status'] == 'ON') ? true : false );
     }
 
     /** GetToDos
@@ -2407,6 +2449,60 @@ class EchoRemote extends IPSModule
 
         $this->MaintainVariable('OnlineStatus', $this->Translate('Online status'), 0, '~Switch', $this->_getPosition(), $this->ReadPropertyBoolean('OnlineStatus'));
 
+        // Alarm status variables
+        $this->RegisterVariablesAlarm();
+
+    }
+
+    private function RegisterVariablesAlarm()
+    {
+        // Get existing AlarmStatus variables
+        $children = IPS_GetChildrenIDs($this->InstanceID);
+        $Alarms = array();
+        foreach ($children as $childID){
+            $ident = IPS_GetObject($childID)['ObjectIdent'];
+            if ( substr($ident ,0, 11) == 'AlarmStatus'){
+                $Alarms[$ident] = false;
+            }
+        }
+
+        $notifications = json_decode( $this->ReadAttributeString('Notifications'), true );
+        if ( !is_array($notifications) ){
+            $notifications = $this->GetNotifications();
+        }
+
+        
+        foreach ($notifications as $notification) {
+            if ( ($notification['deviceSerialNumber'] === $this->ReadPropertyString('Devicenumber') ) && ($notification['type'] === 'Alarm' || $notification['type'] === 'MusicAlarm') ){
+                $ident = 'AlarmStatus_'. str_replace('-', '_', $notification['notificationIndex']);
+                $Alarms[$ident]  = array(
+                    'ident'     => $ident,
+                    'time'      => substr( $notification['originalTime'], 0, 8),
+                    'status'    => ($notification['status'] == 'ON') ? true : false
+                );
+            }
+        }
+
+        foreach($Alarms as $ident => $alarm){
+
+            if ($alarm !== false && $this->ReadPropertyBoolean('AlarmStatus') ) {
+                $name = $this->Translate('Alarm').": ".$alarm['time'] ;
+                $this->MaintainVariable($alarm['ident'], $name, 0, '~Switch', 100, true);
+                if ($this->CheckExistence($alarm['ident'])){
+                    $this->SetValue($alarm['ident'], $alarm['status']);
+                    $this->MaintainAction($alarm['ident'], true);
+
+                    if ($this->ReadPropertyBoolean('AlarmStatusOverwrite')){
+                        // @IP-Symcon Module Store Review: Variablen-Namen werden hier nur überschrieben, wenn der Nutzer dies aktiv in der Konfiguration aktiviert hat.
+                        IPS_SetName( $this->GetIDForIdent($alarm['ident']), $name);
+                    }
+                }
+            } else {
+                $this->UnregisterVariable($ident);
+            }
+
+        }
+
     }
 
     private function CheckExistence($ident)
@@ -2839,6 +2935,11 @@ class EchoRemote extends IPSModule
             return false;
         }
 
+        // Alarm status variables
+        if ( $this->ReadPropertyBoolean('AlarmStatus') ){
+            $this->RegisterVariablesAlarm();
+        }         
+
         $alarmTime = 0;
         $nextAlarm = 0; 
         $now = time();
@@ -2994,6 +3095,21 @@ class EchoRemote extends IPSModule
                         'name'    => 'AlarmInfo',
                         'type'    => 'CheckBox',
                         'caption' => 'setup variables for alarm info (nextAlarmTime, lastAlarmTime)'],
+                    [   
+                        'type'    => 'RowLayout',
+                        'items'   => [
+                            [
+                                'name'    => 'AlarmStatus',
+                                'type'    => 'CheckBox',
+                                'caption' => 'setup variables for de-/action of alarms'
+                            ],
+                            [
+                                'name'    => 'AlarmStatusOverwrite',
+                                'type'    => 'CheckBox',
+                                'caption' => 'overwrite variable name with alarm time'
+                            ]
+                        ]
+                    ],
                     [
                         'name'    => 'ShoppingList',
                         'type'    => 'CheckBox',
