@@ -678,11 +678,16 @@ class AmazonEchoIO extends IPSModule
         if ($info['http_code'] == 400) 
         {
             $response = json_decode($returnValues['body'], true);
-            if ($response !== false)
+
+            if (isset($response['message']))
             {
-                //$this->LogMessage('Error:'. $info['http_code']. ' ' . $returnValues['body'], KL_ERROR);
-                if ($response['message'] !== null){
+                if ( $response['message'] == 'Rate exceeded'){
                     trigger_error($response['message']);
+                } else {
+                    if ($this->ReadPropertyBoolean('LogMessageEx') )
+                    {
+                        $this->LogMessage( __FUNCTION__ .': Bad Request (400): '. $response['message'] , KL_ERROR);
+                    }  
                 }
             }
         }
