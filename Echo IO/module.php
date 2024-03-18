@@ -1140,6 +1140,7 @@ class AmazonEchoIO extends IPSModule
                     $lastActivity['utterance'] = '';
                     $lastActivity['response'] = '';
                     $lastActivity['person']  = '';
+                    $lastActivity['instanceID']  = $this->GetInstanceIDBySerialNumber($lastActivity['serialNumber'], $lastActivity['deviceType']);
 
                     foreach($activity['voiceHistoryRecordItems'] as $recordItem) {
 
@@ -1185,6 +1186,19 @@ class AmazonEchoIO extends IPSModule
         }
 
         return $lastActivity;
+    }
+
+    private function GetInstanceIDBySerialNumber( $serialNumber, $deviceType)
+    {
+        foreach (IPS_GetInstanceListByModuleID('{496AB8B5-396A-40E4-AF41-32F4C48AC90D}') as $instanceID)  // Echo Remote Devices
+        {
+            if (IPS_GetInstance($instanceID)['ConnectionID'] === $this->InstanceID) {
+                if (IPS_GetProperty($instanceID, 'Devicetype') == $deviceType && IPS_GetProperty($instanceID, 'Devicenumber') && $serialNumber ) {
+                    return $instanceID;
+                }
+            }
+        }
+        return 0;
     }
 
     public function GetCustomerHistoryRecords( $startTime, $endTime)
