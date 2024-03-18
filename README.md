@@ -70,9 +70,10 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.5 BETA (2024-02-11)
+Version 2.5 BETA (2024-03-18)
 * New: Variablen zum De-/Aktivieren der Wecker
 * New: neue DeviceTypes hinzugefügt
+* New: GetLastActivity liefert auch die InstanzID des Gerätes im Array zurück
 
 Version 2.4.1 (2024-02-07) 
 * Change: Nutze neue API für letzte Aktivität
