@@ -1,0 +1,16 @@
+{
+  "translations": {
+    "de": {
+      "Active": "Aktiv",
+      "If this routine is started:": "Wenn diese Routine gestartet wird:",
+      "Routine name": "Routinenname",
+      "Refresh": "Aktualisieren",
+      "Trigger:": "Auslöser:",
+      "Then perform the following action:": "Dann führe folgende Aktion aus:",
+      "Action type": "Aktionstyp",
+      "Text-to-speech response (simple)": "Text-to-speech Antwort (einfach)",
+      "Text-to-speech response (extended)": "Text-to-speech Antwort (erweitert)",
+      "Run script": "Skript ausführen"
+    }
+  }
+}
