@@ -121,14 +121,7 @@ class EchoBot extends IPSModule
                         break;
 
                     case 1:
-                        $script = $this->ReadPropertyString('Script');
-                        $script = str_replace('<?php', '', $script);
-                        $script = str_replace('?>', '', $script);
-                        $_IPS = $payload;
-                        $text = eval($script);
-                        if ($text != false){
-                            $this->TextToSpeech($text, $payload['serialNumber'] , $payload['deviceType'] );
-                        } 
+                        $this->RunTextToSpeechScript($payload);
                         break;
 
                     case 2:
@@ -146,6 +139,29 @@ class EchoBot extends IPSModule
                     $this->WriteAttributeString('Automations', $payload );  
                 }
                 break;
+        }
+
+    }
+
+    private function RunTextToSpeechScript($activity)
+    {
+        $script = $this->ReadPropertyString('Script');
+        $script = str_replace('<?php', '', $script);
+        $script = str_replace('?>', '', $script);
+        $_IPS = $activity;
+        try {
+            $text = @eval($script);
+        } catch (ParseError $error) {
+            $this->LogMessage('Error in text-to-speech script: ' . $error->getMessage() . ' on line '. $error->getLine(), KL_ERROR);
+            $this->SetStatus(201);
+            return false;
+        }
+        
+        if ( $text !== null ){
+            $this->TextToSpeech($text, $activity['serialNumber'] , $activity['deviceType'] );
+        } else {
+            $this->LogMessage('Error in text-to-speech script: return value missing.', KL_ERROR);
+            $this->SetStatus(201);                            
         }
 
     }
@@ -547,7 +563,13 @@ class EchoBot extends IPSModule
      */
     private function FormStatus(): array
     {
-        $form = [];
+        $form = [
+            [
+                'code' => 201,
+                'icon' => 'error',
+                'caption' => 'Error in text-to-speech script. See message log for more information.'
+            ]
+        ];
 
         return $form;
     }
