@@ -23,7 +23,7 @@ Damit das Modul mitbekommt, dass ein Echo-Gerät angesprochen und eine Routine g
 
 ### Option 1: letzte Aktivität periodisch abfragen
 
-1. IP-Symcon: Kerninstanzen -> EchoIO Instanz 
+1. IP-Symcon: Splitter Instanzen -> EchoIO Instanz 
     - `letzte Aktivität periodisch abrufen` aktivieren
     - `Aktualisierungsintervall für letzte Aktivität` auf minimalen Wert stellen
 
@@ -37,7 +37,7 @@ Damit das Modul mitbekommt, dass ein Echo-Gerät angesprochen und eine Routine g
         - Funktion: ECHOIO_GetLastActivity auswählen
     2. Speichern 
 2. Einem beliebigen Echo-Gerät sagen: "Alexa, suche neue Geräte"
-3. IP-Symcon: EchoIO Instanz 
+3. IP-Symcon: Splitter Instanzen -> EchoIO Instanz 
     1. `letzte Aktivität periodisch abrufen`  deaktivieren (optional - sofern nicht anderweitig benötigt)
 
 ## Einrichtung eines Echo Bots
