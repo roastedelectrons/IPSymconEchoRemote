@@ -28,6 +28,7 @@ class EchoBot extends IPSModule
         $this->RegisterPropertyInteger('VariableID1', 0);
         $this->RegisterPropertyString('Script', "<?php\n//Note: always return the text message as string \n\n\$text = \"This is my answer\";\n\nreturn \$text;");
         $this->RegisterPropertyInteger('ScriptID', 0);
+        $this->RegisterPropertyString('ActionID', '');
 
         $this->RegisterAttributeString('Automations', '');
 
@@ -128,6 +129,13 @@ class EchoBot extends IPSModule
                         if (IPS_ScriptExists( $this->ReadPropertyInteger('ScriptID') ) ){
                             IPS_RunScriptEx($this->ReadPropertyInteger('ScriptID'), $payload);
                         }
+                        break;
+
+                    case 3:
+                        $action = json_decode($this->ReadPropertyString('ActionID'), true);
+                        $parameters = array_merge($payload, $action['parameters']);
+                        print_r($parameters);
+                        IPS_RunAction($action['actionID'], $parameters);
                         break;
                 }
 
@@ -377,6 +385,7 @@ class EchoBot extends IPSModule
                 $this->UpdateFormField('ActionType_0', 'visible', $value == 0) ;
                 $this->UpdateFormField('ActionType_1', 'visible', $value == 1) ;
                 $this->UpdateFormField('ActionType_2', 'visible', $value == 2) ;
+                $this->UpdateFormField('ActionType_3', 'visible', $value == 3) ;
                 break;
 
             case 'RefreshAutomations':
@@ -466,7 +475,8 @@ class EchoBot extends IPSModule
             'options' => [
                 [ 'caption' => 'Text-to-speech response (simple)', 'value' => 0],
                 [ 'caption' => 'Text-to-speech response (extended)', 'value' => 1],
-                [ 'caption' => 'Run script', 'value' => 2]
+                [ 'caption' => 'Run script', 'value' => 2],
+                [ 'caption' => 'Run action', 'value' => 3]
             ]
         ];
         
@@ -516,6 +526,19 @@ class EchoBot extends IPSModule
                 'name'    => 'ScriptID',
                 'type'    => 'SelectScript',
                 'caption' => 'Action script ID'
+                ]
+            ]
+        ];
+
+        $elements[] = [
+            'type' => 'ColumnLayout',
+            'name' => 'ActionType_3',
+            'visible' => $actionType == 3,
+            'items' => [
+                [
+                'name'    => 'ActionID',
+                'type'    => 'SelectAction',
+                'caption' => 'Action'
                 ]
             ]
         ];

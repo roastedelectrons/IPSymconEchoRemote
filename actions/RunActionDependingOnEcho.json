@@ -1,0 +1,50 @@
+{
+    "id": "{162AFDAD-C324-0288-6690-F5629122F5B7}",
+    "caption": "Run action depending on the addressed echo device",
+    "category": "target",
+    "form": [
+        "$devices = ECHOIO_GetDeviceList($_IPS['TARGET']); ",
+        "$options = array(); ",
+        "foreach($devices as $device){ ",
+        "    $options[] = [ ",
+        "        'caption' => $device['accountName'], ",
+        "        'value' => $device['deviceType'].'#'.$device['serialNumber'], ",
+        "    ]; ",
+        "} ",
+        "$form = [",
+        "   [ 'type' => 'List', 'name' => 'Actions', 'caption' => 'Actions', 'add' => true, 'delete'=>true, 'columns' =>",
+        "       [",
+        "           ['name' => 'Device', 'caption' => 'Addressed device', 'add' => '', 'width' => '250px', 'edit' => ['type' => 'Select', 'options' => $options ]], ",
+        "           ['name' => 'Action', 'caption' => 'Action', 'add' => '', 'width' => 'auto', 'edit' => ['type' => 'SelectAction']]",
+        "       ]",
+        "   ]",
+        "];",
+        "return $form;"
+    ],
+    "action": [
+        "IPS_Sleep(1000);",
+        "$lastActivity = ECHOIO_GetLastActivity($_IPS['TARGET']); ",
+        "$list = json_decode($_IPS['Actions'], true); ",
+        "foreach ($list as $action){ ",
+        "   if ($lastActivity['deviceType'].'#'.$lastActivity['serialNumber'] == $action['Device']) { ",
+        "       $action['Action'] = json_decode($action['Action'], true);",
+        "       $parameters = array_merge($lastActivity, $action['Action']['parameters']);",
+        "       IPS_RunAction($action['Action']['actionID'], $parameters); ",
+        "    } ",
+        "} "
+    ],
+    "restrictions": {
+        "objectType": [1],
+        "moduleID": [ "{C7F853A4-60D2-99CD-A198-2C9025E2E312}" ]
+    },
+    "priority": 1,
+    "locale": {
+        "de": {
+            "Run action depending on the addressed echo device": "Führe Aktion abhängig vom angesprochenen Echo-Gerät aus",
+            "Actions": "Aktionen",
+            "Action": "Aktion",
+            "Addressed device": "Angesprochenes Gerät"
+        }
+    },
+    "format": "Run action depending on the addressed echo device"
+}
