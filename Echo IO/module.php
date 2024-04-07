@@ -1315,6 +1315,10 @@ class AmazonEchoIO extends IPSModule
                 $result = $this->UpdateDeviceList();
                 break;
 
+            case 'GetDeviceList':
+                $result = $this->GetDeviceList();
+                break;
+
             case 'GetDNDState':
                 $result = $this->GetDNDState();
                 break;

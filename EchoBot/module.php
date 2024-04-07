@@ -28,7 +28,7 @@ class EchoBot extends IPSModule
         $this->RegisterPropertyInteger('VariableID1', 0);
         $this->RegisterPropertyString('Script', "<?php\n//Note: always return the text message as string \n\n\$text = \"This is my answer\";\n\nreturn \$text;");
         $this->RegisterPropertyInteger('ScriptID', 0);
-        $this->RegisterPropertyString('ActionID', '');
+        $this->RegisterPropertyString('ActionList', '');
 
         $this->RegisterAttributeString('Automations', '');
 
@@ -132,9 +132,7 @@ class EchoBot extends IPSModule
                         break;
 
                     case 3:
-                        $action = json_decode($this->ReadPropertyString('ActionID'), true);
-                        $parameters = array_merge($payload, $action['parameters']);
-                        IPS_RunAction($action['actionID'], $parameters);
+                        $this->RunAction($payload);
                         break;
                 }
 
@@ -171,6 +169,19 @@ class EchoBot extends IPSModule
             $this->SetStatus(201);                            
         }
 
+    }
+
+    private function RunAction($lastActivity)
+    {
+        $list = json_decode($this->ReadPropertyString('ActionList'), true);
+        foreach ($list as $action){ 
+           if ($lastActivity['deviceType'].'#'.$lastActivity['serialNumber'] == $action['Device']  || $action['Device'] == 'ALL_DEVICES') { 
+               $action['Action'] = json_decode($action['Action'], true);
+               $parameters = array_merge($lastActivity, $action['Action']['parameters']);
+               IPS_RunAction($action['Action']['actionID'], $parameters); 
+            } 
+        } 
+     
     }
 
     private function GetCustomerID()
@@ -230,6 +241,28 @@ class EchoBot extends IPSModule
         }
 
         return $automations;
+    }
+
+    private function GetDeviceList()
+    {
+        $devices = $this->SendDataPacket('GetDeviceList');
+        return $devices;
+    }
+
+    private function GetDevicesForSelect()
+    {
+        $devices = $this->GetDeviceList();
+
+        $list[] = array('caption' => 'All Devices', 'value' => 'ALL_DEVICES');
+
+        foreach( $devices as $device){
+            $list[] = [
+                'caption' => $device['accountName'], 
+                'value' => $device['deviceType'].'#'.$device['serialNumber']
+            ];
+        }
+
+        return $list;
     }
 
     public function UpdateAutomations()
@@ -471,11 +504,12 @@ class EchoBot extends IPSModule
             'type'    => 'Select',
             'caption' => 'Action type',
             'onChange' => 'ECHOBOT_UpdateConfigurationForm($id, "ActionType", $ActionType);',
+            'width'    => '500px',
             'options' => [
                 [ 'caption' => 'Text-to-speech response (simple)', 'value' => 0],
                 [ 'caption' => 'Text-to-speech response (extended)', 'value' => 1],
-                [ 'caption' => 'Run script', 'value' => 2]
-                //[ 'caption' => 'Run action', 'value' => 3]
+                [ 'caption' => 'Run script', 'value' => 2],
+                [ 'caption' => 'Run action (depending on addressed device)', 'value' => 3]
             ]
         ];
         
@@ -525,25 +559,51 @@ class EchoBot extends IPSModule
                 'name'    => 'ScriptID',
                 'type'    => 'SelectScript',
                 'caption' => 'Action script ID'
-                ]
+                ],
+                [
+                    'type'    => 'Label',
+                    'color' => 7566195,
+                    'caption' => 'Information about last activity is available in $_IPS system variable.'
+                ],
             ]
         ];
 
-        /*
         $elements[] = [
             'type' => 'ColumnLayout',
             'name' => 'ActionType_3',
             'visible' => $actionType == 3,
             'items' => [
                 [
-                'name'    => 'ActionID',
-                'type'    => 'SelectAction',
-                'caption' => 'Action',
-                'enabled' => false
+                    'name' => 'ActionList',
+                    'type' => 'List',
+                    'add'  => true,
+                    'delete' => true,
+                    'columns' => [
+                        [
+                            'name' => 'Device',
+                            'caption' => 'Addressed Device',
+                            'width' => '250px',
+                            'add' => '',
+                            'edit' => [
+                                'type' => 'Select',
+                                'options' => $this->GetDevicesForSelect()
+                            ]
+                                ],
+                        [
+                            'name' => 'Action',
+                            'caption' => 'Action',
+                            'width' => 'auto',
+                            'add' => '',
+                            'edit' => [
+                                'type' => 'SelectAction'
+                            ]
+                        ]
+                    ]
                 ]
             ]
         ];
-        */
+
+        
         $elements[] = [
             'type' => 'ExpansionPanel',
             'caption' => 'Help',

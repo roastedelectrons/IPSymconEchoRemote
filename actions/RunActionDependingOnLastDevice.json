@@ -1,6 +1,6 @@
 {
     "id": "{162AFDAD-C324-0288-6690-F5629122F5B7}",
-    "caption": "Run action depending on the addressed echo device",
+    "caption": "Run action depending on the last addressed device",
     "category": "target",
     "form": [
         "$devices = ECHOIO_GetDeviceList($_IPS['TARGET']); ",
@@ -40,11 +40,11 @@
     "priority": 1,
     "locale": {
         "de": {
-            "Run action depending on the addressed echo device": "Führe Aktion abhängig vom angesprochenen Echo-Gerät aus",
+            "Run action depending on the last addressed device": "Führe Aktion abhängig vom zuletzt angesprochenen Gerät",
             "Actions": "Aktionen",
             "Action": "Aktion",
             "Addressed device": "Angesprochenes Gerät"
         }
     },
-    "format": "Run action depending on the addressed echo device"
+    "format": "Run action depending on the last addressed device"
 }
