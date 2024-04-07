@@ -134,7 +134,6 @@ class EchoBot extends IPSModule
                     case 3:
                         $action = json_decode($this->ReadPropertyString('ActionID'), true);
                         $parameters = array_merge($payload, $action['parameters']);
-                        print_r($parameters);
                         IPS_RunAction($action['actionID'], $parameters);
                         break;
                 }
@@ -475,8 +474,8 @@ class EchoBot extends IPSModule
             'options' => [
                 [ 'caption' => 'Text-to-speech response (simple)', 'value' => 0],
                 [ 'caption' => 'Text-to-speech response (extended)', 'value' => 1],
-                [ 'caption' => 'Run script', 'value' => 2],
-                [ 'caption' => 'Run action', 'value' => 3]
+                [ 'caption' => 'Run script', 'value' => 2]
+                //[ 'caption' => 'Run action', 'value' => 3]
             ]
         ];
         
@@ -530,6 +529,7 @@ class EchoBot extends IPSModule
             ]
         ];
 
+        /*
         $elements[] = [
             'type' => 'ColumnLayout',
             'name' => 'ActionType_3',
@@ -538,11 +538,12 @@ class EchoBot extends IPSModule
                 [
                 'name'    => 'ActionID',
                 'type'    => 'SelectAction',
-                'caption' => 'Action'
+                'caption' => 'Action',
+                'enabled' => false
                 ]
             ]
         ];
-
+        */
         $elements[] = [
             'type' => 'ExpansionPanel',
             'caption' => 'Help',
