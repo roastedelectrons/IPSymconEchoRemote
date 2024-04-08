@@ -23,10 +23,8 @@ class EchoBot extends IPSModule
         $this->RegisterPropertyBoolean('Active', true);
         $this->RegisterPropertyString('AutomationID', '');
         $this->RegisterPropertyInteger('ActionType', 0);
-        $this->RegisterPropertyString('Text1', '');
-        $this->RegisterPropertyString('Text2', '');
-        $this->RegisterPropertyInteger('VariableID1', 0);
-        $this->RegisterPropertyString('Script', "<?php\n//Note: always return the text message as string \n\n\$text = \"This is my answer\";\n\nreturn \$text;");
+        $this->RegisterPropertyString('TTSList', '');
+        $this->RegisterPropertyString('Script', "<?php\n// Note:  \n//  - always return the text message as string!\n//  - information about the last activity is available in \$_IPS \n\n\$text = \"This is my answer\";\n\nreturn \$text;");
         $this->RegisterPropertyInteger('ScriptID', 0);
         $this->RegisterPropertyString('ActionList', '');
 
@@ -113,12 +111,7 @@ class EchoBot extends IPSModule
                 switch ($this->ReadPropertyInteger('ActionType'))
                 {
                     case 0:
-                        $text[] = $this->ReadPropertyString('Text1');
-                        if (IPS_VariableExists($this->ReadPropertyInteger('VariableID1')) ) {
-                            $text[] = ' '.GetValueFormatted($this->ReadPropertyInteger('VariableID1'));
-                        }
-                        $text[] = $this->ReadPropertyString('Text2');
-                        $this->TextToSpeech(implode(' ', $text ), $payload['serialNumber'] , $payload['deviceType'] );
+                        $this->RunTTSResponse($payload);
                         break;
 
                     case 1:
@@ -184,6 +177,29 @@ class EchoBot extends IPSModule
      
     }
 
+    private function RunTTSResponse($lastActivity)
+    {
+        $list = json_decode($this->ReadPropertyString('TTSList'), true);
+        foreach ($list as $listItem){ 
+           if ($lastActivity['deviceType'].'#'.$lastActivity['serialNumber'] == $listItem['Device']  || $listItem['Device'] == 'ALL_DEVICES') { 
+                $text = $this->CreateTTSResponse($listItem);
+                $this->TextToSpeech($text, $lastActivity['serialNumber'] , $lastActivity['deviceType'] );
+            } 
+        } 
+     
+    }
+
+    private function CreateTTSResponse( array $content)
+    {
+        $text[] = $content['Text_1'];
+        if (IPS_VariableExists( (int) $content['VariableID_1']) ) {
+            $text[] = ' '.GetValueFormatted($content['VariableID_1']);
+        }
+        $text[] = $content['Text_2'];
+        
+        return implode(' ', $text );
+    }
+
     private function GetCustomerID()
     {
         return  $this->SendDataPacket( 'GetCustomerID' );
@@ -245,8 +261,11 @@ class EchoBot extends IPSModule
 
     private function GetDeviceList()
     {
-        $devices = $this->SendDataPacket('GetDeviceList');
-        return $devices;
+        $result = $this->SendDataPacket('GetDeviceList');
+
+        if (isset($result['http_code']) && $result['http_code'] != 200) return [];
+
+        return $result;
     }
 
     private function GetDevicesForSelect()
@@ -512,7 +531,82 @@ class EchoBot extends IPSModule
                 [ 'caption' => 'Run action (depending on addressed device)', 'value' => 3]
             ]
         ];
-        
+
+        $values = json_decode($this->ReadPropertyString('TTSList'), true);
+
+        if ($values == false) $values = array();
+
+        foreach($values as $index => $item){
+            $values[$index]['Response'] = $this->CreateTTSResponse($item);
+        }
+
+        $elements[] = [
+            'type' => 'ColumnLayout',
+            'name' => 'ActionType_0',
+            'visible' => $actionType == 0,
+            'items' => [
+                [
+                    'name' => 'TTSList',
+                    'type' => 'List',
+                    'add'  => true,
+                    'delete' => true,
+                    'loadValuesFromConfiguration' => false,
+                    'columns' => [
+                        [
+                            'name' => 'Device',
+                            'caption' => 'Addressed Device',
+                            'width' => '300px',
+                            'add' => '',
+                            'edit' => [
+                                'type' => 'Select',
+                                'options' => $this->GetDevicesForSelect()
+                            ]
+                        ],
+                        [
+                            'name' => 'Response',
+                            'caption' => 'Response (with current variable value)',
+                            'width' => 'auto',
+                            'add' => '(save changes to show response)'
+                        ],                        
+                        [
+                            'name' => 'Text_1',
+                            'caption' => 'Text',
+                            'visible' => false,
+                            'width' => '0px',
+                            'add' => '',
+                            'edit' => [
+                                'type' => 'ValidationTextBox'
+                            ]
+                        ],
+                        [
+                            'name' => 'VariableID_1',
+                            'caption' => 'Variable',
+                            'visible' => false,
+                            'width' => '0px',
+                            'add' => '',
+                            'edit' => [
+                                'type' => 'SelectVariable'
+                            ]
+                        ],
+                        [
+                            'name' => 'Text_2',
+                            'caption' => 'Text',
+                            'visible' => false,
+                            'width' => '0px',
+                            'add' => '',
+                            'edit' => [
+                                'type' => 'ValidationTextBox'
+                            ]
+                        ]
+                    ],
+                    'values' => $values
+
+                ]
+            ]
+        ];
+
+        /*
+
         $elements[] = [
             'type' => 'RowLayout',
             'name' => 'ActionType_0',
@@ -535,6 +629,7 @@ class EchoBot extends IPSModule
                     ]
             ]
         ];
+        */
 
         $elements[] = [
             'type' => 'ColumnLayout',
