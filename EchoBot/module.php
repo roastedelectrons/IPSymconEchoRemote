@@ -24,7 +24,7 @@ class EchoBot extends IPSModule
         $this->RegisterPropertyString('AutomationID', '');
         $this->RegisterPropertyInteger('ActionType', 0);
         $this->RegisterPropertyString('TTSList', '');
-        $this->RegisterPropertyString('Script', "<?php\n// Note:  \n//  - always return the text message as string!\n//  - information about the last activity is available in \$_IPS \n\n\$text = \"This is my answer\";\n\nreturn \$text;");
+        $this->RegisterPropertyString('TTSScript', "<?php\n// Note:  \n//  - always return the text message as string!\n//  - information about the last activity is available in \$_IPS \n\n\$text = \"This is my answer\";\n\nreturn \$text;");
         $this->RegisterPropertyInteger('ScriptID', 0);
         $this->RegisterPropertyString('ActionList', '');
 
@@ -58,6 +58,28 @@ class EchoBot extends IPSModule
 
         //Apply filter
         $this->SetReceiveDataFilter('.*(LastAction|Automations).*');
+    }
+
+    public function Migrate($JSONData) {
+        $config = json_decode($JSONData, true);
+
+        // Beta migrations 2024-04-09
+        if (isset($config['configuration']['Script'])){
+            $config['configuration']['TTSScript'] = $config['configuration']['Script'];
+        }
+
+        if (isset($config['configuration']['Text1']) && $config['configuration']['Text1'] != ''){
+            $config['configuration']['TTSList'] = [
+                [
+                'Device' => 'ALL_DEVICES',
+                'Text_1' => $config['configuration']['Text1'],
+                'Text_2' => $config['configuration']['Text2'],
+                'VariableID_1' => $config['configuration']['VariableID1']
+                ]
+            ];
+        }
+
+        return json_encode($config);
     }
 
 
@@ -143,7 +165,7 @@ class EchoBot extends IPSModule
 
     private function RunTextToSpeechScript($activity)
     {
-        $script = $this->ReadPropertyString('Script');
+        $script = $this->ReadPropertyString('TTSScript');
         $script = str_replace('<?php', '', $script);
         $script = str_replace('?>', '', $script);
         $_IPS = $activity;
@@ -637,7 +659,7 @@ class EchoBot extends IPSModule
             'visible' => $actionType == 1,
             'items' => [
                 [
-                'name'    => 'Script',
+                'name'    => 'TTSScript',
                 'type'    => 'ScriptEditor',
                 'caption' => 'Script',
                 'rowCount' => '10'

@@ -55,13 +55,13 @@ Damit das Modul mitbekommt, dass ein Echo-Gerät angesprochen und eine Routine g
 
 #### Aktionstyp: Text-to-Speech Antwort (einfach)
 
-Es erfolgt eine Sprachantwort auf dem Echo-Gerät, das angesprochen wurde. Der Antworttext setzt sich zusammen aus zwei Textfeldern und einem Variablenwert. Beim Variablenwert wird der formatierte Wert inklusive Prä-/Suffix - z.B. 20 °C, geöffnet/geschlossen (bei Boolean) - gemäß Variablenprofil verwendet.
+Es erfolgt eine Sprachantwort auf dem Echo-Gerät, das angesprochen wurde. Es kann für jedes Gerät eine unterschiedliche Antwort festgelegt werden. Soll bei jedem Gerät die gleiche Antwort gegeben werden, muss **Alle Geräte** im Feld **Angesprochenes Gerät** ausgewählt werden. Der Antworttext setzt sich zusammen aus zwei Textfeldern und einem Variablenwert. Beim Variablenwert wird der formatierte Wert inklusive Prä-/Suffix - z.B. 20 °C, geöffnet/geschlossen (bei Boolean) - gemäß Variablenprofil verwendet.
 
 |Eigenschaft| Typ| Beschreibung |
 |-----| -----| ----- |
-|Text1 | ValidationTextBox | Text|
-|VariableID1 | SelectVariable | Variable|
-|Text2 | ValidationTextBox | Text|
+|Text_1 | ValidationTextBox | Text|
+|VariableID_1 | SelectVariable | Variable|
+|Text_2 | ValidationTextBox | Text|
 
 
 

@@ -43,9 +43,9 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 #### Windows
 1. Tool vom o.g. Link herunterladen und mit Doppelklick die Datei `alexa-cookie-cli-win-x64.exe`ausführen. Es öffnet sich die Konsole, in der folgende Meldung angezeigt wird:
    ```
-   Error: You can try to get the cookie manually by opening http://localhost:8080/ with your browser. / null
+   Error: You can try to get the cookie manually by opening http://127.0.0.1:8080 with your browser. / null
    ```
-2. Browser öffnen und die Seite http://localhost:8080/ aufrufen. Es wird nun die Amazon-Login Seite angezeigt. Hier mit dem Amazon-Account einloggen.
+2. Browser öffnen und die Seite http://127.0.0.1:8080 aufrufen. Es wird nun die Amazon-Login Seite angezeigt. Hier mit dem Amazon-Account einloggen.
 3. Wenn der Login erfolgreich war, wieder in die Konsole wechseln und den nun angezeigten Refresh-Token (beginnend mit `Atnr|...`) kopieren.
 4. In der IP-Symcon Verwaltungskonsole im Objektbaum die EchoIO-Instanz öffnen und den generierten Refresh-Token im Feld *Refresh-Token* einfügen und auf *übernehmen* klicken.
 
@@ -61,16 +61,22 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
    ```
    Im Terminal wird nun folgende Meldung angezeigt:
    ```
-   Error: You can try to get the cookie manually by opening http://localhost:8080/ with yout browser.  / null
+   Error: You can try to get the cookie manually by opening http://127.0.0.1:8080 with yout browser.  / null
    ```
-4. Browser öffenen und die Seite http://localhost:8080/ aufrufen. Es wird nun eine Amazon-Login Seite angezeigt. Hier mit dem Amazon-Account einloggen.
+4. Browser öffenen und die Seite http://127.0.0.1:8080 aufrufen. Es wird nun eine Amazon-Login Seite angezeigt. Hier mit dem Amazon-Account einloggen.
 5. Wenn der Login erfolgreich war, wieder ins Terminal wechseln und den nun angezeigten Refresh-Token (beginnend mit `Atnr|...`) kopieren.
 6. In der IP-Symcon Verwaltungskonsole im Objektbaum die EchoIO-Instanz öffnen und den generierten Refresh-Token im Feld *Refresh-Token* einfügen und auf *übernehmen* klicken.
 
 
 ## Changelog
 
-Version 2.5 BETA (2024-03-18)
+Version 2.5 BETA (2024-04-09)
+* New: EchoBot
+   * Wenn ein Sprachbefehl (dieser muss als Auslöser in einer Alexa-Routine definiert werden) von einem Echo-Gerät empfangen wurde, können folgende Aktionen ausgeführt werden:
+      * Text-to-speech Antwort in Abhängkeit vom angesprochenen Echo-Gerät ausgeben
+      * Unterschiedliche Aktionen in Abhängigkeit vom angesprochenen Echo-Gerät ausführen
+      * Skript in IP-Symcon ausführen
+* New: Aktion (zur Verwendung in Szenen des Amazon Alexa Moduls) zum ausführen von unterschiedlichen Aktionen in Abhängigkeit vom zuletzt angesprochenen Echo-Gerätes
 * New: Variablen zum De-/Aktivieren der Wecker
 * New: neue DeviceTypes hinzugefügt
 * New: GetLastActivity liefert auch die InstanzID des Gerätes im Array zurück
