@@ -29,6 +29,7 @@ class EchoBot extends IPSModule
         $this->RegisterPropertyString('ActionList', '');
 
         $this->RegisterAttributeString('Automations', '');
+        $this->RegisterAttributeString('LastActivity', '');
 
         $this->ConnectParent('{C7F853A4-60D2-99CD-A198-2C9025E2E312}');
 
@@ -103,6 +104,46 @@ class EchoBot extends IPSModule
         }
     }
 
+    public function RequestAction($ident, $value)
+    {
+        switch ($ident) {
+            case 'TestAction':
+                $value = explode('#', $value);
+                $lastActivity['timestamp'] = microtime(true);
+                $lastActivity['timestampMilliseconds'] = round($lastActivity['timestamp']*1000, 0);
+                $lastActivity['deviceType'] = $value[0];
+                $lastActivity['serialNumber'] = $value[1];
+                $lastActivity['id'] = $lastActivity['deviceType'].'#'.$lastActivity['serialNumber'].'#'.$lastActivity['timestampMilliseconds'];
+                $lastActivity['deviceName'] = $this->GetDeviceName($lastActivity['serialNumber'], $lastActivity['deviceType'] );
+                $lastActivity['utteranceType'] = 'GENERAL';
+                $lastActivity['domain'] = 'Routines';
+                $lastActivity['intent'] = 'InvokeRoutineIntent';
+                $lastActivity['utterance'] = $this->GetUtteranceByAutomationId($this->ReadPropertyString('AutomationID'))[0];
+                $lastActivity['response'] = '';
+                $lastActivity['person'] = '';
+                $lastActivity['instanceID'] = $this->GetInstanceIDBySerialNumber($lastActivity['serialNumber'], $lastActivity['deviceType']);
+                $this->RunAction($lastActivity);
+                break;
+
+            case 'AutomationID':
+                $this->UpdateFormField('Utterances', 'caption', $this->GetUtterancesForLabel($value) ) ;
+                break;
+
+            case 'ActionType':
+                $this->UpdateFormField('ActionType_0', 'visible', $value == 0) ;
+                $this->UpdateFormField('ActionType_1', 'visible', $value == 1) ;
+                $this->UpdateFormField('ActionType_2', 'visible', $value == 2) ;
+                $this->UpdateFormField('ActionType_3', 'visible', $value == 3) ;
+                break;
+
+            case 'RefreshAutomations':
+                $this->UpdateAutomations();
+                $this->UpdateFormField('AutomationID', 'options', json_encode($this->GetAutomationsForSelect() )) ;
+                $this->UpdateFormField('Utterances', 'caption', $this->GetUtterancesForLabel($value) ) ;
+                break;
+        }
+    }
+
     public function ReceiveData($JSONString)
     {
         $data = json_decode($JSONString, true);
@@ -126,30 +167,12 @@ class EchoBot extends IPSModule
 
                 if ($match === false) return;
 
-                $this->LogMessage($payload['utterance'], KL_NOTIFY);
+                $this->LogMessage($payload['deviceName'].': '.$payload['utterance'], KL_NOTIFY);
+                $this->WriteAttributeString('LastActivity', json_encode($payload) ); 
 
                 if ($this->GetStatus() !== IS_ACTIVE) return;
 
-                switch ($this->ReadPropertyInteger('ActionType'))
-                {
-                    case 0:
-                        $this->RunTTSResponse($payload);
-                        break;
-
-                    case 1:
-                        $this->RunTextToSpeechScript($payload);
-                        break;
-
-                    case 2:
-                        if (IPS_ScriptExists( $this->ReadPropertyInteger('ScriptID') ) ){
-                            IPS_RunScriptEx($this->ReadPropertyInteger('ScriptID'), $payload);
-                        }
-                        break;
-
-                    case 3:
-                        $this->RunAction($payload);
-                        break;
-                }
+                $this->RunAction($payload);
 
                 break;
 
@@ -186,7 +209,32 @@ class EchoBot extends IPSModule
 
     }
 
-    private function RunAction($lastActivity)
+    private function RunAction( $activity )
+    {
+        switch ($this->ReadPropertyInteger('ActionType'))
+        {
+            case 0:
+                $this->RunTTSResponse($activity);
+                break;
+
+            case 1:
+                $this->RunTextToSpeechScript($activity);
+                break;
+
+            case 2:
+                if (IPS_ScriptExists( $this->ReadPropertyInteger('ScriptID') ) ){
+                    IPS_RunScriptEx($this->ReadPropertyInteger('ScriptID'), $activity);
+                }
+                break;
+
+            case 3:
+                $this->RunActionList($activity);
+                break;
+        }
+    }
+    
+
+    private function RunActionList($lastActivity)
     {
         $list = json_decode($this->ReadPropertyString('ActionList'), true);
         foreach ($list as $action){ 
@@ -233,7 +281,7 @@ class EchoBot extends IPSModule
      * @param string $instanceIDList
      * @return array|string
      */
-    public function TextToSpeech(string $tts, string $deviceSerial, string $deviceType, array $options = [] ): bool
+    private function TextToSpeech(string $tts, string $deviceSerial, string $deviceType, array $options = [] ): bool
     {
         $device = [
             'deviceSerialNumber'    => $deviceSerial,
@@ -297,13 +345,41 @@ class EchoBot extends IPSModule
         $list[] = array('caption' => 'All Devices', 'value' => 'ALL_DEVICES');
 
         foreach( $devices as $device){
-            $list[] = [
-                'caption' => $device['accountName'], 
-                'value' => $device['deviceType'].'#'.$device['serialNumber']
-            ];
+            if ( $device['deviceFamily'] == 'ECHO' || $device['deviceFamily'] == 'KNIGHT' || $device['deviceFamily'] == 'ROOK' ) {
+                $list[] = [
+                    'caption' => $device['accountName'], 
+                    'value' => $device['deviceType'].'#'.$device['serialNumber']
+                ];
+            }
         }
 
         return $list;
+    }
+
+    private function GetDeviceName($serialNumber, $deviceType)
+    {
+        $devices = $this->GetDeviceList();
+
+        foreach( $devices as $device){
+            if ( $device['serialNumber'] == $serialNumber && $device['deviceType'] == $deviceType ) {
+                return $device['accountName'];
+            }
+        }
+
+        return 'Unknown Device';
+    }
+
+    private function GetInstanceIDBySerialNumber( $serialNumber, $deviceType)
+    {
+        foreach (IPS_GetInstanceListByModuleID('{496AB8B5-396A-40E4-AF41-32F4C48AC90D}') as $instanceID)  // Echo Remote Devices
+        {
+            if (IPS_GetInstance($instanceID)['ConnectionID'] === IPS_GetInstance($this->InstanceID)['ConnectionID']) {
+                if (IPS_GetProperty($instanceID, 'Devicetype') == $deviceType && IPS_GetProperty($instanceID, 'Devicenumber') && $serialNumber ) {
+                    return $instanceID;
+                }
+            }
+        }
+        return 0;
     }
 
     public function UpdateAutomations()
@@ -447,27 +523,20 @@ class EchoBot extends IPSModule
 
     }
 
-    public function UpdateConfigurationForm(string $name, $value)
+    private function GetLastActivityInformation()
     {
-        switch ($name){
-            case 'AutomationID':
-                $this->UpdateFormField('Utterances', 'caption', $this->GetUtterancesForLabel($value) ) ;
-                break;
-
-            case 'ActionType':
-                $this->UpdateFormField('ActionType_0', 'visible', $value == 0) ;
-                $this->UpdateFormField('ActionType_1', 'visible', $value == 1) ;
-                $this->UpdateFormField('ActionType_2', 'visible', $value == 2) ;
-                $this->UpdateFormField('ActionType_3', 'visible', $value == 3) ;
-                break;
-
-            case 'RefreshAutomations':
-                $this->UpdateAutomations();
-                $this->UpdateFormField('AutomationID', 'options', json_encode($this->GetAutomationsForSelect() )) ;
-                $this->UpdateFormField('Utterances', 'caption', $this->GetUtterancesForLabel($value) ) ;
-                break;
+        $lastActivity = json_decode($this->ReadAttributeString('LastActivity'), true);
+        $text = "";
+        if  ($lastActivity != false){
+            $text .= "    ".$this->Translate("Device").":    \t\t".$lastActivity['deviceName']."\n";
+            $text .= "    ".$this->Translate("Utterance").": \t\t".$lastActivity['utterance']."\n";
+            $text .= "    ".$this->Translate("Time").":      \t\t". date('Y-m-d H:i', intval($lastActivity['timestamp'])) ."\n";
+        } else {
+            $text .= "    ".$this->Translate("no information available yet");
         }
+        return $text;
     }
+
 
     public function GetConfigurationForm(): string
     {
@@ -502,14 +571,14 @@ class EchoBot extends IPSModule
                 'name'    => 'AutomationID',
                 'type'    => 'Select',
                 'caption' => 'Routine name',
-                'onChange' => 'ECHOBOT_UpdateConfigurationForm($id, "AutomationID", $AutomationID);',
+                'onChange' => 'IPS_RequestAction($id, "AutomationID", $AutomationID);',
                 'width'    => '500px',
                 'options' => $this->GetAutomationsForSelect()
                 ],
                 [
                 'type'    => 'Button',
                 'caption' => 'Refresh',
-                'onClick' => 'ECHOBOT_UpdateConfigurationForm($id, "RefreshAutomations", $AutomationID);', 
+                'onClick' => 'IPS_RequestAction($id, "RefreshAutomations", $AutomationID);', 
                 ]
             ]
         ];
@@ -544,7 +613,7 @@ class EchoBot extends IPSModule
             'name'    => 'ActionType',
             'type'    => 'Select',
             'caption' => 'Action type',
-            'onChange' => 'ECHOBOT_UpdateConfigurationForm($id, "ActionType", $ActionType);',
+            'onChange' => 'IPS_RequestAction($id, "ActionType", $ActionType);',
             'width'    => '500px',
             'options' => [
                 [ 'caption' => 'Text-to-speech response (simple)', 'value' => 0],
@@ -627,31 +696,6 @@ class EchoBot extends IPSModule
             ]
         ];
 
-        /*
-
-        $elements[] = [
-            'type' => 'RowLayout',
-            'name' => 'ActionType_0',
-            'visible' => $actionType == 0,
-            'items' => [
-                    [
-                        'name'    => 'Text1',
-                        'type'    => 'ValidationTextBox',
-                        'caption' => 'Text'
-                    ],
-                    [
-                        'name'    => 'VariableID1',
-                        'type'    => 'SelectVariable',
-                        'caption' => 'Variable'
-                    ],
-                    [
-                        'name'    => 'Text2',
-                        'type'    => 'ValidationTextBox',
-                        'caption' => 'Text'
-                    ]
-            ]
-        ];
-        */
 
         $elements[] = [
             'type' => 'ColumnLayout',
@@ -720,7 +764,7 @@ class EchoBot extends IPSModule
             ]
         ];
 
-        
+        /*
         $elements[] = [
             'type' => 'ExpansionPanel',
             'caption' => 'Help',
@@ -738,6 +782,7 @@ class EchoBot extends IPSModule
                 ]
             ]
         ];
+        */
         
         return $elements;
     }
@@ -749,10 +794,43 @@ class EchoBot extends IPSModule
      */
     private function FormActions(): array
     {
+        $devices = $this->GetDevicesForSelect();
+        array_shift($devices);
+
         $form = [
             [
-                'type'    => 'TestCenter',]
-            ];
+                'type' => 'RowLayout',
+                'items' => [
+                    [
+                        'type' => 'Select',
+                        'name' => 'TestDevice',
+                        'options' => $devices
+                    ],      
+                    [
+                        'type'    => 'Button',
+                        'caption' => 'Test Action',
+                        'onClick' => 'IPS_RequestAction($id, "TestAction", $TestDevice);', 
+                    ]
+                ]
+            ],
+            [
+                'type' => 'Label',
+                'caption' => ''
+            ],
+            [
+                'type' => 'Label',
+                'italic' => false,
+                'color' => 7566195,
+                'caption' => "Information about the last execution of the routine:"
+            ],
+            [
+                'type' => 'Label',
+                'italic' => true,
+                'color' => 7566195,
+                'caption' => $this->GetLastActivityInformation()
+            ]
+            
+        ];
 
         return $form;
     }

@@ -18,7 +18,14 @@
       "Addressed Device": "Angesprochenes Gerät",
       "All Devices": "Alle Geräte",
       "Error in text-to-speech script. See message log for more information." : "Fehler im Text-To-Speech Skript. Siehe Meldungsfenster für weitere Informationen.",
-      "Information about last activity is available in $_IPS system variable." : "Informationen über die letzte Aktivität sind in den Systemvariablen $_IPS verfügbar."
+      "Information about last activity is available in $_IPS system variable." : "Informationen über die letzte Aktivität sind in den Systemvariablen $_IPS verfügbar.",
+      "Test Action": "Teste Aktion",
+      "Information about the last execution of the routine:": "Informationen über die letzte Ausführung der Routine:",
+      "no information available yet":"Es sind noch keine Informationen verfügbar",
+      "Device": "Gerät",
+      "Utterance": "Ausdruck",
+      "Time": "Zeit",
+      "Please say the routines trigger once to an echo device before the test function can be used": "Bitte sagen sie den Auslöser der Routine einmal zu einem Echo Geräte, bevor die Testfunktion verwendet werden kann"
     }
   }
 }
