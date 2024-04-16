@@ -21,7 +21,7 @@ class AmazonEchoIO extends IPSModule
     private const STATUS_INST_REFRESH_TOKEN_IS_EMPTY = 215; // authentication must be performed.
 
     private const UserAgentBrowser  = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15';
-    private const UserAgentApp      = 'AppleWebKit PitanguiBridge/2.2.556530.0-[HARDWARE=iPhone14_7][SOFTWARE=16.6][DEVICE=iPhone]';
+    private const UserAgentApp      = 'AppleWebKit PitanguiBridge/2.2.595606.0-[HARDWARE=iPhone14_7][SOFTWARE=17.4.1][DEVICE=iPhone]';
 
     public function Create()
     {
@@ -184,6 +184,15 @@ class AmazonEchoIO extends IPSModule
             $this->SetTimerInterval('GetLastActivity', 0);
         }  
         
+    }
+
+    public function RequestAction($ident, $value)
+    {
+        switch ($ident) {
+            case 'TimerLastAction':
+                $this->UpdateFormField('GetLastActivityInterval', 'visible', $value);
+                break;
+        }
     }
 
 
@@ -407,9 +416,9 @@ class AmazonEchoIO extends IPSModule
     {
         // csfr-token is needed for customer-history-records requests
 
-        $url = 'https://www.' . $this->GetAmazonURL() . '/alexa-privacy/apd/rvh';
+        $url = 'https://www.' . $this->GetAmazonURL() . '/alexa-privacy/apd/activity?disableGlobalNav=true&ref=activityHistory';
 
-        $headers[] = 'User-Agent: '. self::UserAgentBrowser;
+        $headers[] = 'User-Agent: '. self::UserAgentApp;
         $headers[] = 'DNT: 1';
         $headers[] = 'Connection: keep-alive';
         $headers[] = 'Content-Type: application/json; charset=UTF-8';
@@ -1201,7 +1210,7 @@ class AmazonEchoIO extends IPSModule
         return 0;
     }
 
-    public function GetCustomerHistoryRecords( $startTime, $endTime)
+    public function GetCustomerHistoryRecords( int $startTime, int $endTime)
     {
         if ( $this->GetStatus() != 102 )
         {
@@ -1216,18 +1225,17 @@ class AmazonEchoIO extends IPSModule
             $csrfToken = $this->ReadAttributeString('CsrfToken');
         }
 
-        $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2?startTime='. $startTime .'&endTime='. $endTime .'&disableGlobalNav=false';
+        //$url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2?startTime='. $startTime .'&endTime='. $endTime .'&disableGlobalNav=false';
+        $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2/?startTime='. $startTime .'&endTime='. $endTime .'&pageType=VOICE_HISTORY';
 
         $headers = array();
         $headers[] = 'Content-Type: application/json;charset=utf-8';
         $headers[] = 'Accept: application/json, text/plain, */*';
-        $headers[] = 'Sec-Fetch-Site: same-origin';
-        $headers[] = 'Sec-Fetch-Mode: cors';
+        $headers[] = 'Accept-Language: '.$this->GetLanguage();
         $headers[] = 'Origin: https://www.' . $this->GetAmazonURL();
-        $headers[] = 'User-Agent: '. self::UserAgentBrowser;
-        $headers[] = 'Referer: https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh';
-        $headers[] = 'Connection: keep-alive';
-        $headers[] = 'Sec-Fetch-Dest: empty';
+        $headers[] = 'User-Agent: '. self::UserAgentApp;
+        $headers[] = 'authority: https://www.' . $this->GetAmazonURL();
+        $headers[] = 'referer: https://www.' . $this->GetAmazonURL() . '/alexa-privacy/apd/activity?disableGlobalNav=true&ref=activityHistory';
         $headers[] = 'anti-csrftoken-a2z: ' . $csrfToken;
 
         $postfields['previousRequestToken'] = null;
@@ -1855,9 +1863,27 @@ class AmazonEchoIO extends IPSModule
                 'type' => 'CheckBox',
                 'caption' => 'setup variables for last activity'],
             [
-                'name' => 'TimerLastAction',
-                'type' => 'CheckBox',
-                'caption' => 'Update last activity periodically (see expert settings for update interval)'],
+                'type' => 'RowLayout',
+                'items' => [
+                    [
+                        'name' => 'TimerLastAction',
+                        'type' => 'CheckBox',
+                        'caption' => 'Update last activity periodically',
+                        'width' => '400px',
+                        'onChange' => 'IPS_RequestAction($id, "TimerLastAction", $TimerLastAction);'
+                    ],
+                    [
+                        'name'    => 'GetLastActivityInterval',
+                        'type'    => 'NumberSpinner',
+                        'caption' => 'Interval',
+                        'suffix'  => 'seconds',
+                        'minimum' => 3,
+                        'width'   => '150px',
+                        'visible' => $this->ReadPropertyBoolean('TimerLastAction')
+                    ]
+                ]
+            ],
+
             [
                 'type'    => 'ExpansionPanel',
                 'caption' => 'Expert settings',
@@ -1868,17 +1894,13 @@ class AmazonEchoIO extends IPSModule
                         'type'    => 'NumberSpinner',
                         'caption' => 'Update interval',
                         'suffix'  => 'seconds',
-                        'minimum' => 60],
-                    [
-                        'name'    => 'GetLastActivityInterval',
-                        'type'    => 'NumberSpinner',
-                        'caption' => 'Last activity update interval',
-                        'suffix'  => 'seconds',
-                        'minimum' => 3],
+                        'minimum' => 60
+                    ],
                     [
                         'name' => 'LogMessageEx',
                         'type' => 'CheckBox',
-                        'caption' => 'Extented log messages']
+                        'caption' => 'Extented log messages'
+                    ]
                 ]
             ]
 
