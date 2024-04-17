@@ -173,7 +173,7 @@ class AmazonEchoIO extends IPSModule
 
         $this->SetTimerInterval('UpdateStatus', $interval);
 
-        
+        /*
         if ( $this->ReadPropertyBoolean('TimerLastAction')){
             $interval = $this->ReadPropertyInteger('GetLastActivityInterval') * 1000;
             if ($interval < 3000){
@@ -182,7 +182,9 @@ class AmazonEchoIO extends IPSModule
             $this->SetTimerInterval('GetLastActivity', $interval);
         } else {
             $this->SetTimerInterval('GetLastActivity', 0);
-        }  
+        }
+        */
+        $this->SetTimerInterval('GetLastActivity', 0);
         
     }
 
@@ -1862,6 +1864,7 @@ class AmazonEchoIO extends IPSModule
                 'name' => 'VariablesLastActivity',
                 'type' => 'CheckBox',
                 'caption' => 'setup variables for last activity'],
+            /*
             [
                 'type' => 'RowLayout',
                 'items' => [
@@ -1883,7 +1886,7 @@ class AmazonEchoIO extends IPSModule
                     ]
                 ]
             ],
-
+            */
             [
                 'type'    => 'ExpansionPanel',
                 'caption' => 'Expert settings',
