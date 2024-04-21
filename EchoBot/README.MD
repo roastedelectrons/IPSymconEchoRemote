@@ -1,6 +1,8 @@
 # EchoBot
 Der EchoBot kann auf einen Sprachbefehl reagieren und verschiedene Aktionen ausführen, wie z.B. eine direkte Text-To-Speech Antwort auf dem Echo-Gerät ausgeben, das angesprochen wurde oder ein Skript in IP-Symcon ausführen.
 
+**Wichtig: Es wird das Amazon Alexa Modul von Symcon benötigt, um die Aktionen des EchoBots zu triggern.**
+
 ## Inhaltsverzeichnis
 1. [Funktionsumfang](#funktionsumfang)
 2. [Einmalige Einrichtung](#einmalige-einrichtung)
@@ -14,20 +16,7 @@ Wenn ein Sprachbefehl (dieser muss als Auslöser in einer Alexa-Routine definier
 
 ## Einmalige Einrichtung
 
-Damit das Modul mitbekommt, dass ein Echo-Gerät angesprochen und eine Routine gestartet wurde, müssen einmalig vor der ersten Benutzung ein paar Einstellungen vorgenommen werden. Es gibt es zwei Optionen, wie das Modul Informationen über neue Aktivitäten erhalten kann:
-
-|     | Vorteil| Nachteil |
-|-----| -----  | -----    |
-|Option 1: letzte Aktivität periodisch abfragen | + kein zusätzliches Modul erforderlich | - Antwort-Aktion wird ggf. ein paar Sekunden verzögert ausgeführt|
-|Option 2: Amazon Alexa Modul als Rückkanal     | + Antwort-Aktion wird ohne Verzögerung ausgeführt | - zusätzlich Alexa Modul erforderlich <br> - in Routinen (Alexa App) muss die Trigger-Szene aufgerufen werden (siehe unten)|
-
-### Option 1: letzte Aktivität periodisch abfragen
-
-1. IP-Symcon: Splitter Instanzen -> EchoIO Instanz 
-    - `letzte Aktivität periodisch abrufen` aktivieren
-    - `Aktualisierungsintervall für letzte Aktivität` auf minimalen Wert stellen
-
-### Option 2: Amazon Alexa Modul als Rückkanal
+Damit das Modul mitbekommt, dass ein Echo-Gerät angesprochen und eine Routine gestartet wurde, müssen einmalig vor der ersten Benutzung ein paar Einstellungen vorgenommen werden:
 
 1. IP-Symcon: Kerninstanzen -> Alexa
     1. Unter Szenen -> `hinzufügen`
@@ -36,16 +25,15 @@ Damit das Modul mitbekommt, dass ein Echo-Gerät angesprochen und eine Routine g
         - Aktion: Experte -> Führe erweiterte Instanzfunktion aus
         - Funktion: ECHOIO_GetLastActivity auswählen
     2. Speichern 
-2. Einem beliebigen Echo-Gerät sagen: "Alexa, suche neue Geräte"
-3. IP-Symcon: Splitter Instanzen -> EchoIO Instanz 
-    1. `letzte Aktivität periodisch abrufen`  deaktivieren (optional - sofern nicht anderweitig benötigt)
+2. Einem beliebigen Echo-Gerät sagen: "Alexa, suche neue Geräte". In der Alexa App sollte nun eine neue Szene mit dem oben vergebenen Namen verfügbar sein. Diese Szene wird für Einrichtung der jeweiligen EchoBots benötigt (siehe unten).
+
 
 ## Einrichtung eines Echo Bots
 
 ### In Alexa App: 
 1. Routine erstellen
     - Ereignis hinzufügen -> Stimme -> Einen oder mehrere Sätze definieren, die die Routine starten sollen. 
-    - *[Nur bei Option 2]* Aktion hinzufügen -> SmartHome -> Szenen -> TriggerLastActivity auswählen
+    - Aktion hinzufügen -> SmartHome -> Szenen -> TriggerLastActivity auswählen
 
 ### In IP-Symcon: 
 1. EchoBot Instanz erstellen
