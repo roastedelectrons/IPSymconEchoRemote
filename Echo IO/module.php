@@ -1102,9 +1102,33 @@ class AmazonEchoIO extends IPSModule
         $this->SendDebug($notification, $message, $format);
     }
 
+    private function GetLastActivityRateLimit()
+    {
+        $rateLimit = 60/3600; //Requests per hour
+        $lastRequest = (int) $this->GetBuffer( 'LastRequestTimestamp' );
+        $requestBucket = (float) $this->GetBuffer( 'LastRequestBucket' );
+
+        $newBucket = (time() - $lastRequest) * $rateLimit + $requestBucket;
+        $newBucket = min($rateLimit*3600, $newBucket); 
+        $newBucket = max(0, $newBucket-1); 
+        $this->SetBuffer( 'LastRequestBucket', $newBucket );
+        $this->SetBuffer( 'LastRequestTimestamp', time() );
+        $this->SendDebug( __FUNCTION__, 'Bucket: '.$newBucket . ' - LastBucket: '. $requestBucket  , 0);
+
+        if ($newBucket <= 0){
+            trigger_error( 'GetLastActivity: too many requests. Do not call the function periodically!', E_USER_ERROR);
+            return false;
+        }
+
+        return true;
+    }
+
 
     public function GetLastActivity()
     {
+
+        if ($this->GetLastActivityRateLimit() === false)
+            return [];
 
         if ( IPS_SemaphoreEnter ( 'GetLastActivity.'.$this->InstanceID , 2500) )
         {
