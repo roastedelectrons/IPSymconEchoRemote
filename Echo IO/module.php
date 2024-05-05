@@ -1228,7 +1228,7 @@ class AmazonEchoIO extends IPSModule
         foreach (IPS_GetInstanceListByModuleID('{496AB8B5-396A-40E4-AF41-32F4C48AC90D}') as $instanceID)  // Echo Remote Devices
         {
             if (IPS_GetInstance($instanceID)['ConnectionID'] === $this->InstanceID) {
-                if (IPS_GetProperty($instanceID, 'Devicetype') == $deviceType && IPS_GetProperty($instanceID, 'Devicenumber') && $serialNumber ) {
+                if ( (IPS_GetProperty($instanceID, 'Devicetype') == $deviceType) && (IPS_GetProperty($instanceID, 'Devicenumber') == $serialNumber) ) {
                     return $instanceID;
                 }
             }
