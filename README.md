@@ -70,16 +70,20 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.5 BETA (2024-04-09)
-* New: EchoBot
+Version 2.5 (2024-05-05)
+* EchoBot
    * Wenn ein Sprachbefehl (dieser muss als Auslöser in einer Alexa-Routine definiert werden) von einem Echo-Gerät empfangen wurde, können folgende Aktionen ausgeführt werden:
       * Text-to-speech Antwort in Abhängkeit vom angesprochenen Echo-Gerät ausgeben
       * Unterschiedliche Aktionen in Abhängigkeit vom angesprochenen Echo-Gerät ausführen
       * Skript in IP-Symcon ausführen
-* New: Aktion (zur Verwendung in Szenen des Amazon Alexa Moduls) zum ausführen von unterschiedlichen Aktionen in Abhängigkeit vom zuletzt angesprochenen Echo-Gerätes
-* New: Variablen zum De-/Aktivieren der Wecker
-* New: neue DeviceTypes hinzugefügt
-* New: GetLastActivity liefert auch die InstanzID des Gerätes im Array zurück
+* Neue Aktion zum Ausführen von unterschiedlichen Aktionen in Abhängigkeit vom zuletzt angesprochenen Echo-Gerätes (zur Verwendung in Szenen des Symcon Alexa Moduls)
+* Änderungen bei letzter Aktivität (GetLastActivity):
+   * Möglichkeit zur periodischen Abfrage entfernt (alternativ kann der EchoBot oder die neue Aktion in Verbindung mit dem Symcon Alexa Modul verwendet werden)
+   * Limit um zu verhindern, dass GetLastActivity zu häufig aufgerufen wird 
+   * GetLastActivity liefert die InstanzID des Gerätes im Array zurück
+* Neu: Variablen zum De-/Aktivieren der Wecker
+* Neu: neue DeviceTypes hinzugefügt
+
 
 Version 2.4.1 (2024-02-07) 
 * Change: Nutze neue API für letzte Aktivität
