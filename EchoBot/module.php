@@ -345,7 +345,7 @@ class EchoBot extends IPSModule
         $list[] = array('caption' => 'All Devices', 'value' => 'ALL_DEVICES');
 
         foreach( $devices as $device){
-            if ( $device['deviceFamily'] == 'ECHO' || $device['deviceFamily'] == 'KNIGHT' || $device['deviceFamily'] == 'ROOK' ) {
+            if ( in_array( $device['deviceFamily'], array('ECHO', 'KNIGHT', 'ROOK', 'TABLET') ) ) {
                 $list[] = [
                     'caption' => $device['accountName'], 
                     'value' => $device['deviceType'].'#'.$device['serialNumber']
