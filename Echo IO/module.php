@@ -1140,9 +1140,9 @@ class AmazonEchoIO extends IPSModule
                 $this->SendDebug(__FUNCTION__, 'waiting', 0);
                 IPS_Sleep(2500 - $delay*1000);
             }
-
-            $startTime =intval( $this->GetBuffer('LastActivityTimestamp') );
-            $endTime = (time() + 60*60)*1000;
+            // use float for compatibility with 32bit systems
+            $startTime =floatval( $this->GetBuffer('LastActivityTimestamp') );
+            $endTime = floatval( (time() + 60*60)*1000);
     
             $result = $this->GetCustomerHistoryRecords($startTime, $endTime);
 
@@ -1236,7 +1236,7 @@ class AmazonEchoIO extends IPSModule
         return 0;
     }
 
-    public function GetCustomerHistoryRecords( int $startTime, int $endTime)
+    public function GetCustomerHistoryRecords( float $startTime, float $endTime)
     {
         if ( $this->GetStatus() != 102 )
         {
@@ -1252,7 +1252,7 @@ class AmazonEchoIO extends IPSModule
         }
 
         //$url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2?startTime='. $startTime .'&endTime='. $endTime .'&disableGlobalNav=false';
-        $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2/?startTime='. $startTime .'&endTime='. $endTime .'&pageType=VOICE_HISTORY';
+        $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2/?startTime='. round($startTime) .'&endTime='. round($endTime) .'&pageType=VOICE_HISTORY';
 
         $headers = array();
         $headers[] = 'Content-Type: application/json;charset=utf-8';
