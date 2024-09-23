@@ -924,21 +924,28 @@ class EchoRemote extends IPSModule
      */
     public function GetToDos(string $type, bool $completed = null): ?array
     {
-        $getfields = [
-            'type' => $type, //SHOPPING_ITEM or TASK,
-            'size' => 500
-        ];
 
-        if ($completed !== null) {
-            $getfields['completed'] = $completed ? 'true' : 'false';
+        $cutomerID = $this->GetCustomerID();
+
+        if ($type == 'SHOPPING_ITEM') {
+            $listID = $cutomerID.'-SHOP';
+        }
+        elseif ($type == 'TASK') {
+            $listID = $cutomerID.'-TODO';
+        }
+        else {
+            return null;
         }
 
-        $payload['url'] =  '/api/todos?' . http_build_query($getfields);
+
+        $options['completed'] = $completed ? 'true' : 'false';
+
+        $payload['url'] =  '/api/namedLists/' . $listID . '/items?'. http_build_query($options);
 
         $result = $this->SendDataPacket('AlexaApiRequest', $payload);
 
         if (isset($result['http_code']) && ($result['http_code'] === 200)) {
-            return json_decode($result['body'], true)['values'];
+            return json_decode($result['body'], true)['list'];
         }
 
         return null;
@@ -2993,7 +3000,7 @@ class EchoRemote extends IPSModule
 <main class="echo_mediaplayer1">
 <table class="shopping_item">';
         foreach ($Items as $Item) {
-            $html .= '<tr><td>' . $Item['text'] . '</td></tr>';
+            $html .= '<tr><td>' . $Item['value'] . '</td></tr>';
         }
         $html .= '
 </table>
