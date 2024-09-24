@@ -3140,7 +3140,7 @@ class EchoRemote extends IPSModule
                     [
                         'name'    => 'OnlineStatus',
                         'type'    => 'CheckBox',
-                        'caption' => 'setup variable for online status']
+                        'caption' => 'setup variable for online status (offline status delayed by 10 minutes)']
                 ]
             ],
             [

@@ -29,6 +29,9 @@ Ab Version 2.0 erfolgt die Authentifizierung ausschließlich mittels Refresh-Tok
 - __Echo Configurator__ ([Dokumentation](Amazon%20Echo%20Configurator))  
 	Konfigurator zum Erstellen und Einrichten der Echo Device Instanzen.
 
+- __Echo Bot__ ([Dokumentation](EchoBot))  
+	Der EchoBot kann auf einen Sprachbefehl reagieren und verschiedene Aktionen ausführen, wie z.B. eine direkte Text-To-Speech Antwort auf dem Echo-Gerät ausgeben, das angesprochen wurde oder ein Skript in IP-Symcon ausführen.
+
 ## Einrichtung 
 
 ### Modul und Instanzen installieren

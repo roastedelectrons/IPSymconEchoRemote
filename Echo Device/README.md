@@ -111,7 +111,7 @@ Modul zur Steuerung der Musikwiedergabe, Text-Ansagen und Ausführung von Routin
 |ShoppingList |string |~HTMLBox |Einkaufsliste |
 |TaskList |string |~HTMLBox |Task Liste |
 |Automation |integer |Echo.Automation |Automation |
-|OnlineStatus |boolean |~Switch |Online Status |
+|OnlineStatus |boolean |~Switch |Online Status (Offline-Status 10 Minuten verzögert)|
 
 ## PHP-Befehlsreferenz
 
