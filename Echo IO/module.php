@@ -1102,43 +1102,19 @@ class AmazonEchoIO extends IPSModule
         $this->SendDebug($notification, $message, $format);
     }
 
-    private function GetLastActivityRateLimit()
-    {
-        $rateLimit = 60/3600; //Requests per hour
-        $lastRequest = (int) $this->GetBuffer( 'LastRequestTimestamp' );
-        $requestBucket = (float) $this->GetBuffer( 'LastRequestBucket' );
-
-        $newBucket = (time() - $lastRequest) * $rateLimit + $requestBucket;
-        $newBucket = min($rateLimit*3600, $newBucket); 
-        $newBucket = max(0, $newBucket-1); 
-        $this->SetBuffer( 'LastRequestBucket', $newBucket );
-        $this->SetBuffer( 'LastRequestTimestamp', time() );
-        $this->SendDebug( __FUNCTION__, 'Bucket: '.$newBucket . ' - LastBucket: '. $requestBucket  , 0);
-
-        if ($newBucket <= 0){
-            trigger_error( 'GetLastActivity: too many requests. Do not call the function periodically!', E_USER_ERROR);
-            return false;
-        }
-
-        return true;
-    }
-
 
     public function GetLastActivity()
     {
-
-        if ($this->GetLastActivityRateLimit() === false)
-            return [];
 
         if ( IPS_SemaphoreEnter ( 'GetLastActivity.'.$this->InstanceID , 2500) )
         {
             // Throttle requests due to rate limit
             $delay = microtime(true) - floatval( $this->GetBuffer( 'GetLastActivityRequestTimestamp' ));
 
-            if ( $delay < 2.5)
+            if ( $delay < 5.0)
             {
                 $this->SendDebug(__FUNCTION__, 'waiting', 0);
-                IPS_Sleep(2500 - $delay*1000);
+                IPS_Sleep(5000 - $delay*1000);
             }
             // use float for compatibility with 32bit systems
             $startTime =floatval( $this->GetBuffer('LastActivityTimestamp') );
@@ -1236,6 +1212,32 @@ class AmazonEchoIO extends IPSModule
         return 0;
     }
 
+    private function CheckRateLimit()
+    {
+        $rateLimit = 60/3600; //Requests per hour
+        $lastRequest = (int) $this->GetBuffer( 'LastRequestTimestamp' );
+        $requestBucket = (float) $this->GetBuffer( 'LastRequestBucket' );
+
+        $newBucket = (time() - $lastRequest) * $rateLimit + $requestBucket;
+        $newBucket = min($rateLimit*3600, $newBucket); 
+        $newBucket = max(0, $newBucket-1); 
+        $this->SetBuffer( 'LastRequestBucket', $newBucket );
+        $this->SetBuffer( 'LastRequestTimestamp', time() );
+        $this->SendDebug( __FUNCTION__, 'Bucket: '.$newBucket . ' - LastBucket: '. $requestBucket  , 0);
+
+        if ($newBucket <= 0){
+            trigger_error( 'Too many requests. Function is disabled for the next ' . round(1/$rateLimit) . ' seconds!' , E_USER_ERROR);
+            return false;
+        }
+
+        return true;
+    }
+
+    private function ActivateRateLimit()
+    {
+        $this->SetBuffer( 'LastRequestBucket', 0 );
+    }
+
     public function GetCustomerHistoryRecords( float $startTime, float $endTime)
     {
         if ( $this->GetStatus() != 102 )
@@ -1244,14 +1246,17 @@ class AmazonEchoIO extends IPSModule
             return false;
         }
 
+        if ($this->CheckRateLimit() === false)
+            return false;
+
         $csrfToken = $this->ReadAttributeString('CsrfToken');
 
         if ($csrfToken == ''){
             $this->getCsrfToken();
             $csrfToken = $this->ReadAttributeString('CsrfToken');
+            IPS_Sleep( 1000 );
         }
 
-        //$url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2?startTime='. $startTime .'&endTime='. $endTime .'&disableGlobalNav=false';
         $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2/?startTime='. round($startTime) .'&endTime='. round($endTime) .'&pageType=VOICE_HISTORY';
 
         $headers = array();
@@ -1270,9 +1275,12 @@ class AmazonEchoIO extends IPSModule
 
         if (isset($result['http_code']) && $result['http_code'] == 403) {
             // invalid csrf-token
-            trigger_error('403 Forbidden - csrf-token invalid(?)');
             $this->WriteAttributeString('CsrfToken', '');
         }
+
+        if (isset($result['http_code']) && $result['http_code'] == 429) {
+            $this->ActivateRateLimit();
+        } 
 
         if (isset($result['http_code']) && $result['http_code'] == 200) {
             return json_decode($result['body'], true);
