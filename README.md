@@ -73,6 +73,10 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
+Version 2.5.1 (2024-09-24)
+* Optimierung des Ratelimits von GetLastActivity
+* Fix: Bei Einkaufs- und ToDo-Listen werden nun alle Einträge geladen 
+
 Version 2.5 (2024-05-05)
 * EchoBot
    * Wenn ein Sprachbefehl (dieser muss als Auslöser in einer Alexa-Routine definiert werden) von einem Echo-Gerät empfangen wurde, können folgende Aktionen ausgeführt werden:
