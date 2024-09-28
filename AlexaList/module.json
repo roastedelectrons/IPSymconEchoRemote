@@ -1,0 +1,12 @@
+{
+    "id":                 "{7129178B-E633-238A-0851-2F1B5A09805E}",
+    "name":               "AlexaList",
+    "type":               3,
+    "vendor":             "Amazon",
+    "aliases":            ["Alexa Shopping- and ToDo-List"],
+    "parentRequirements": ["{8E187D67-F330-2B1D-8C6E-B37896D7AE3E}"],
+    "childRequirements":  [],
+    "implemented":        ["{E41E38AC-30D7-CA82-DEF5-9561A5B06CD7}"],
+    "prefix":             "ALEXALIST",
+    "url":                "https://github.com/roastedelectrons/IPSymconEchoRemote"
+}

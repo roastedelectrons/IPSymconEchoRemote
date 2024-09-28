@@ -1,0 +1,18 @@
+{
+  "translations": {
+    "de": {
+      "Alexa Shopping- and ToDo-List": "Alexa Einkaufs- und ToDo-Liste",
+      "List": "Liste",
+      "Reload Lists": "Listen neu laden",
+      "Visualisation settings": "Visualisierungs-Einstellungen", 
+      "Show completed items": "Zeige erledigte Einträge",
+      "Delete completed items from list": "Lösche erledigte Einträge von Liste",
+      "Update interval": "Aktualisierungsintervall",
+      "minutes": "Minuten",
+      "Refresh": "Aktualisieren",
+      "Add Item": "Eintrag hinzufügen",
+      "Shoppinglist (default)": "Einkaufsliste (Standard)",
+      "ToDo (default)": "Aufgabenliste (Standard)"
+    }
+  }
+}

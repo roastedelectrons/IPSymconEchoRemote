@@ -32,6 +32,9 @@ Ab Version 2.0 erfolgt die Authentifizierung ausschließlich mittels Refresh-Tok
 - __Echo Bot__ ([Dokumentation](EchoBot))  
 	Der EchoBot kann auf einen Sprachbefehl reagieren und verschiedene Aktionen ausführen, wie z.B. eine direkte Text-To-Speech Antwort auf dem Echo-Gerät ausgeben, das angesprochen wurde oder ein Skript in IP-Symcon ausführen.
 
+- __Alexa List__ ([Dokumentation](EchoList))  
+	Modul zur Darstellung und Bearbeitung von Alexa Einkaufs- und Aufgabenlisten in IP-Symcon.
+
 ## Einrichtung 
 
 ### Modul und Instanzen installieren
@@ -72,6 +75,11 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 
 ## Changelog
+
+Version 2.6 (2024-09-28)
+* Neu: Modul für Alexa Einkauf- und Aufgabenlisten
+   * Einträge hinzufügen, abhaken und löschen per Skript und TileVisu
+   * Eigene Darstellung für Tile-Visualisierung   
 
 Version 2.5.1 (2024-09-24)
 * Optimierung des Ratelimits von GetLastActivity
