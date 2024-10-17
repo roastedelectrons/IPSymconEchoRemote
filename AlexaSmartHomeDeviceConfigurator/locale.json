@@ -1,0 +1,14 @@
+{
+  "translations": {
+    "de": {
+      "Devices": "Geräte",
+      "Name": "Name",
+      "Description": "Beschreibung",
+      "Manufacturer": "Hersteller",
+      "Type": "Typ",
+      "Capabilities": "Funktionen",
+      "Filter duplicates": "Duplikate ausblenden",
+      "Filter unsupported devices": "Nicht unterstützte Geräte ausblenden"
+    }
+  }
+}

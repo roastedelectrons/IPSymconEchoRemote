@@ -51,6 +51,9 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
         $this->RegisterTimer('UpdateStatus', 0, 'ECHOIO_UpdateStatus(' . $this->InstanceID . ');');
         $this->RegisterTimer('GetLastActivity', 0, 'ECHOIO_GetLastActivity(' . $this->InstanceID . ');');
+        $this->RegisterTimer('AlexaSmartHomeDeviceStateRequest.15', 0, 'IPS_RequestAction('.$this->InstanceID.', "AlexaSmartHomeDeviceStateRequest", 15);');
+        $this->RegisterTimer('AlexaSmartHomeDeviceStateRequest.60', 0, 'IPS_RequestAction('.$this->InstanceID.', "AlexaSmartHomeDeviceStateRequest", 60);');
+        $this->RegisterTimer('AlexaSmartHomeDeviceStateRequest.1440', 0, 'IPS_RequestAction('.$this->InstanceID.', "AlexaSmartHomeDeviceStateRequest", 1440);');
 
         //we will wait until the kernel is ready
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -131,6 +134,9 @@ class AmazonEchoIO extends IPSModule
             $this->SetTimerInterval('RefreshCookie', 0);
             $this->SetTimerInterval('UpdateStatus', 0);
             $this->SetTimerInterval('GetLastActivity', 0);
+            $this->SetTimerInterval('AlexaSmartHomeDeviceStateRequest.15', 0);
+            $this->SetTimerInterval('AlexaSmartHomeDeviceStateRequest.60', 0);
+            $this->SetTimerInterval('AlexaSmartHomeDeviceStateRequest.1440', 0);
             $this->SetStatus(IS_INACTIVE);
             return;
         }
@@ -185,6 +191,9 @@ class AmazonEchoIO extends IPSModule
         }
         */
         $this->SetTimerInterval('GetLastActivity', 0);
+        $this->SetTimerInterval('AlexaSmartHomeDeviceStateRequest.15', 15*60*1000);
+        $this->SetTimerInterval('AlexaSmartHomeDeviceStateRequest.60', 60*60*1000);
+        $this->SetTimerInterval('AlexaSmartHomeDeviceStateRequest.1440',24*60*60*1000);
         
     }
 
@@ -193,6 +202,10 @@ class AmazonEchoIO extends IPSModule
         switch ($ident) {
             case 'TimerLastAction':
                 $this->UpdateFormField('GetLastActivityInterval', 'visible', $value);
+                break;
+
+            case 'AlexaSmartHomeDeviceStateRequest':
+                $this->getAlexaSmartHomeDeviceStates( $value);
                 break;
         }
     }
@@ -1076,6 +1089,53 @@ class AmazonEchoIO extends IPSModule
         
     }
 
+    private function getAlexaSmartHomeDeviceStates( int $interval )
+    {
+        $url = 'https://'. $this->GetAlexaURL().'/api/phoenix/state';
+
+        $instances = $this->getAlexaSmartHomeDeviceInstances();
+
+        foreach ($instances as $instance){
+            if ($instance['UpdateInterval'] == $interval && $instance['EntityID'] != ''){
+                $data['stateRequests'][] = [
+                    'entityId' => $instance['EntityID'],
+                    'entityType'=> 'ENTITY'
+                ];
+            }
+        }
+
+
+        if (!isset($data['stateRequests']))
+            return [];
+
+        $result = $this->AlexaApiRequest( $url, $data , 'POST');
+
+        if (isset($result['http_code']) && ($result['http_code'] === 200)) {
+            $data = json_decode($result['body'], true);
+            $this->SendDataToAlexaSmartHomeDevice('AlexaSmartHomeDevice', 'deviceStates', $data);
+            return $data;
+        }
+        
+        return [];
+    }
+
+    private function getAlexaSmartHomeDeviceInstances()
+    {
+        $instanceList = [];
+        foreach (IPS_GetInstanceListByModuleID('{5C3C56EA-DF4C-4BC3-76C5-1EC8DC479CB5}') as $instanceID)  // AlexaSmartHomeDevice
+        {
+            if (IPS_GetInstance($instanceID)['ConnectionID'] === $this->InstanceID) 
+            {
+                $instanceList[] = [
+                    'InstanceID'    => $instanceID,
+                    'EntityID'      => IPS_GetProperty($instanceID, 'EntityID'),
+                    'UpdateInterval'=> IPS_GetProperty($instanceID, 'UpdateInterval')
+                ];
+            }
+        }
+        return $instanceList;
+    }
+
 
     private function RegisterVariableProfileLastDevice()
     {
@@ -1307,6 +1367,15 @@ class AmazonEchoIO extends IPSModule
         $this->SendDataToChildren( json_encode($payload) );
     }
 
+    private function SendDataToAlexaSmartHomeDevice($entityID, $type, $data)
+    {
+        $payload['DataID']          = '{CEBA5877-FB81-6814-A458-E04B2E580F59}';
+        $payload['Type']            = $type;
+        $payload['EntityID']        = $entityID;
+        $payload['Payload']         = $data;
+
+        $this->SendDataToChildren( json_encode($payload) );
+    }
 
     /** Receive data from children and forward to api
      * @param $JSONString

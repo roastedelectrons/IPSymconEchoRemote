@@ -1,0 +1,32 @@
+{
+  "translations": {
+    "de": {
+      "Invalid EntityID": "Ungültige EntityID",
+      "Update interval": "Aktualisierungsintervall",
+      "Device Information": "Geräteinformationen",
+      "Devices": "Geräte",
+      "Name": "Name",
+      "Description": "Beschreibung",
+      "Manufacturer": "Hersteller",
+      "Type": "Typ",
+      "Connection": "Verbindung",
+      "Capabilities": "Funktionen",
+      "Load Device Information": "Lade Geräteinformationen",
+      "Update state variables": "Statusvariablen aktualisieren",
+      "disabled": "deaktiviert",
+      "15 minutes": "15 Minuten",
+      "60 minutes": "60 Minuten",
+      "24 hours": "24 Stunden",
+      "state": "Status",
+      "percentage": "Prozent",
+      "brightness": "Helligkeit",
+      "color": "Farbe",
+      "color temperature": "Farbtemperatur",
+      "temperature": "Temperatur",
+      "scene": "Szene",
+      "set temperature": "Solltemperatur",
+      "connectivity": "Konnektivität",
+      "illuminance": "Beleuchtungsstärke"
+    }
+  }
+}
