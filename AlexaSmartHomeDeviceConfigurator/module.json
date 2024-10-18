@@ -1,12 +1,12 @@
 {
   "id":                 "{4A82F3EC-792A-3DAF-BD86-60CA09C1C68C}",
-  "name":               "AlexaSmartHomeConfigurator",
+  "name":               "AlexaSmartHomeDeviceConfigurator",
   "type":               4,
   "vendor":             "Amazon",
   "aliases":            ["Alexa SmartHome Configurator"],
   "parentRequirements": ["{2BD76048-32BD-7D8B-AB6C-626D5C6D7253}"],
   "childRequirements":  [],
   "implemented":        ["{CEBA5877-FB81-6814-A458-E04B2E580F59}"],
-  "prefix":             "AlexaSmartHomeConfigurator",
+  "prefix":             "AlexaSmartHomeDeviceConfigurator",
   "url":                "https://github.com/roastedelectrons/IPSymconEchoRemote"
 }
