@@ -20,23 +20,11 @@
         background: #555;
     }  
 
-
+    
     #inputForm {
         margin: auto;
         max-width: 600px;
         padding-top: 0.5em;
-    }
-
-    input[type=checkbox] {
-        accent-color: #00cdab;
-        width: 1.5em;
-        height: 1.5em;
-        margin: 1em;
-    }
-    label {
-        vertical-align: middle;
-        position:relative;
-        bottom: 5px;
     }
 
     input[type=text] {
@@ -48,6 +36,7 @@
         border: 1px solid gray;
         border-radius: 5px;
     }
+
     button {
         padding: 0.7em 0px;
         width: 100px;
@@ -68,8 +57,46 @@
 
     
     li {
-        margin-bottom: 0.2em;
+        line-height: 1.5;
+        display: grid;
+        grid-template-columns: 1em auto;
+        gap: 1.2em;
+        margin-top: 1.5em;
     }
+
+
+    input[type="checkbox"] {
+        -webkit-appearance: none;
+        appearance: none;
+        background-color: #fff;
+        margin: 0;
+        font: inherit;
+        color: #00cdab;
+        width: 1.5em;
+        height: 1.5em;
+        border: 0.2em solid #00cdab;
+        border-radius: 0.15em;
+        transform: translateY(-0.075em);
+        display: grid;
+        place-content: center;
+    }
+
+    input[type="checkbox"]::before {
+        content: "";
+        width: 1em;
+        height: 1em;
+        transform: scale(0);
+        transition: 120ms transform ease-in-out;
+        box-shadow: inset 1em 1em var(--form-control-color);
+        background-color: #00cdab;
+        transform-origin: bottom left;
+        clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    }
+
+    input[type="checkbox"]:checked::before {
+        transform: scale(1);
+    }
+
 
 </style>
 
@@ -113,7 +140,7 @@
         }
     }
 
-    requestAction('Update', '');
+    requestAction('VisuGetList', '');
 </script>
 
 

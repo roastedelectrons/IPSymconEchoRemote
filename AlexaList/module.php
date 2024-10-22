@@ -105,6 +105,11 @@ class AlexaList extends IPSModule
                 $this->SetValue($ident, '');
                 break;
 
+            case 'VisuGetList':
+                $items = $this->ReadAttributeString('ListItems',);
+                $this->UpdateVisualizationValue($items);
+                break;
+
             case 'VisuAddItem':
                 $this->AddItem($value);
                 $this->Update();
@@ -179,7 +184,9 @@ class AlexaList extends IPSModule
         $this->WriteAttributeString('ListItems', json_encode($items));
 
         $this->UpdateListVariable($items);
-        $this->UpdateVisualizationValue( json_encode($items) );
+        if (IPS_GetKernelVersion() >= 7.1){
+            $this->UpdateVisualizationValue( json_encode($items) );
+        }
     }
 
 
