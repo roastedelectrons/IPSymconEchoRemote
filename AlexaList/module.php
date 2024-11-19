@@ -158,35 +158,50 @@ class AlexaList extends IPSModule
         return $module;
     }
 
-    private function UpdateListVariable( array $listItems )
+    private function UpdateVisualization()
+    {
+		$items = $this->GetItemsForVisu();
+
+        $this->UpdateVariables($items);
+
+        if (IPS_GetKernelVersion() >= 7.1){
+            $this->UpdateVisualizationValue( json_encode($items) );
+        }
+    }
+
+	private function UpdateVariables( array $listItems )
     {
         $string = '';
 
         foreach($listItems as $item){
             $symbol = "☐";
             if ($item['completed'])
-                $symbol = "☑";
+            	$symbol = "☑";
             $string .= $symbol. "    " .$item['value']."\n\r";
         }
         
         $this->SetValue('List', $string);
     }
 
+	private function GetItemsForVisu()
+	{
+		$items = json_decode($this->ReadAttributeString('ListItems'), true);
+
+		if ($items === false)
+			return [];
+
+		foreach( $items as $key=>$item){
+			if (!$this->ReadPropertyBoolean('ShowCompletedItems') && $item['completed']){
+				unset($items[$key]);
+			}
+		}
+		return $items;
+	}
+
+
     public function Update()
     {
-        if ($this->ReadPropertyBoolean('ShowCompletedItems')){
-            $items = $this->GetListItems(true);
-        } else {
-            $items = $this->GetListItems(false);
-        }
-        
-        
-        $this->WriteAttributeString('ListItems', json_encode($items));
-
-        $this->UpdateListVariable($items);
-        if (IPS_GetKernelVersion() >= 7.1){
-            $this->UpdateVisualizationValue( json_encode($items) );
-        }
+        $this->GetItems();
     }
 
 
@@ -205,12 +220,16 @@ class AlexaList extends IPSModule
 
     public function CheckItem( string $itemText )
     {
-        $item = $this->getListItemByName( $itemText );
+        $items = $this->getListItemByName( $itemText );
 
-        if ($item != false)
-            return $this->CheckItemByID($item ['id']);
+        $result = true; 
 
-        return false;
+        foreach($items as $item){
+            if ( !$this->CheckItemByID($item ['id']) )
+                $result = false;
+        }
+
+        return $result;
     }
 
     public function CheckItemByID( string $itemID)
@@ -235,12 +254,16 @@ class AlexaList extends IPSModule
 
     public function DeleteItem( string $itemText )
     {
-        $item = $this->getListItemByName( $itemText );
+        $items = $this->getListItemByName( $itemText );
 
-        if ($item != [])
-            return $this->DeleteItemByID($item ['id']);
+        $result = true; 
 
-        return false;
+        foreach($items as $item){
+            if ( !$this->DeleteItemByID($item ['id']) )
+                $result = false;
+        }
+
+        return $result;
     }
 
     public function DeleteItemByID( string $itemID )
@@ -252,8 +275,31 @@ class AlexaList extends IPSModule
         return $this->deleteListItem( $item);
     }
 
+    public function GetItems(bool $includeCompletedItems = false)
+    {
 
-    public function GetListItems(bool $includeCompletedItems = false): ?array
+        $items = $this->getListItems(true);
+
+        if ($items === false)
+            return false;
+
+        $this->WriteAttributeString('ListItems', json_encode($items));
+
+        $this->UpdateVisualization();
+
+		if ($includeCompletedItems === false){
+			foreach($items as $key=>$item){
+				if ( $item['completed'] == true){
+					unset($items[$key]);
+				}
+			}
+		}
+
+        return $items;
+    }
+
+
+    private function getListItems(bool $includeCompletedItems = false)
     {
         $options = [];
 
@@ -265,23 +311,25 @@ class AlexaList extends IPSModule
         $result = $this->SendDataPacket('AlexaApiRequest', $payload);
 
         if (isset($result['http_code']) && ($result['http_code'] === 200)) {
-            return json_decode($result['body'], true)['list'];
+            $items = json_decode($result['body'], true)['list'];
+            return $items;
         }
 
-        return [];
+        return false;
     }
 
-    private function getListItemByName( $itemText )
+    private function getListItemByName( $itemText ): ?array
     {
         $items = json_decode($this->ReadAttributeString('ListItems'), true);
 
+        $result = [];
         foreach ($items as $item){
-            if ($item['value'] == $itemText){
-                return $item;
+            if (strtolower($item['value']) == strtolower($itemText)){
+                $result[] = $item;
             }
         }
 
-        return [];
+        return $result;
     }
 
     private function getListItem( $itemID ): ?array
