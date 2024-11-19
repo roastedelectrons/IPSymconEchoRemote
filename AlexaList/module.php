@@ -106,8 +106,8 @@ class AlexaList extends IPSModule
                 break;
 
             case 'VisuGetList':
-                $items = $this->ReadAttributeString('ListItems',);
-                $this->UpdateVisualizationValue($items);
+                $items = $this->GetItemsForVisu();
+                $this->UpdateVisualizationValue(json_encode($items));
                 break;
 
             case 'VisuAddItem':
