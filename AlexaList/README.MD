@@ -76,7 +76,7 @@ ALEXALIST_DeleteItemByID( int $InstanceID, string $itemID );
 
 ### GetListItems
 ```php
-ALEXALIST_GetListItems( int $InstanceID, bool $includeCompletedItems );
+ALEXALIST_GetItems( int $InstanceID, bool $includeCompletedItems );
 ```
 |Parameter| Typ| Beschreibung |
 |-----| -----| ----- |

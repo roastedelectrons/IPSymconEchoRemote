@@ -42,7 +42,7 @@
         width: 100px;
         font-size: 1em;
         cursor: pointer;
-        background-color:#00cdab;
+        background-color:var(--accent-color, #00cdab);
         color: white;
         border: none;
         border-radius: 5px;
@@ -68,13 +68,13 @@
     input[type="checkbox"] {
         -webkit-appearance: none;
         appearance: none;
-        background-color: #fff;
+        background-color: var(--card-color, backgroundColor);
         margin: 0;
         font: inherit;
-        color: #00cdab;
+        color: var(--accent-color, #00cdab);
         width: 1.5em;
         height: 1.5em;
-        border: 0.2em solid #00cdab;
+        border: 0.2em solid var(--accent-color, #00cdab);
         border-radius: 0.15em;
         transform: translateY(-0.075em);
         display: grid;
@@ -88,7 +88,7 @@
         transform: scale(0);
         transition: 120ms transform ease-in-out;
         box-shadow: inset 1em 1em var(--form-control-color);
-        background-color: #00cdab;
+        background-color: var(--accent-color, #00cdab);
         transform-origin: bottom left;
         clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
     }
@@ -140,7 +140,11 @@
         }
     }
 
-    requestAction('VisuGetList', '');
+    document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById('inputItem').placeholder = translate(document.getElementById('inputItem').placeholder );
+        requestAction('VisuGetList', '');
+    });
+    
 </script>
 
 
