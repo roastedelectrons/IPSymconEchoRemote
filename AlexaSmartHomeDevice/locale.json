@@ -25,6 +25,7 @@
       "temperature": "Temperatur",
       "scene": "Szene",
       "set temperature": "Solltemperatur",
+      "thermostat mode": "Thermostat Modus",
       "connectivity": "Konnektivität",
       "illuminance": "Beleuchtungsstärke"
     }

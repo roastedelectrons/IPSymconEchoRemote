@@ -138,8 +138,28 @@ class AlexaSmartHomeDevice extends IPSModule
                 */     
                     
                 case 'Alexa.ThermostatController':
+                    // Register setpoint variable
                     $this->MaintainVariable('targetSetpoint', $this->Translate('set temperature'), 2, '~Temperature', 1, true );
                     $this->EnableAction('targetSetpoint');
+
+                    // Create Mode Profile
+                    if (isset($capability['configuration']['supportedModes']) && count($capability['configuration']['supportedModes']) > 0 ){
+                        $associations = array();
+                        foreach($capability['configuration']['supportedModes'] as $mode){
+                            $associations[] = [$mode['value'], $mode['value'], '', -1];
+                        }
+                        $profileName = 'Alexa.ThermostatMode.'.$this->InstanceID;
+
+                        $this->RegisterProfileAssociation($profileName, 'temperature-list', '', '', 0, 1, 0, 0, VARIABLETYPE_STRING, $associations);
+                    } else {
+                        $profileName = '';
+                    }
+
+                    // Register mode variable
+                    $this->MaintainVariable('thermostatMode', $this->Translate('thermostat mode'), VARIABLETYPE_STRING, $profileName, 1, true );
+                    if ($profileName !== ''){
+                        $this->EnableAction('thermostatMode');
+                    }
                     break;
 
                 case 'Alexa.SceneController': 
@@ -190,6 +210,11 @@ class AlexaSmartHomeDevice extends IPSModule
 
             case 'targetSetpoint':
                 $this->SetTemperature ($value);
+                $this->SetValue($ident, $value);
+                break;
+
+            case 'thermostatMode':
+                $this->SetThermostatMode ($value);
                 $this->SetValue($ident, $value);
                 break;
 
@@ -287,6 +312,11 @@ class AlexaSmartHomeDevice extends IPSModule
                         if ($state['name'] == "targetSetpoint"){
                             $value = floatval($state['value']['value']);
                             @$this->SetValue('targetSetpoint', $value);
+                        }
+
+                        if ($state['name'] == "thermostatMode"){
+                            $value = $state['value'];
+                            @$this->SetValue('thermostatMode', $value);
                         }
                         break;
 
@@ -489,6 +519,24 @@ class AlexaSmartHomeDevice extends IPSModule
                 'action' => 'setTargetTemperature',
                 'targetTemperature.value' => $temperature,
                 'targetTemperature.scale' => 'celsius'
+            ]
+        ];
+
+        $result = $this->SendCommand( $url, $data , 'PUT');  
+        
+        return $result;
+    }
+
+    private function SetThermostatMode( string $thermostatMode )
+    {
+        $url = '/api/phoenix/state';
+
+        $data['controlRequests'][] = [
+            'entityId' => $this->getEntityID(),
+            'entityType'=> 'ENTITY',
+            'parameters' => [
+                'action' => 'setThermostatMode',
+                'thermostatMode.value' => $thermostatMode
             ]
         ];
 
