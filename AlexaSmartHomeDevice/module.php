@@ -208,7 +208,7 @@ class AlexaSmartHomeDevice extends IPSModule
                 break;
 
             case 'Update':
-                $this->Update() ;
+                $this->UpdateState() ;
                 break;
                 
         }
@@ -295,7 +295,22 @@ class AlexaSmartHomeDevice extends IPSModule
         }
     }
 
-    private function Update()
+    public function Update()
+    {
+        $lastUpdate = intval($this->GetBuffer('LastUpdate'));
+
+        if ( time() - $lastUpdate <= 900) {
+            trigger_error( 'Too many requests. Function can be called only once every 15 minutes.' , E_USER_ERROR);
+            return false;
+        }
+
+        $this->SetBuffer('LastUpdate', time());
+
+        $this->UpdateState();
+
+    }
+
+    private function UpdateState()
     {
 
             $states = $this->GetState();
