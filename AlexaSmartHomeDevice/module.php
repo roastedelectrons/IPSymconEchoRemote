@@ -277,8 +277,15 @@ class AlexaSmartHomeDevice extends IPSModule
             case 'mode':
                 $instance = substr($ident, 5);
                 $instance = str_replace('_', '.', $instance);
-                $this->SetMode($instance, $value);
                 $this->SetValue($ident, $value);
+                $this->SetMode($instance, $value);
+
+                $capability = $this->getCapability('Alexa.ModeController', $instance);
+
+                // Reset variable if device does not report the mode state
+                if (!$capability['properties']['retrievable']){
+                    $this->SetValue($ident, '');
+                }
                 break;
 
             case 'toggleState':
@@ -724,7 +731,20 @@ class AlexaSmartHomeDevice extends IPSModule
         return array();
     }
 
+    private function getCapability( string $name, string $instance = ''){
+        $info = json_decode( $this->ReadAttributeString('DeviceInformation'), true);
 
+        foreach ($info['capabilities'] as $capability ){
+            if ($capability['interfaceName'] == $name){
+
+                if ($instance == '' || ( $instance != '' && $capability['instance'] = $instance) ) {
+                    return $capability;
+                }
+            }
+        }
+
+        return false;
+    }
 
     private function getEntityID()
     {
