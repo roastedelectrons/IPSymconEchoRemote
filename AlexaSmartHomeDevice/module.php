@@ -174,6 +174,55 @@ class AlexaSmartHomeDevice extends IPSModule
                     $this->EnableAction('scene');
                     break;
 
+
+                case 'Alexa.ModeController':
+
+                    $instanceName = $capability['instance'];
+                    $variableIdent = 'mode_'.str_replace('.', '_', $instanceName);
+
+                    // Create Mode Profile
+                    if (isset($capability['configuration']['supportedModes']) && count($capability['configuration']['supportedModes']) > 0 ){
+                        $associations = array();
+                        foreach($capability['configuration']['supportedModes'] as $mode){
+                            $modeName = $mode['value'];
+
+                            if (isset($mode['modeResources']['friendlyNames'])){
+                                foreach ($mode['modeResources']['friendlyNames'] as $friendlyName){
+                                    if ($friendlyName['@type'] == 'text' && strtolower($friendlyName['value']['locale']) == 'en-us'){
+                                        $modeName = $friendlyName['value']['text'];
+                                        break;
+                                    }
+                                }
+                            }
+                            $associations[] = [$mode['value'], $modeName, '', -1];
+                        }
+                        $profileName = 'Alexa.ModeController.'.$instanceName.'.'.$this->InstanceID;
+
+                        $this->RegisterProfileAssociation($profileName, '', '', '', 0, 1, 0, 0, VARIABLETYPE_STRING, $associations);
+                    } else {
+                        $profileName = '';
+                    }
+
+                    // Register mode variable
+                    $this->MaintainVariable($variableIdent, $instanceName, VARIABLETYPE_STRING, $profileName, 1, true );
+                    if ($profileName !== ''){
+                        $this->EnableAction($variableIdent);
+                    }
+                    break;
+
+                case 'Alexa.ToggleController':
+                    $instanceName = $capability['instance'];
+                    $variableIdent = 'toggleState_'.str_replace('.', '_', $instanceName);
+
+                    $this->MaintainVariable($variableIdent, $instanceName, VARIABLETYPE_BOOLEAN, '~Switch', 1, true );
+                    $this->EnableAction($variableIdent);
+                    break;
+
+                case 'Alexa.LockController':
+                    $this->MaintainVariable('lockState', $this->Translate('lock state'), VARIABLETYPE_BOOLEAN, '~Lock', 1, true );
+                    $this->EnableAction('lockState');
+                    break;
+
             }
         }
     }
@@ -181,8 +230,9 @@ class AlexaSmartHomeDevice extends IPSModule
 
     public function RequestAction($ident, $value)
     {
+        $name = explode('_', $ident)[0];
 
-        switch ($ident) {
+        switch ($name) {
             // Variable actions
             case 'powerState':
                 $this->Switch($value);
@@ -223,7 +273,25 @@ class AlexaSmartHomeDevice extends IPSModule
                 $this->Scene( boolval($value));
                 $this->SetValue($ident, -1);
                 break;
-            
+
+            case 'mode':
+                $instance = substr($ident, 5);
+                $instance = str_replace('_', '.', $instance);
+                $this->SetMode($instance, $value);
+                $this->SetValue($ident, $value);
+                break;
+
+            case 'toggleState':
+                $instance = substr($ident, 12);
+                $instance = str_replace('_', '.', $instance);
+                $this->ToggleState( $instance, $value);
+                $this->SetValue($ident, $value);
+                break;
+
+            case 'lockState':
+                $this->Lock($value);
+                $this->SetValue($ident, $value);
+                break;      
 
             // Form actions
             case 'UpdateDeviceInformation':
@@ -320,6 +388,24 @@ class AlexaSmartHomeDevice extends IPSModule
                         }
                         break;
 
+                    case 'Alexa.ModeController':
+                        $ident = 'mode_'.str_replace('.', '_', $state['instance']);
+                        $value = $state['value'];
+                        @$this->SetValue($ident, $value);
+                        break;
+
+                    case 'Alexa.ToggleController':
+                        $value = ($state['value'] == 'ON') ? true : false;
+                        $ident = 'toggleState_'.str_replace('.', '_', $state['instance']);
+                        @$this->SetValue($ident, $value);
+                        break;
+
+                    case 'Alexa.LockController':
+                        $value = ($state['value'] == 'LOCKED') ? true : false;
+                        @$this->SetValue('lockState', $value);
+                        break;
+                        
+                        
                 }
             }
         }
@@ -545,6 +631,67 @@ class AlexaSmartHomeDevice extends IPSModule
         return $result;
     }
 
+    private function SetMode( string $instance, string $mode )
+    {
+        $url = '/api/phoenix/state';
+
+        $action = 'setModeValue';
+
+        $data['controlRequests'][] = [
+            'entityId' => $this->getEntityID(),
+            'entityType'=> 'ENTITY',
+            'parameters' => [
+                'action' => $action, 
+                'mode' => $mode,
+                'instance' => $instance
+            ]
+        ];
+
+        $result = $this->SendCommand( $url, $data , 'PUT');  
+        
+        return $result;
+    }
+
+    private function ToggleState( string $instance, bool $state )
+    {
+         // function to be verified
+        $url = '/api/phoenix/state';
+
+        $action = $state ? 'turnOnToggle' : 'turnOffToggle';
+
+        //$action = $action.'@'.$this->getEntityID().'_'.$instance;
+
+        $data['controlRequests'][] = [
+            'entityId' => $this->getEntityID(),
+            'entityType'=> 'ENTITY',
+            'parameters' => [
+                'action' => $action,
+                'instance' => $instance
+            ]
+        ];
+        $result = $this->SendCommand( $url, $data , 'PUT'); 
+        
+        return $result;
+    }
+
+    private function Lock( bool $state )
+    {
+        $url = '/api/phoenix/state';
+
+        $lockState = $state ? 'LOCKED' : 'UNLOCKED';
+
+        $data['controlRequests'][] = [
+            'entityId' => $this->getEntityID(),
+            'entityType'=> 'ENTITY',
+            'parameters' => [
+                'action' => 'lockAction',
+                'targetLockState.value' => $lockState
+            ]
+        ];
+        $result = $this->SendCommand( $url, $data , 'PUT'); 
+        
+        return $result;
+    }
 
     private function getSmartHomeDevice()
     {

@@ -27,7 +27,8 @@
       "set temperature": "Solltemperatur",
       "thermostat mode": "Thermostat Modus",
       "connectivity": "Konnektivität",
-      "illuminance": "Beleuchtungsstärke"
+      "illuminance": "Beleuchtungsstärke",
+      "lock state": "Verriegelungszustand"
     }
   }
 }
