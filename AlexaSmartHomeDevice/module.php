@@ -178,7 +178,8 @@ class AlexaSmartHomeDevice extends IPSModule
                 case 'Alexa.ModeController':
 
                     $instanceName = $capability['instance'];
-                    $variableIdent = 'mode_'.str_replace('.', '_', $instanceName);
+                    $variableName = $this->getFriendlyName($capability['resources']['friendlyNames'], $capability['instance']);
+                    $variableIdent = 'mode_'.$this->sanitizeIdent($capability['instance']);                   
 
                     // Create Mode Profile
                     if (isset($capability['configuration']['supportedModes']) && count($capability['configuration']['supportedModes']) > 0 ){
@@ -187,12 +188,7 @@ class AlexaSmartHomeDevice extends IPSModule
                             $modeName = $mode['value'];
 
                             if (isset($mode['modeResources']['friendlyNames'])){
-                                foreach ($mode['modeResources']['friendlyNames'] as $friendlyName){
-                                    if ($friendlyName['@type'] == 'text' && strtolower($friendlyName['value']['locale']) == 'en-us'){
-                                        $modeName = $friendlyName['value']['text'];
-                                        break;
-                                    }
-                                }
+                                $modeName = $this->getFriendlyName($mode['modeResources']['friendlyNames'], $mode['value']);
                             }
                             $associations[] = [$mode['value'], $modeName, '', -1];
                         }
@@ -204,7 +200,7 @@ class AlexaSmartHomeDevice extends IPSModule
                     }
 
                     // Register mode variable
-                    $this->MaintainVariable($variableIdent, $instanceName, VARIABLETYPE_STRING, $profileName, 1, true );
+                    $this->MaintainVariable($variableIdent, $variableName, VARIABLETYPE_STRING, $profileName, 1, true );
                     if ($profileName !== ''){
                         $this->EnableAction($variableIdent);
                     }
@@ -212,9 +208,10 @@ class AlexaSmartHomeDevice extends IPSModule
 
                 case 'Alexa.ToggleController':
                     $instanceName = $capability['instance'];
-                    $variableIdent = 'toggleState_'.str_replace('.', '_', $instanceName);
+                    $variableIdent = 'toggleState_'.$this->sanitizeIdent($capability['instance']);
+                    $variableName = $this->getFriendlyName($capability['resources']['friendlyNames'], $capability['instance']);
 
-                    $this->MaintainVariable($variableIdent, $instanceName, VARIABLETYPE_BOOLEAN, '~Switch', 1, true );
+                    $this->MaintainVariable($variableIdent, $variableName, VARIABLETYPE_BOOLEAN, '~Switch', 1, true );
                     $this->EnableAction($variableIdent);
                     break;
 
@@ -275,8 +272,7 @@ class AlexaSmartHomeDevice extends IPSModule
                 break;
 
             case 'mode':
-                $instance = substr($ident, 5);
-                $instance = str_replace('_', '.', $instance);
+                $instance = $this->getCapabilityInstanceByIdent($ident);
                 $this->SetValue($ident, $value);
                 $this->SetMode($instance, $value);
 
@@ -289,8 +285,7 @@ class AlexaSmartHomeDevice extends IPSModule
                 break;
 
             case 'toggleState':
-                $instance = substr($ident, 12);
-                $instance = str_replace('_', '.', $instance);
+                $instance = $this->getCapabilityInstanceByIdent($ident);
                 $this->ToggleState( $instance, $value);
                 $this->SetValue($ident, $value);
                 break;
@@ -396,14 +391,14 @@ class AlexaSmartHomeDevice extends IPSModule
                         break;
 
                     case 'Alexa.ModeController':
-                        $ident = 'mode_'.str_replace('.', '_', $state['instance']);
+                        $ident = 'mode_'.$this->sanitizeIdent($state['instance']);
                         $value = $state['value'];
                         @$this->SetValue($ident, $value);
                         break;
 
                     case 'Alexa.ToggleController':
                         $value = ($state['value'] == 'ON') ? true : false;
-                        $ident = 'toggleState_'.str_replace('.', '_', $state['instance']);
+                        $ident = 'toggleState_'.$this->sanitizeIdent($state['instance']);
                         @$this->SetValue($ident, $value);
                         break;
 
@@ -737,8 +732,44 @@ class AlexaSmartHomeDevice extends IPSModule
         foreach ($info['capabilities'] as $capability ){
             if ($capability['interfaceName'] == $name){
 
-                if ($instance == '' || ( $instance != '' && $capability['instance'] = $instance) ) {
+                if ($instance == '' || ( $instance != '' && $capability['instance'] == $instance) ) {
                     return $capability;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function getCapabilityInstanceByIdent(string $ident){
+        $info = json_decode( $this->ReadAttributeString('DeviceInformation'), true);
+
+        $ident = explode('_', $ident);
+
+        if (count($ident)<2) return false;
+        
+        $capabilityIdent = $ident[0];
+        $instanceIdent = $ident[1]; // This is the sanitized instance name
+
+        switch ($capabilityIdent){
+            case 'mode':
+                $interfaceName = 'Alexa.ModeController';
+                break;
+
+            case 'toggleState':
+                $interfaceName = 'Alexa.ToggleController';
+                break;
+
+            default:
+                $interfaceName = '';
+                break;
+        }
+
+        foreach ($info['capabilities'] as $capability ){
+            if ($capability['interfaceName'] == $interfaceName){
+
+                if ( $this->sanitizeIdent($capability['instance']) == $instanceIdent ) {
+                    return $capability['instance'];
                 }
             }
         }
@@ -751,6 +782,32 @@ class AlexaSmartHomeDevice extends IPSModule
         return $this->ReadPropertyString('EntityID');
     }
 
+    private function sanitizeIdent($input) {
+        // Entfernt alle Zeichen außer Buchstaben, Zahlen und Unterstrich
+        return preg_replace('/[^a-zA-Z0-9_]/', '', $input);
+    }
+    
+    private function getFriendlyName(array $friendlyNames, string $default){
+        $systemLanguage = str_replace('_', '-', IPS_GetSystemLanguage());
+
+        $name = $this->getFriendlyNameByLanguage($friendlyNames, $systemLanguage );
+        if ($name != '') return $name;
+
+        $name = $this->getFriendlyNameByLanguage($friendlyNames, 'en-US');
+        if ($name != '') return $name;
+
+        return $default;
+    }
+
+    private function getFriendlyNameByLanguage( array $friendlyNames, string $language){
+
+        foreach ($friendlyNames as $friendlyName){
+            if ($friendlyName['@type'] == 'text' && strtolower($friendlyName['value']['locale']) == strtolower($language) ){
+                return $friendlyName['value']['text'];
+            }
+        }
+        return '';
+    }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
