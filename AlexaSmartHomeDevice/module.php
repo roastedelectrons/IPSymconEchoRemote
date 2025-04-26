@@ -93,46 +93,56 @@ class AlexaSmartHomeDevice extends IPSModule
 
 
         foreach ($capabilities as $capability){
+            $interfaceNameIdent = $this->sanitizeIdent($capability['interfaceName']);
             switch ($capability['interfaceName']){
                 case 'Alexa.EndpointHealth':
-                    $this->MaintainVariable('connectivity', $this->Translate('connectivity'), 0, '~Switch', 1, true );
+                    $ident = $interfaceNameIdent.'_connectivity';
+                    $this->MaintainVariable($ident , $this->Translate('connectivity'), 0, '~Switch', 1, true );
                     break;
 
                 case 'Alexa.PowerController':
-                    $this->MaintainVariable('powerState', $this->Translate('state'), 0, '~Switch', 1, true );
-                    $this->EnableAction('powerState');
+                    $ident = $interfaceNameIdent.'_powerState';
+                    $this->MaintainVariable($ident, $this->Translate('state'), 0, '~Switch', 1, true );
+                    $this->EnableAction($ident);
                     break;
 
                 case 'Alexa.PercentageController':
-                    $this->MaintainVariable('percentage', $this->Translate('percentage'), 1, '~Intensity.100', 1, true );
-                    $this->EnableAction('percentage');
+                    $ident = $interfaceNameIdent.'_percentage';
+                    $this->MaintainVariable($ident, $this->Translate('percentage'), 1, '~Intensity.100', 1, true );
+                    $this->EnableAction($ident);
                     break;
 
                 case 'Alexa.BrightnessController':
-                    $this->MaintainVariable('brightness', $this->Translate('brightness'), 1, '~Intensity.100', 1, true );
-                    $this->EnableAction('brightness');
+                    $ident = $interfaceNameIdent.'_brightness';
+                    $this->MaintainVariable($ident, $this->Translate('brightness'), 1, '~Intensity.100', 1, true );
+                    $this->EnableAction($ident);
                     break;
 
                 case 'Alexa.ColorController':
-                    $this->MaintainVariable('color', $this->Translate('color'), 1, '~HexColor', 1, true );
-                    $this->EnableAction('color');
+                    $ident = $interfaceNameIdent.'_color';
+                    $this->MaintainVariable($ident, $this->Translate('color'), 1, '~HexColor', 1, true );
+                    $this->EnableAction($ident);
                     break;
 
                 case 'Alexa.ColorTemperatureController':
-                    $this->MaintainVariable('colorTemperatureInKelvin', $this->Translate('color temperature'), 1, '~TWColor', 1, true );
-                    $this->EnableAction('colorTemperatureInKelvin');
+                    $ident = $interfaceNameIdent.'_colorTemperatureInKelvin';
+                    $this->MaintainVariable($ident, $this->Translate('color temperature'), 1, '~TWColor', 1, true );
+                    $this->EnableAction($ident);
                     break;
 
                 case 'Alexa.TemperatureSensor':
-                    $this->MaintainVariable('temperature', $this->Translate('temperature'), 2, '~Temperature', 1, true );
+                    $ident = $interfaceNameIdent.'_temperature';
+                    $this->MaintainVariable($ident, $this->Translate('temperature'), 2, '~Temperature', 1, true );
                     break;
 
                 case 'Alexa.HumiditySensor':
-                    $this->MaintainVariable('relativeHumidity', $this->Translate('relative humidity'), 2, '~Humidity.F', 1, true );
+                    $ident = $interfaceNameIdent.'_relativeHumidity';
+                    $this->MaintainVariable($ident, $this->Translate('relative humidity'), 2, '~Humidity.F', 1, true );
                     break;
 
                 case 'Alexa.LightSensor':
-                    $this->MaintainVariable('illuminance', $this->Translate('illuminance'), 1, '~Illumination', 1, true );
+                    $ident = $interfaceNameIdent.'_illuminance';
+                    $this->MaintainVariable($ident, $this->Translate('illuminance'), 1, '~Illumination', 1, true );
                     break;
 
                 /*
@@ -142,11 +152,12 @@ class AlexaSmartHomeDevice extends IPSModule
                 */     
                     
                 case 'Alexa.ThermostatController':
-                    // Register setpoint variable
-                    $this->MaintainVariable('targetSetpoint', $this->Translate('set temperature'), 2, '~Temperature', 1, true );
-                    $this->EnableAction('targetSetpoint');
+                    // setpoint variable
+                    $ident = $interfaceNameIdent.'_targetSetpoint';
+                    $this->MaintainVariable($ident, $this->Translate('set temperature'), 2, '~Temperature', 1, true );
+                    $this->EnableAction($ident);
 
-                    // Create Mode Profile
+                    //  mode variable
                     if (isset($capability['configuration']['supportedModes']) && count($capability['configuration']['supportedModes']) > 0 ){
                         $associations = array();
                         foreach($capability['configuration']['supportedModes'] as $mode){
@@ -159,10 +170,10 @@ class AlexaSmartHomeDevice extends IPSModule
                         $profileName = '';
                     }
 
-                    // Register mode variable
-                    $this->MaintainVariable('thermostatMode', $this->Translate('thermostat mode'), VARIABLETYPE_STRING, $profileName, 1, true );
+                    $ident = $interfaceNameIdent.'_thermostatMode';
+                    $this->MaintainVariable($ident, $this->Translate('thermostat mode'), VARIABLETYPE_STRING, $profileName, 1, true );
                     if ($profileName !== ''){
-                        $this->EnableAction('thermostatMode');
+                        $this->EnableAction($ident);
                     }
                     break;
 
@@ -173,9 +184,11 @@ class AlexaSmartHomeDevice extends IPSModule
                             [1, $this->Translate('Activate'), '', -1]
                         ]
                     );
-                    $this->MaintainVariable('scene', $this->Translate('scene'), 1, 'Alexa.Scene', 0, true );
-                    $this->SetValue('scene', -1);
-                    $this->EnableAction('scene');
+
+                    $ident = $interfaceNameIdent.'_scene';
+                    $this->MaintainVariable($ident, $this->Translate('scene'), 1, 'Alexa.Scene', 0, true );
+                    $this->SetValue($ident, -1);
+                    $this->EnableAction($ident);
                     break;
 
 
@@ -183,7 +196,7 @@ class AlexaSmartHomeDevice extends IPSModule
 
                     $instanceName = $capability['instance'];
                     $variableName = $this->getFriendlyName($capability['resources']['friendlyNames'], $capability['instance']);
-                    $variableIdent = 'mode_'.$this->sanitizeIdent($capability['instance']);                   
+                    $variableIdent = $interfaceNameIdent.'_mode_'.$this->sanitizeIdent($capability['instance']);                   
 
                     // Create Mode Profile
                     if (isset($capability['configuration']['supportedModes']) && count($capability['configuration']['supportedModes']) > 0 ){
@@ -214,7 +227,7 @@ class AlexaSmartHomeDevice extends IPSModule
 
                     $instanceName = $capability['instance'];
                     $variableName = $this->getFriendlyName($capability['capabilityResources']['friendlyNames'], $capability['instance']);
-                    $variableIdent = 'rangeValue_'.$this->sanitizeIdent($capability['instance']);                   
+                    $variableIdent = $interfaceNameIdent.'_rangeValue_'.$this->sanitizeIdent($capability['instance']);                   
 
                     // Presets
                     $associations = array();
@@ -252,7 +265,7 @@ class AlexaSmartHomeDevice extends IPSModule
 
                 case 'Alexa.ToggleController':
                     $instanceName = $capability['instance'];
-                    $variableIdent = 'toggleState_'.$this->sanitizeIdent($capability['instance']);
+                    $variableIdent = $interfaceNameIdent.'_toggleState_'.$this->sanitizeIdent($capability['instance']);
                     $variableName = $this->getFriendlyName($capability['resources']['friendlyNames'], $capability['instance']);
 
                     $this->MaintainVariable($variableIdent, $variableName, VARIABLETYPE_BOOLEAN, '~Switch', 1, true );
@@ -260,15 +273,16 @@ class AlexaSmartHomeDevice extends IPSModule
                     break;
 
                 case 'Alexa.LockController':
-                    $this->MaintainVariable('lockState', $this->Translate('lock state'), VARIABLETYPE_BOOLEAN, '~Lock', 1, true );
-                    $this->EnableAction('lockState');
+                    $ident = $interfaceNameIdent.'_lockState';
+                    $this->MaintainVariable($ident, $this->Translate('lock state'), VARIABLETYPE_BOOLEAN, '~Lock', 1, true );
+                    $this->EnableAction($ident);
                     break;
 
                 case 'Alexa.InventoryLevelSensor':
 
                     $instanceName = $capability['instance'];
                     $variableName = $this->getFriendlyName($capability['resources']['friendlyNames'], $capability['instance']);
-                    $variableIdent = 'level_'.$this->sanitizeIdent($capability['instance']);                   
+                    $variableIdent = $interfaceNameIdent.'_level_'.$this->sanitizeIdent($capability['instance']);                   
 
                     // Variable Profile
                     switch ($capability['configuration']['measurement']['@type']){
@@ -291,7 +305,7 @@ class AlexaSmartHomeDevice extends IPSModule
 
     public function RequestAction($ident, $value)
     {
-        $name = explode('_', $ident)[0];
+        $name = explode('_', $ident)[1];
 
         switch ($name) {
             // Variable actions
@@ -400,6 +414,7 @@ class AlexaSmartHomeDevice extends IPSModule
             foreach ($deviceStates['capabilityStates'] as $state){
 
                 $state = json_decode($state, true);
+                $namespaceIdent = $this->sanitizeIdent($state['namespace']);
 
                 switch ($state['namespace']){
                     case 'Alexa.EndpointHealth':
@@ -408,48 +423,48 @@ class AlexaSmartHomeDevice extends IPSModule
                         }else {
                             $value = false;
                         }
-                        @$this->SetValue('connectivity', $value);
+                        @$this->SetValue($namespaceIdent.'_connectivity', $value);
                         break;
 
                     case 'Alexa.PowerController':
                         $value = ($state['value'] == 'ON') ? true : false;
-                        @$this->SetValue('powerState', $value);
+                        @$this->SetValue($namespaceIdent.'_powerState', $value);
                         break;
 
                     case 'Alexa.PercentageController':
                         $value = intval($state['value']);
-                        @$this->SetValue('percentage', $value);
+                        @$this->SetValue($namespaceIdent.'_percentage', $value);
                         break;
 
                     case 'Alexa.BrightnessController':
                         $value = intval($state['value']);
-                        @$this->SetValue('brightness', $value);
+                        @$this->SetValue($namespaceIdent.'_brightness', $value);
                         break;
 
                     case 'Alexa.ColorController':
                         $rgb = $this->hsv2rgb( $state['value']['hue'], $state['value']['saturation']*100, $state['value']['brightness']*100);
-                        @$this->SetValue('color', hexdec( $rgb['hex']));
+                        @$this->SetValue($namespaceIdent.'_color', hexdec( $rgb['hex']));
                         break;
 
                     case 'Alexa.ColorTemperatureController':
                         $value = intval($state['value']);
-                        @$this->SetValue('colorTemperatureInKelvin', $value);
+                        @$this->SetValue($namespaceIdent.'_colorTemperatureInKelvin', $value);
                         break;
 
                     case 'Alexa.TemperatureSensor':
                         $value = floatval($state['value']['value']);
-                        @$this->SetValue('temperature', $value);
+                        @$this->SetValue($namespaceIdent.'_temperature', $value);
                         break;
 
                     case 'Alexa.HumiditySensor':
                         $value = floatval($state['value']['value']);
-                        @$this->SetValue('relativeHumidity', $value);
+                        @$this->SetValue($namespaceIdent.'_relativeHumidity', $value);
                         break;
 
                     case 'Alexa.LightSensor':
                         if ($state['name'] == "illuminance"){
                             $value = intval($state['value']);
-                            @$this->SetValue('illuminance', $value);
+                            @$this->SetValue($namespaceIdent.'_illuminance', $value);
                         }
                         break;
 
@@ -463,40 +478,40 @@ class AlexaSmartHomeDevice extends IPSModule
                     case 'Alexa.ThermostatController':
                         if ($state['name'] == "targetSetpoint"){
                             $value = floatval($state['value']['value']);
-                            @$this->SetValue('targetSetpoint', $value);
+                            @$this->SetValue($namespaceIdent.'_targetSetpoint', $value);
                         }
 
                         if ($state['name'] == "thermostatMode"){
                             $value = $state['value'];
-                            @$this->SetValue('thermostatMode', $value);
+                            @$this->SetValue($namespaceIdent.'_thermostatMode', $value);
                         }
                         break;
 
                     case 'Alexa.ModeController':
-                        $ident = 'mode_'.$this->sanitizeIdent($state['instance']);
+                        $ident = $namespaceIdent.'_mode_'.$this->sanitizeIdent($state['instance']);
                         $value = $state['value'];
                         @$this->SetValue($ident, $value);
                         break;
 
                     case 'Alexa.RangeController':
-                        $ident = 'rangeValue_'.$this->sanitizeIdent($state['instance']);
+                        $ident = $namespaceIdent.'_rangeValue_'.$this->sanitizeIdent($state['instance']);
                         $value = $state['value'];
                         @$this->SetValue($ident, $value);
                         break;
 
                     case 'Alexa.ToggleController':
                         $value = ($state['value'] == 'ON') ? true : false;
-                        $ident = 'toggleState_'.$this->sanitizeIdent($state['instance']);
+                        $ident = $namespaceIdent.'_toggleState_'.$this->sanitizeIdent($state['instance']);
                         @$this->SetValue($ident, $value);
                         break;
 
                     case 'Alexa.LockController':
                         $value = ($state['value'] == 'LOCKED') ? true : false;
-                        @$this->SetValue('lockState', $value);
+                        @$this->SetValue($namespaceIdent.'_lockState', $value);
                         break;
                         
                     case 'Alexa.InventoryLevelSensor':
-                        $ident = 'level_'.$this->sanitizeIdent($state['instance']);
+                        $ident = $namespaceIdent.'_level_'.$this->sanitizeIdent($state['instance']);
                         $value = intval($state['value']['value']);
                         @$this->SetValue($ident, $value);
                         break;                       
@@ -858,35 +873,14 @@ class AlexaSmartHomeDevice extends IPSModule
 
         $ident = explode('_', $ident);
 
-        if (count($ident)<2) return false;
+        if (count($ident)<3) return false;
 
-        $capabilityIdent = $ident[0];
-        $instanceIdent = $ident[1]; // This is the sanitized instance name
-
-        switch ($capabilityIdent){
-            case 'mode':
-                $interfaceName = 'Alexa.ModeController';
-                break;
-
-            case 'toggleState':
-                $interfaceName = 'Alexa.ToggleController';
-                break;
-
-            case 'level':
-                $interfaceName = 'Alexa.InventoryLevelSensor';
-                break;
-
-            case 'rangeValue':
-                $interfaceName = 'Alexa.RangeController';
-                break;
-
-            default:
-                $interfaceName = '';
-                break;
-        }
+        $interfaceNameIdent = $ident[0]; 
+        $propertyIdent = $ident[1];
+        $instanceIdent = $ident[2]; // This is the sanitized instance name
 
         foreach ($info['capabilities'] as $capability ){
-            if ($capability['interfaceName'] == $interfaceName){
+            if ($this->sanitizeIdent($capability['interfaceName']) == $interfaceNameIdent){
 
                 if ( $this->sanitizeIdent($capability['instance']) == $instanceIdent ) {
                     return $capability['instance'];
@@ -1011,7 +1005,7 @@ class AlexaSmartHomeDevice extends IPSModule
         $elements[] = [
             'type'    => 'Button',
             'caption' => 'Load Device Information',
-            'onClick' => 'IPS_RequestAction($id, "UpdateDeviceInformation", "");', 
+            'onClick' => 'IPS_RequestAction($id, "Internal_UpdateDeviceInformation", "");', 
         ];
 
         return $elements;
@@ -1023,7 +1017,7 @@ class AlexaSmartHomeDevice extends IPSModule
         $elements[] = [
             'type'    => 'Button',
             'caption' => 'Update state variables',
-            'onClick' => 'IPS_RequestAction($id, "Update", "");', 
+            'onClick' => 'IPS_RequestAction($id, "Internal_Update", "");', 
         ];
 
         $elements[] = [
