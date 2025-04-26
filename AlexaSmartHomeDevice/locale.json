@@ -23,6 +23,7 @@
       "color": "Farbe",
       "color temperature": "Farbtemperatur",
       "temperature": "Temperatur",
+      "relative humidity": "Relative Luftfeuchtigkeit",
       "scene": "Szene",
       "set temperature": "Solltemperatur",
       "thermostat mode": "Thermostat Modus",

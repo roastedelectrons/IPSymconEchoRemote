@@ -127,6 +127,10 @@ class AlexaSmartHomeDevice extends IPSModule
                     $this->MaintainVariable('temperature', $this->Translate('temperature'), 2, '~Temperature', 1, true );
                     break;
 
+                case 'Alexa.HumiditySensor':
+                    $this->MaintainVariable('relativeHumidity', $this->Translate('relative humidity'), 2, '~Humidity.F', 1, true );
+                    break;
+
                 case 'Alexa.LightSensor':
                     $this->MaintainVariable('illuminance', $this->Translate('illuminance'), 1, '~Illumination', 1, true );
                     break;
@@ -206,6 +210,46 @@ class AlexaSmartHomeDevice extends IPSModule
                     }
                     break;
 
+                case 'Alexa.RangeController':
+
+                    $instanceName = $capability['instance'];
+                    $variableName = $this->getFriendlyName($capability['capabilityResources']['friendlyNames'], $capability['instance']);
+                    $variableIdent = 'rangeValue_'.$this->sanitizeIdent($capability['instance']);                   
+
+                    // Presets
+                    $associations = array();
+                    if (isset($capability['configuration']['presets'])){
+                        
+                        foreach($capability['configuration']['presets'] as $preset){
+                            $presetName = $preset['rangeValue'];
+
+                            if (isset($preset['presetResources']['friendlyNames'])){
+                                $presetName = $this->getFriendlyName($preset['presetResources']['friendlyNames'], $preset['rangeValue']);
+                            }
+                            $associations[] = [$preset['rangeValue'], $presetName, '', -1];
+                            $associations[] = [$preset['rangeValue']+1, "%d", '', -1];
+                        }
+                    }
+
+                    $MinValue = 0;
+                    $MaxValue = 0;
+                    $Stepsize = 1;
+
+                    if (isset($capability['configuration']['supportedRange'])){
+                        $MinValue = $capability['configuration']['supportedRange']['minimumValue'];
+                        $MaxValue = $capability['configuration']['supportedRange']['maximumValue'];
+                        $Stepsize = $capability['configuration']['supportedRange']['precision'];  
+                    }
+
+                    $profileName = 'Alexa.RangeController.'.$instanceName.'.'.$this->InstanceID;
+                    $this->RegisterProfileAssociation($profileName, '', '', '', $MinValue, $MaxValue, $Stepsize, 0, VARIABLETYPE_INTEGER, $associations);
+
+                    // Register mode variable
+                    $this->MaintainVariable($variableIdent, $variableName, VARIABLETYPE_INTEGER, $profileName, 1, true );
+                    $this->EnableAction($variableIdent);
+
+                    break;
+
                 case 'Alexa.ToggleController':
                     $instanceName = $capability['instance'];
                     $variableIdent = 'toggleState_'.$this->sanitizeIdent($capability['instance']);
@@ -220,6 +264,26 @@ class AlexaSmartHomeDevice extends IPSModule
                     $this->EnableAction('lockState');
                     break;
 
+                case 'Alexa.InventoryLevelSensor':
+
+                    $instanceName = $capability['instance'];
+                    $variableName = $this->getFriendlyName($capability['resources']['friendlyNames'], $capability['instance']);
+                    $variableIdent = 'level_'.$this->sanitizeIdent($capability['instance']);                   
+
+                    // Variable Profile
+                    switch ($capability['configuration']['measurement']['@type']){
+                        case 'Percentage':
+                            $profileName = '~Intensity.100';
+                            break;
+
+                        default:
+                            $profileName = '';
+                            break;
+                    }
+
+                    $this->MaintainVariable($variableIdent, $variableName, VARIABLETYPE_INTEGER, $profileName, 1, true );
+
+                    break;
             }
         }
     }
@@ -277,6 +341,19 @@ class AlexaSmartHomeDevice extends IPSModule
                 $this->SetMode($instance, $value);
 
                 $capability = $this->getCapability('Alexa.ModeController', $instance);
+
+                // Reset variable if device does not report the mode state
+                if (!$capability['properties']['retrievable']){
+                    $this->SetValue($ident, '');
+                }
+                break;
+
+            case 'rangeValue':
+                $instance = $this->getCapabilityInstanceByIdent($ident);
+                $this->SetValue($ident, $value);
+                $this->SetRange($instance, $value);
+
+                $capability = $this->getCapability('Alexa.RangeController', $instance);
 
                 // Reset variable if device does not report the mode state
                 if (!$capability['properties']['retrievable']){
@@ -364,6 +441,11 @@ class AlexaSmartHomeDevice extends IPSModule
                         @$this->SetValue('temperature', $value);
                         break;
 
+                    case 'Alexa.HumiditySensor':
+                        $value = floatval($state['value']['value']);
+                        @$this->SetValue('relativeHumidity', $value);
+                        break;
+
                     case 'Alexa.LightSensor':
                         if ($state['name'] == "illuminance"){
                             $value = intval($state['value']);
@@ -396,6 +478,12 @@ class AlexaSmartHomeDevice extends IPSModule
                         @$this->SetValue($ident, $value);
                         break;
 
+                    case 'Alexa.RangeController':
+                        $ident = 'rangeValue_'.$this->sanitizeIdent($state['instance']);
+                        $value = $state['value'];
+                        @$this->SetValue($ident, $value);
+                        break;
+
                     case 'Alexa.ToggleController':
                         $value = ($state['value'] == 'ON') ? true : false;
                         $ident = 'toggleState_'.$this->sanitizeIdent($state['instance']);
@@ -407,7 +495,11 @@ class AlexaSmartHomeDevice extends IPSModule
                         @$this->SetValue('lockState', $value);
                         break;
                         
-                        
+                    case 'Alexa.InventoryLevelSensor':
+                        $ident = 'level_'.$this->sanitizeIdent($state['instance']);
+                        $value = intval($state['value']['value']);
+                        @$this->SetValue($ident, $value);
+                        break;                       
                 }
             }
         }
@@ -654,9 +746,29 @@ class AlexaSmartHomeDevice extends IPSModule
         return $result;
     }
 
+    private function SetRange( string $instance, int $value )
+    {
+        $url = '/api/phoenix/state';
+
+        $action = 'setRangeValue';
+
+        $data['controlRequests'][] = [
+            'entityId' => $this->getEntityID(),
+            'entityType'=> 'ENTITY',
+            'parameters' => [
+                'action' => $action, 
+                'rangeValue.value' => $value,
+                'instance' => $instance
+            ]
+        ];
+
+        $result = $this->SendCommand( $url, $data , 'PUT');  
+        
+        return $result;
+    }
+
     private function ToggleState( string $instance, bool $state )
     {
-         // function to be verified
         $url = '/api/phoenix/state';
 
         $action = $state ? 'turnOnToggle' : 'turnOffToggle';
@@ -747,7 +859,7 @@ class AlexaSmartHomeDevice extends IPSModule
         $ident = explode('_', $ident);
 
         if (count($ident)<2) return false;
-        
+
         $capabilityIdent = $ident[0];
         $instanceIdent = $ident[1]; // This is the sanitized instance name
 
@@ -758,6 +870,14 @@ class AlexaSmartHomeDevice extends IPSModule
 
             case 'toggleState':
                 $interfaceName = 'Alexa.ToggleController';
+                break;
+
+            case 'level':
+                $interfaceName = 'Alexa.InventoryLevelSensor';
+                break;
+
+            case 'rangeValue':
+                $interfaceName = 'Alexa.RangeController';
                 break;
 
             default:
@@ -787,7 +907,7 @@ class AlexaSmartHomeDevice extends IPSModule
         return preg_replace('/[^a-zA-Z0-9_]/', '', $input);
     }
     
-    private function getFriendlyName(array $friendlyNames, string $default){
+    private function getFriendlyName(array $friendlyNames,  $default){
         $systemLanguage = str_replace('_', '-', IPS_GetSystemLanguage());
 
         $name = $this->getFriendlyNameByLanguage($friendlyNames, $systemLanguage );

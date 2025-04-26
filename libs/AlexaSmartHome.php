@@ -13,12 +13,15 @@ trait AlexaSmartHome
             'Alexa.ColorController',
             'Alexa.ColorTemperatureController',
             'Alexa.TemperatureSensor',
+            'Alexa.HumiditySensor',
             'Alexa.LightSensor',
             'Alexa.ThermostatController',
             'Alexa.SceneController',
             'Alexa.ModeController',
+            'Alexa.RangeController',
             'Alexa.ToggleController',
-            'Alexa.LockController'
+            'Alexa.LockController',
+            'Alexa.InventoryLevelSensor'
         ];
 
         return in_array($capability, $supportedCapabilities);
