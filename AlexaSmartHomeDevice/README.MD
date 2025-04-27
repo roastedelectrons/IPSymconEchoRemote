@@ -1,4 +1,4 @@
-# AlexaSmartHome Device
+# Alexa Smarthome Device
 Modul zum Steuern von mit Alexa verbundenen Smart-Home-Geräten aus IP-Symcon heraus.
 
 ## Inhaltsverzeichnis
@@ -8,13 +8,23 @@ Modul zum Steuern von mit Alexa verbundenen Smart-Home-Geräten aus IP-Symcon he
 4. [PHP-Befehlsreferenz](#php-befehlsreferenz)
 
 ## Funktionsumfang
-* Status (Aus, An)
-* Prozent
-* Helligkeit
-* Farbe
-* Farbtemperatur
-* Solltemperatur
+
+**Steuerung**
+* Gerätestatus (Aus, An)
+* Licht (Helligkeit, Farbe, Farbtemperatur)
+* Thermostat (Solltemperatur, Modus)
 * Szene (Deactivate, Activate)
+* Schloß (Verrigeln, Entriegeln)
+* Modus (gerätespezifisch z.B. Lichtszene, Lüftergeschwindigkeit, etc.)
+* Bereichseinstellung (gerätespezifisch z.B. Öffnungsgrad von Rolläden)
+* Prozent
+
+**Sensoren**
+* Temperatur
+* Luftfeuchte
+* Beleuchtung
+* Füllstand (z.B. Batterie, Tintenpatronen, etc.)
+
 
 ## Konfiguration der Instanz
 
@@ -26,18 +36,25 @@ Modul zum Steuern von mit Alexa verbundenen Smart-Home-Geräten aus IP-Symcon he
 
 ## Statusvariablen und Profile
 
+Die verfügbaren Statusvariablen variieren nach Gerät und Funktionalität.
+
 |Ident| Typ| Profil| Beschreibung |
 |-----| -----| -----| ----- |
-|connectivity |bool |~Switch |Konnektivität |
-|powerState |bool |~Switch |Status |
-|percentage |int |~Intensity.100 |Prozent |
-|brightness |int |~Intensity.100 |Helligkeit |
-|color |int |~HexColor |Farbe |
-|colorTemperatureInKelvin |int |~TWColor |Farbtemperatur |
-|temperature |float |~Temperature |Temperatur |
-|illuminance |int |~Illumination |Beleuchtungsstärke |
-|targetSetpoint |float |~Temperature |Solltemperatur |
-|scene |int |Alexa.Scene |Szene |
+|AlexaPowerController_powerState |bool | |Status |
+|AlexaThermostatController_targetSetpoint |float | |Solltemperatur |
+|AlexaThermostatController_thermostatMode |string | |Thermostat Modus |
+|AlexaColorTemperatureController_colorTemperatureInKelvin |int | |Farbtemperatur |
+|AlexaBrightnessController_brightness |int | |Helligkeit |
+|AlexaSceneController_scene |int | |Szene |
+|AlexaToggleController_toggleState_<...> |bool | |gerätespezifischer An/Ausschalter z.B. für Modi|
+|AlexaModeController_mode_<...> |string | |gerätespezifischer Modus z.B. Lichtszene, Lüftergeschwindigkeit, etc. |
+|AlexaRangeController_rangeValue_<...> |int | |gerätespezifisch z.B. Öffnungsgrad von Rolläden|
+|AlexaTemperatureSensor_temperature |float | |Temperatur |
+|AlexaLightSensor_illuminance |int | |Beleuchtungsstärke |
+|AlexaBrightnessController_brightness |int | |Helligkeit |
+|AlexaInventoryLevelSensor_level_<...> |int | |Füllstandssensor (z.B. Batterie) |
+|AlexaEndpointHealth_connectivity |bool | |Konnektivität |
+
 
 ## PHP-Befehlsreferenz
 
@@ -48,5 +65,5 @@ RequestAction( int $VariableID , $Value);
 |Parameter| Typ| Beschreibung |
 |-----| -----| ----- |
 |$InstanceID |int |ID der Statusvariablen |
-|$Value |mixed |Zu schaltender Wert |
+|$Value |mixed |Zu schaltender Wert. Mögliche Werte sind in den Variablenprofilen definiert. |
 

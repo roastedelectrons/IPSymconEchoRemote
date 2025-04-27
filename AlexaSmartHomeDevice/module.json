@@ -3,7 +3,7 @@
     "name":               "AlexaSmartHomeDevice",
     "type":               3,
     "vendor":             "Amazon",
-    "aliases":            ["Alexa Smart Home Device"],
+    "aliases":            ["Alexa Smarthome Device"],
     "parentRequirements": ["{8E187D67-F330-2B1D-8C6E-B37896D7AE3E}"],
     "childRequirements":  [],
     "implemented":        ["{CEBA5877-FB81-6814-A458-E04B2E580F59}"],
