@@ -226,7 +226,7 @@ class AlexaSmartHomeDevice extends IPSModule
                 case 'Alexa.RangeController':
 
                     $instanceName = $capability['instance'];
-                    $variableName = $this->getFriendlyName($capability['capabilityResources']['friendlyNames'], $capability['instance']);
+                    $variableName = $this->getFriendlyName($capability['resources']['friendlyNames'], $capability['instance']);
                     $variableIdent = $interfaceNameIdent.'_rangeValue_'.$this->sanitizeIdent($capability['instance']);                   
 
                     // Presets
@@ -772,7 +772,9 @@ class AlexaSmartHomeDevice extends IPSModule
             'entityType'=> 'ENTITY',
             'parameters' => [
                 'action' => $action, 
-                'rangeValue.value' => $value,
+                'rangeValue' =>[
+                    'value' => $value
+                ],
                 'instance' => $instance
             ]
         ];
