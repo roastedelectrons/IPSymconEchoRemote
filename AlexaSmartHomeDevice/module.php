@@ -230,7 +230,7 @@ class AlexaSmartHomeDevice extends IPSModule
                     $variableIdent = $interfaceNameIdent.'_rangeValue_'.$this->sanitizeIdent($capability['instance']);                   
 
                     // Presets
-                    $associations = array();
+                    $associations = false;
                     if (isset($capability['configuration']['presets'])){
                         
                         foreach($capability['configuration']['presets'] as $preset){
