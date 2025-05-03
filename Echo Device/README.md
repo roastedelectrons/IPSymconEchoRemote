@@ -108,8 +108,6 @@ Modul zur Steuerung der Musikwiedergabe, Text-Ansagen und Ausführung von Routin
 |DND |boolean |Echo.Remote.DND |Bitte nicht stören |
 |nextAlarmTime |integer |~UnixTimestamp |nächster Alarm |
 |lastAlarmTime |integer |~UnixTimestamp |letzter Alarm |
-|ShoppingList |string |~HTMLBox |Einkaufsliste |
-|TaskList |string |~HTMLBox |Task Liste |
 |Automation |integer |Echo.Automation |Automation |
 |OnlineStatus |boolean |~Switch |Online Status (Offline-Status 10 Minuten verzögert)|
 
@@ -372,18 +370,6 @@ ECHOREMOTE_GetQueueInformation( int $InstanceID );
 |Parameter| Typ| Beschreibung |
 |-----| -----| ----- |
 |$InstanceID |int |ID der EchoRemote-Instanz |
-
-### GetToDos
-Liefert eine Liste mit den Einträgen der aktuellen Einkaufsliste oder To-Do-Liste.  
-
-```php
-ECHOREMOTE_GetToDos( int $InstanceID, string $type, bool $completed );
-```
-|Parameter| Typ| Beschreibung |
-|-----| -----| ----- |
-|$InstanceID |int |ID der EchoRemote-Instanz |
-|$type |string |gesuchter Itemtyp: 'SHOPPING_ITEM' oder 'TASK' |
-|$completed |bool |null: es werden alle Einträge geliefert, false: es werden die offenen Einträge geliefert, true: es werden die erledigten Einträge geliefert |
 
 ### GoodMorning
 ```php

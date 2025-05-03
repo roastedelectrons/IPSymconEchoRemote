@@ -113,9 +113,9 @@
             const li = document.createElement('li');
 
             if (item.completed == true){
-                li.innerHTML = '<input type="checkbox" onclick="checkItem(this)" data-id="'+item.id+'" checked ></input><label>'+item.value+'</label>';
+                li.innerHTML = '<input type="checkbox" onclick="checkItem(this)" data-id="'+item.id+'" checked ></input><label>'+item.name+'</label>';
             } else {
-                li.innerHTML = '<input type="checkbox" onclick="checkItem(this)" data-id="'+item.id+'" ></input><label>'+item.value+'</label>';
+                li.innerHTML = '<input type="checkbox" onclick="checkItem(this)" data-id="'+item.id+'" ></input><label>'+item.name+'</label>';
             }
             itemList.appendChild(li);   
         });

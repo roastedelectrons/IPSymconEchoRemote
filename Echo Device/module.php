@@ -90,8 +90,6 @@ class EchoRemote extends IPSModule
         $this->RegisterPropertyBoolean('AlarmInfo', false);
         $this->RegisterPropertyBoolean('AlarmStatus', false);
         $this->RegisterPropertyBoolean('AlarmStatusOverwrite', false);
-        $this->RegisterPropertyBoolean('ShoppingList', false);
-        $this->RegisterPropertyBoolean('TaskList', false);
         $this->RegisterPropertyBoolean('Mute', true);
         $this->RegisterPropertyBoolean('Title', false);
         $this->RegisterPropertyBoolean('Cover', false);
@@ -913,43 +911,6 @@ class EchoRemote extends IPSModule
         $this->SetValue('AlarmStatus_'.str_replace('-', '_', $notificationIndex), ($result['status'] == 'ON') ? true : false );
     }
 
-    /** GetToDos
-     *
-     * @param string $type      : one of 'SHOPPING_ITEM' or 'TASK'
-     * @param bool   $completed true: completed todos are returned
-     *                          false: not completed todos are returned
-     *                          null: all todos are returned
-     *
-     * @return array|null
-     */
-    public function GetToDos(string $type, bool $completed = null): ?array
-    {
-
-        $cutomerID = $this->GetCustomerID();
-
-        if ($type == 'SHOPPING_ITEM') {
-            $listID = $cutomerID.'-SHOP';
-        }
-        elseif ($type == 'TASK') {
-            $listID = $cutomerID.'-TODO';
-        }
-        else {
-            return null;
-        }
-
-
-        $options['completed'] = $completed ? 'true' : 'false';
-
-        $payload['url'] =  '/api/namedLists/' . $listID . '/items?'. http_build_query($options);
-
-        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
-
-        if (isset($result['http_code']) && ($result['http_code'] === 200)) {
-            return json_decode($result['body'], true)['list'];
-        }
-
-        return null;
-    }
 
     /** Play TuneIn station by present
      *
@@ -1966,29 +1927,6 @@ class EchoRemote extends IPSModule
             $this->UpdateAlarm();
         }
 
-        //update ShoppingList
-        if ($this->ReadPropertyBoolean('ShoppingList')) {
-            $shoppingList = (array) $this->GetToDos('SHOPPING_ITEM', false);
-            if ($shoppingList !== false) {
-                $html = $this->GetListPage($shoppingList);
-                //neuen Wert setzen.
-                if ($html !== $this->GetValue('ShoppingList')) {
-                    $this->SetValue('ShoppingList', $html);
-                }
-            }
-        }
-
-        //update TaskList
-        if ($this->ReadPropertyBoolean('TaskList')) {
-            $taskList = (array) $this->GetToDos('TASK', false);
-            if ($taskList !== false) {
-                $html = $this->GetListPage($taskList);
-                //neuen Wert setzen.
-                if ($html !== $this->GetValue('TaskList')) {
-                    $this->SetValue('TaskList', $html);
-                }
-            }
-        }
 
         IPS_SemaphoreLeave ( 'UpdateStatus.'.$this->InstanceID );
 
@@ -2427,12 +2365,6 @@ class EchoRemote extends IPSModule
         //support of alarm
         $this->MaintainVariable('nextAlarmTime', $this->Translate('next Alarm'), 1, '~UnixTimestamp', $this->_getPosition(), $this->ReadPropertyBoolean('AlarmInfo'));
         $this->MaintainVariable('lastAlarmTime', $this->Translate('last Alarm'), 1, '~UnixTimestamp', $this->_getPosition(), $this->ReadPropertyBoolean('AlarmInfo'));
-
-        //support of ShoppingList
-        $this->MaintainVariable('ShoppingList', $this->Translate('ShoppingList'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('ShoppingList'));
-
-        //support of TaskList
-        $this->MaintainVariable('TaskList', $this->Translate('TaskList'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('TaskList'));
 
         // Cover as HTML image
         $this->MaintainVariable('Cover_HTML', $this->Translate('Cover'), 3, '~HTMLBox', $this->_getPosition(), $this->ReadPropertyBoolean('Cover'));
@@ -2992,24 +2924,6 @@ class EchoRemote extends IPSModule
         return true;
     }
 
-    private function GetListPage(array $Items): string
-    {
-        $html = '<!doctype html>
-<html lang="de">' . $this->GetHeader() . '
-<body>
-<main class="echo_mediaplayer1">
-<table class="shopping_item">';
-        foreach ($Items as $Item) {
-            $html .= '<tr><td>' . $Item['value'] . '</td></tr>';
-        }
-        $html .= '
-</table>
-</main>
-</body>
-</html>';
-
-        return $html;
-    }
 
 
     /** GetDevicetype
@@ -3117,14 +3031,6 @@ class EchoRemote extends IPSModule
                             ]
                         ]
                     ],
-                    [
-                        'name'    => 'ShoppingList',
-                        'type'    => 'CheckBox',
-                        'caption' => 'setup variable for a shopping list'],
-                    [
-                        'name'    => 'TaskList',
-                        'type'    => 'CheckBox',
-                        'caption' => 'setup variable for a task list'],
                     [
                         'name'    => 'EchoActions',
                         'type'    => 'CheckBox',
