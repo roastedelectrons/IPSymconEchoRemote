@@ -76,10 +76,11 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.6 (2024-09-28)
+Version 2.6 (2025-05-03)
 * Neu: Modul für Alexa Einkauf- und Aufgabenlisten
-   * Einträge hinzufügen, abhaken und löschen per Skript und TileVisu
-   * Eigene Darstellung für Tile-Visualisierung   
+   * Einträge hinzufügen, abhaken und löschen per Skript und Visualisierung
+   * Eigene Darstellung für Tile-Visualisierung  
+* Änderung: Einkauf- und Aufgabenlisten aus EchoDevice Instanz entfernt
 
 Version 2.5.1 (2024-09-24)
 * Optimierung des Ratelimits von GetLastActivity
