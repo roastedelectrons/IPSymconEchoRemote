@@ -720,7 +720,7 @@ class AmazonEchoIO extends IPSModule
             $response = json_decode($result['body'], true);
             if (isset($response['access_token'])){
                 $this->SetBuffer('access_token', $response['access_token']);
-                $this->SetTimerInterval('RefreshAccessToken', max( intval($response['expires_in']), 3600));
+                $this->SetTimerInterval('RefreshAccessToken', (max( intval($response['expires_in']), 3600) - 60)*1000);
             }
             return $response;
         }
