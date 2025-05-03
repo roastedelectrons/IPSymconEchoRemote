@@ -49,6 +49,7 @@ class AmazonEchoIO extends IPSModule
         $this->RegisterAttributeString( 'CsrfToken', '' ); 
 
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
+        $this->RegisterTimer('RefreshAccessToken', 0, 'ECHOIO_GetAccessToken(' . $this->InstanceID . ');');
         $this->RegisterTimer('UpdateStatus', 0, 'ECHOIO_UpdateStatus(' . $this->InstanceID . ');');
         $this->RegisterTimer('GetLastActivity', 0, 'ECHOIO_GetLastActivity(' . $this->InstanceID . ');');
 
@@ -129,6 +130,7 @@ class AmazonEchoIO extends IPSModule
         {
             $this->LogOff();
             $this->SetTimerInterval('RefreshCookie', 0);
+            $this->SetTimerInterval('RefreshAccessToken', 0);
             $this->SetTimerInterval('UpdateStatus', 0);
             $this->SetTimerInterval('GetLastActivity', 0);
             $this->SetStatus(IS_INACTIVE);
@@ -150,6 +152,8 @@ class AmazonEchoIO extends IPSModule
             if ( !$this->LogIn() )
                 return;
         }
+
+        $this->GetAccessToken();
 
 
         // Update devices and get DeviceList
@@ -471,6 +475,8 @@ class AmazonEchoIO extends IPSModule
             return false;
 
         $this->getCsrfToken();
+
+        $this->GetAccessToken();
         
         $this->SetValue('CookieExpirationDate', $this->getExpirationDateFromCookie() );
         $this->WriteAttributeInteger('CookieExpirationDate', $this->getExpirationDateFromCookie() );
@@ -612,6 +618,116 @@ class AmazonEchoIO extends IPSModule
         return $this->HttpRequest($url, $headers, $postfields, $method );
     }
 
+    private function AmazonApiRequest(string $url, mixed $data = null, string $method = null)
+    {
+
+        if ( $this->GetStatus() != 102 )
+        {
+            $this->SendDebug(__FUNCTION__, 'EchoIO not active. Status: '.$this->GetStatus(), 0);
+            return ['http_code' => 502, 'header' => '', 'body' => 'EchoIO not active. Status: '.$this->GetStatus() ];
+        }
+
+        $url = 'https://www.'.$this->GetAmazonURL().$url;
+
+
+        $header [] = 'content-type: application/json; charset=utf-8';
+        $header [] = 'accept: application/json; charset=utf-8';
+        $header [] = 'x-amz-access-token: '.$this->GetBuffer('access_token');
+        $header [] = 'accept-encoding: gzip, deflate, br';
+        $header [] = 'accept-language: de-DE,de-DE;q=1.0,tr-DE;q=0.9,en-GB;q=0.8,fr-DE;q=0.7';
+        $header [] = 'user-agent: AppleWebKit PitanguiBridge/2.2.657773.0-[HARDWARE=iPhone14_4][SOFTWARE=18.4.1][DEVICE=iPhone]';
+
+        $ch = curl_init(); 
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);    
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);   
+        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'AppleWebKit PitanguiBridge/2.2.657773.0-[HARDWARE=iPhone14_4][SOFTWARE=18.4.1][DEVICE=iPhone]');
+        curl_setopt($ch, CURLOPT_ENCODING, '');
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+
+        if ($method == 'PUT') {
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+        }
+        if ($method == 'DELETE') {
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+        }
+
+        if ($method == 'POST' || $data != null) 
+        {
+            if (is_array($data) || is_object($data) ){
+                $postfields = json_encode($data);
+            } else {
+                $postfields = (string) $data;
+            }
+
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $postfields);
+        }
+
+        curl_setopt($ch, CURLOPT_URL, $url);
+
+        $result = curl_exec($ch);
+
+        $info = curl_getinfo($ch);
+
+        curl_close($ch);
+
+
+        $returnValues = $this->getReturnValues($info, $result);
+
+        if ($info['http_code'] == 401)
+        {
+            //$this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
+        }
+
+        return $returnValues;
+    }
+
+    public function GetAccessToken(){
+        $url = 'https://api.' . $this->GetAmazonURL() . '/auth/token';
+
+        $headers[] = 'Accept: application/json';
+        $headers[] = 'Accept-Charset: utf-8';
+        $headers[] = 'x-amzn-identity-auth-domain: api.'. $this->GetAmazonURL();
+        $headers[] = 'Accept-Language: '.$this->GetLanguage();
+        $headers[] = 'Accept-Encoding: gzip';
+        $headers[] = 'Cache-Control: no-store';
+        $headers[] = 'Content-Type: application/x-www-form-urlencoded';
+        $headers[] = 'User-Agent: AmazonWebView/Amazon Alexa/2.2.657773.0/iOS/18.4.1/iPhone';
+        $headers[] = 'Connection: keep-alive';
+
+        $postfields['exchange_reason'] = 'miGetATForceRefresh';
+        $postfields['app_name'] = 'Amazon Alexa';
+        $postfields['app_version'] = '2.2.657773.0';
+        $postfields['di.sdk.version'] = '6.15.6';
+        $postfields['source_token'] = $this->ReadPropertyString('refresh_token');
+        $postfields['package_name'] = 'com.amazon.echo';
+        $postfields['di.hw.version'] = 'iPhone';
+        $postfields['platform'] = 'iOS';
+        $postfields['requested_token_type'] = 'access_token';
+        $postfields['source_token_type'] = 'refresh_token';
+        $postfields['di.os.name'] = 'iOS';
+        $postfields['di.os.version'] = '18.4.1';
+        $postfields['current_version'] = '6.15.6';
+        $postfields['previous_version'] = '6.15.6';
+
+
+        $result = $this->HttpRequest($url, $headers, http_build_query($postfields), 'POST');
+
+        if ($result['http_code'] == 200){
+            $response = json_decode($result['body'], true);
+            if (isset($response['access_token'])){
+                $this->SetBuffer('access_token', $response['access_token']);
+                $this->SetTimerInterval('RefreshAccessToken', max( intval($response['expires_in']), 3600));
+            }
+            return $response;
+        }
+
+        return false;       
+    }
+
     /**  Send http request
      *
      * @param string $url
@@ -622,7 +738,7 @@ class AmazonEchoIO extends IPSModule
      *
      * @return mixed
      */
-    private function HttpRequest(string $url, array $header, array $postfields = null, string $type = null)
+    private function HttpRequest(string $url, array $header, mixed $postfields = null, string $type = null)
     {
         $this->SendDebug(__FUNCTION__, 'Header: ' . json_encode($header), 0);
 
@@ -637,7 +753,8 @@ class AmazonEchoIO extends IPSModule
             CURLINFO_HEADER_OUT => true,
             CURLOPT_ENCODING => '',
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1];
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1
+        ];
 
 
         $options[CURLOPT_COOKIEFILE] = $this->getCookiesFileName(); //this file is read
@@ -645,8 +762,12 @@ class AmazonEchoIO extends IPSModule
 
         if ($postfields != null) 
         {
-            $this->SendDebug(__FUNCTION__, 'Postfields: ' . json_encode($postfields), 0);
-            $options[CURLOPT_POSTFIELDS] = json_encode($postfields);
+            
+            if (is_array($postfields)) {
+                $postfields = json_encode($postfields);
+            }
+            $this->SendDebug(__FUNCTION__, 'Postfields: ' . $postfields, 0);
+            $options[CURLOPT_POSTFIELDS] = $postfields;
         }
 
         if ($type == 'PUT') {
@@ -1339,6 +1460,14 @@ class AmazonEchoIO extends IPSModule
                 if ( isset($data['Payload']['postfields'])) $postfields = $data['Payload']['postfields'];
 
                 $result = $this->AlexaApiRequest($url, $postfields, $method);
+                break;
+
+            case 'AmazonApiRequest':
+                $url = $data['Payload']['url'];
+                $method = $data['Payload']['method'];
+                $postfields = $data['Payload']['postfields'];
+
+                $result = $this->AmazonApiRequest($url, $postfields, $method);
                 break;
 
             case 'BehaviorsPreview':

@@ -177,7 +177,7 @@ class AlexaList extends IPSModule
             $symbol = "☐";
             if ($item['completed'])
             	$symbol = "☑";
-            $string .= $symbol. "    " .$item['value']."\n\r";
+            $string .= $symbol. "    " .$item['name']."\n\r";
         }
         
         $this->SetValue('List', $string);
@@ -190,12 +190,21 @@ class AlexaList extends IPSModule
 		if ($items === false)
 			return [];
 
+        $visuItems = array();
+
 		foreach( $items as $key=>$item){
-			if (!$this->ReadPropertyBoolean('ShowCompletedItems') && $item['completed']){
-				unset($items[$key]);
+
+			if (!$this->ReadPropertyBoolean('ShowCompletedItems') && $item['itemStatus'] == 'COMPLETE'){
+				continue;
 			}
+
+            $visuItems[] = [
+                'id' => $item['itemId'],
+                'name' => $item['itemName'],
+                'completed' => ($item['itemStatus'] == 'COMPLETE')
+            ];
 		}
-		return $items;
+		return $visuItems;
 	}
 
 
@@ -208,8 +217,7 @@ class AlexaList extends IPSModule
     public function AddItem( string $text )
     {
         $item['listId']         = $this->ReadPropertyString('ListID');
-        $item['completed']      = false;
-        $item['value']          = $text;
+        $item['itemName']      = $text;
 
         $result = $this->addListItem( $item );
 
@@ -225,7 +233,7 @@ class AlexaList extends IPSModule
         $result = true; 
 
         foreach($items as $item){
-            if ( !$this->CheckItemByID($item ['id']) )
+            if ( !$this->CheckItemByID($item ['itemId']) )
                 $result = false;
         }
 
@@ -234,20 +242,20 @@ class AlexaList extends IPSModule
 
     public function CheckItemByID( string $itemID)
     {
-        $item = $this->getListItem($itemID);
-        $item['completed'] = true;
+        $item = $this->getListItemByID($itemID);
+        $attibutesToUpdate['itemStatus'] = 'COMPLETE';
 
-        $result = $this->updateListItem($item);
+        $result = $this->updateListItem($item, $attibutesToUpdate);
         
         return $result;
     }
 
     public function UncheckItemByID( string $itemID)
     {
-        $item = $this->getListItem($itemID);
-        $item['completed'] = false;
+        $item = $this->getListItemByID($itemID);
+        $attibutesToUpdate['itemStatus'] = 'ACTIVE';
 
-        $result = $this->updateListItem($item);
+        $result = $this->updateListItem($item, $attibutesToUpdate);
         
         return $result;
     }
@@ -259,7 +267,7 @@ class AlexaList extends IPSModule
         $result = true; 
 
         foreach($items as $item){
-            if ( !$this->DeleteItemByID($item ['id']) )
+            if ( !$this->DeleteItemByID($item ['itemId']) )
                 $result = false;
         }
 
@@ -268,9 +276,7 @@ class AlexaList extends IPSModule
 
     public function DeleteItemByID( string $itemID )
     {
-        $item['listId'] = $this->ReadPropertyString('ListID') ;
-        $item['id'] = $itemID;
-        $item['value'] = '';
+        $item = $this->getListItemByID( $itemID  );
 
         return $this->deleteListItem( $item);
     }
@@ -278,7 +284,7 @@ class AlexaList extends IPSModule
     public function GetItems(bool $includeCompletedItems = false)
     {
 
-        $items = $this->getListItems(true);
+        $items = $this->getListItems();
 
         if ($items === false)
             return false;
@@ -286,10 +292,10 @@ class AlexaList extends IPSModule
         $this->WriteAttributeString('ListItems', json_encode($items));
 
         $this->UpdateVisualization();
-
+ 
 		if ($includeCompletedItems === false){
 			foreach($items as $key=>$item){
-				if ( $item['completed'] == true){
+				if ( $item['itemStatus'] == 'COMPLETE'){
 					unset($items[$key]);
 				}
 			}
@@ -299,21 +305,19 @@ class AlexaList extends IPSModule
     }
 
 
-    private function getListItems(bool $includeCompletedItems = false)
+    private function getListItems()
     {
-        $options = [];
 
-        if ($includeCompletedItems === false)
-            $options['completed'] = 'false';
+        $url =  '/alexashoppinglists/api/v2/lists/' . $this->ReadPropertyString('ListID') . '/items/fetch?limit=100';
 
-        $payload['url'] =  '/api/namedLists/' . $this->ReadPropertyString('ListID') . '/items?'. http_build_query($options);
+        $data['itemAttributesToProject'] = [];
+        $data['itemAttributesToAggregate'] = [];
+        $data['listAttributesToAggregate'] = [];
 
-        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
 
-        if (isset($result['http_code']) && ($result['http_code'] === 200)) {
-            $items = json_decode($result['body'], true)['list'];
-            return $items;
-        }
+        $result = $this->SendCommand($url, $data, 'POST');
+
+        if (isset($result['itemInfoList'])) return $result['itemInfoList'];
 
         return false;
     }
@@ -324,7 +328,7 @@ class AlexaList extends IPSModule
 
         $result = [];
         foreach ($items as $item){
-            if (strtolower($item['value']) == strtolower($itemText)){
+            if (strtolower($item['itemName']) == strtolower($itemText)){
                 $result[] = $item;
             }
         }
@@ -332,81 +336,75 @@ class AlexaList extends IPSModule
         return $result;
     }
 
+    private function getListItemByID( $itemID ): ?array
+    {
+        $items = json_decode($this->ReadAttributeString('ListItems'), true);
+
+        foreach ($items as $item){
+            if ($item['itemId'] == $itemID){
+                return $item;
+            }
+        }
+
+        return false;
+    }
+
     private function getListItem( $itemID ): ?array
     {
 
-        $payload['url'] =  '/api/namedLists/' . $this->ReadPropertyString('ListID') . '/item/'. $itemID;
+        $url =  '/alexashoppinglists/api/v2/lists/' . $this->ReadPropertyString('ListID') . '/items//'. $itemID;
+        $data = null;
 
-        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
+        $result = $this->SendCommand($url, $data, 'GET');
 
-        if (isset($result['http_code']) && ($result['http_code'] === 200)) {
-            return json_decode($result['body'], true);
-        }
-
-        return [];
+        return $result;
     }
 
-    private function addListItem(array $itemArray)
+    private function addListItem(array $item)
     {
 
-        $item['listId']         = $itemArray['listId'];
-        $item['completed']      = $itemArray['completed'];
-        $item['value']          = $itemArray['value'];
-        $item['createdDateTime'] = time();
+        $url = '/alexashoppinglists/api/v2/lists/'.$item['listId']. '/items';
 
+        $data['items'][] = [
+            'itemType' => 'KEYWORD',
+            'itemName' => $item['itemName'],
+            'itemAttributesToCreate' => [],
+            'itemAttributesToAggregate' => []
+        ];
 
-        $payload['postfields'] = $item;
-        $payload['url'] =  '/api/namedLists/' . $item['listId'] . '/item';
+        $result = $this->SendCommand($url, $data, 'POST');
 
-        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
-
-        if (isset($result['http_code']) && ($result['http_code'] === 200)) {
-            return json_decode($result['body'], true);
-        }
-
-        return null;
+        return $result;
     }
 
-    private function updateListItem(array $itemArray)
+    private function updateListItem(array $itemArray, array $attributesToUpdate)
     {
-        $item['id']     	    = $itemArray['id'];
-        $item['listId']         = $itemArray['listId'];
-        $item['version']        = $itemArray['version'];
-        $item['completed']      = $itemArray['completed'];
-        $item['value']          = $itemArray['value'];
-        $item['updatedDateTime'] = time();
 
-        $payload['postfields'] = $item;
-        $payload['method'] = 'PUT';
-        $payload['url'] =  '/api/namedLists/' . $item['listId']  . '/item//' . $item['id'];
+        $url = '/alexashoppinglists/api/v2/lists/'.$itemArray['listId']. '/items//' . $itemArray['itemId'] . '?version='.$itemArray['version'];
 
-        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
+        $data['itemAttributesToUpdate'] = array();
+        $data['itemAttributesToRemove'] = array();
 
-        if (isset($result['http_code']) && ($result['http_code'] === 200)) {
-            return json_decode($result['body'], true);
+        foreach($attributesToUpdate as $attribute => $value){
+            $data['itemAttributesToUpdate'][] = [
+                'type' => $attribute,
+                'value' => $value
+            ];
         }
 
-        return null;
+        $result = $this->SendCommand($url, $data, 'PUT');
+
+        return $result;
     }
 
     private function deleteListItem( array $itemArray)
     {
 
-        $item['listId'] = $itemArray['listId'] ;
-        $item['id'] = $itemArray['id'];
-        $item['value'] = '';
+        $url = '/alexashoppinglists/api/v2/lists/'.$itemArray['listId']. '/items//' . $itemArray['itemId'] . '?version='.$itemArray['version'];
 
-        $payload['postfields'] = $item;
-        $payload['method'] = 'DELETE';
-        $payload['url'] =  '/api/namedLists/' . $item['listId'] . '/item//' . $item['id'];
+        $result = $this->SendCommand($url, null, 'DELETE');
 
-        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
-
-        if (isset($result['http_code']) && ($result['http_code'] === 200)) {
-            return json_decode($result['body'], true);
-        }
-
-        return null;
+        return $result;
     }
 
 
@@ -421,14 +419,13 @@ class AlexaList extends IPSModule
                 return $items;     
 
         }
+        $url = '/alexashoppinglists/api/v2/lists/fetch';
+        $data = '{"listAttributesToAggregate":[],"listOwnershipType":null}';
 
-        $payload['url'] =  '/api/namedLists';
+        $result = $this->SendCommand($url, $data, 'POST');
 
-        $result = $this->SendDataPacket('AlexaApiRequest', $payload);
 
-        if (isset($result['http_code']) && $result['http_code'] != 200) return [];
-
-        $lists = json_decode($result['body'], true)['lists'];
+        $lists = $result['listInfoList'];
 
         if (!is_array($lists)) {
             return [];
@@ -448,21 +445,21 @@ class AlexaList extends IPSModule
 
         foreach( $items as $item){
             $option = array();
-            if ( $item['type'] == 'SHOPPING_LIST' && $item['defaultList'] == 1) {
+            if (!isset($item['listId'])) continue;
+
+            if ( !isset($item['listName']) ) {
+                $name = $this->Translate('Unnamed list');
+                if ( $item['listType'] == 'SHOP' ) $name = $this->Translate('Shoppinglist (default)');
+                if ( $item['listType'] == 'TODO' ) $name = $this->Translate('ToDo (default)');
+
                 $option = [
-                    'caption' => $this->Translate('Shoppinglist (default)'),
-                    'value'   => $item['customerId'] . '-SHOP'
-                ];
-            }
-            elseif ( $item['type'] == 'TO_DO' && $item['defaultList'] == 1) {
-                $option = [
-                    'caption' => $this->Translate('ToDo (default)'),
-                    'value'   => $item['customerId'] . '-TODO'
+                    'caption' => $name,
+                    'value'   => $item['listId']
                 ];
             } else {
                 $option = [
-                    'caption' => $item['name'],
-                    'value'   => $item['itemId']
+                    'caption' => $item['listName'],
+                    'value'   => $item['listId']
                 ];                
             }
 
@@ -472,6 +469,20 @@ class AlexaList extends IPSModule
         return $selectOptions;
     }
 
+    private function SendCommand( string $url, mixed $data, string $method)
+    {
+        $payload['url'] =  $url;
+        $payload['postfields'] = $data;
+        $payload['method'] =  $method;
+
+        $result = $this->SendDataPacket('AmazonApiRequest', $payload);
+
+        if (isset($result['http_code']) && ($result['http_code'] === 200)) {
+            return json_decode($result['body'], true);
+        }
+
+        return false;
+    }
 
     private function SendDataPacket( string $type, array $payload = [])
     {
