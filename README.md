@@ -32,7 +32,7 @@ Ab Version 2.0 erfolgt die Authentifizierung ausschließlich mittels Refresh-Tok
 - __Echo Bot__ ([Dokumentation](EchoBot))  
 	Der EchoBot kann auf einen Sprachbefehl reagieren und verschiedene Aktionen ausführen, wie z.B. eine direkte Text-To-Speech Antwort auf dem Echo-Gerät ausgeben, das angesprochen wurde oder ein Skript in IP-Symcon ausführen.
 
-- __Alexa List__ ([Dokumentation](EchoList))  
+- __Alexa List__ ([Dokumentation](AlexaList))  
 	Modul zur Darstellung und Bearbeitung von Alexa Einkaufs- und Aufgabenlisten in IP-Symcon.
 
 ## Einrichtung 
