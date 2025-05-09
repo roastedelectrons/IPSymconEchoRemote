@@ -101,7 +101,8 @@ class AmazonEchoConfigurator extends IPSModule
         'A1OECNXBQCC1P9'   => ['name' => 'Samsung Tizen'],
         'AOL0WUO16289B'    => ['name' => 'Teufel Holist S'],
         'AF473ZSOIRKFJ'    => ['name' => 'Onkyo VC-PX30'],
-	    'A3QS1XP2U6UJX9'   => ['name' => 'Sony WF-1000XM4']
+	    'A3QS1XP2U6UJX9'   => ['name' => 'Sony WF-1000XM4'],
+        'A2MY0PDIIXPI96'   => ['name' => 'B&O Beosound A1']
     ];
 
     public function Create()
