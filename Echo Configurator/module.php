@@ -5,7 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/EchoBufferHelper.php';
 require_once __DIR__ . '/../libs/EchoDebugHelper.php';
 
-class AmazonEchoConfigurator extends IPSModule
+class EchoConfigurator extends IPSModule
 {
     use IPSymconEchoRemote\EchoBufferHelper;
     use IPSymconEchoRemote\EchoDebugHelper;

@@ -10,23 +10,23 @@ Modul für IP-Symcon zur Steuerung der Musikwiedergabe und Sprachansagen (Text-T
 **BREAKING-CHANGE:**
 Ab Version 2.0 erfolgt die Authentifizierung ausschließlich mittels Refresh-Token, der einmalig (mit einem externen Tool) generiert und im Modul hinterlegt werden muss.
 
-*DISCLAIMER: Das Modul verwendet eine nicht-dokumentierte Schnittstelle zu alexa.amazon.de. Daher kann die Funktion ohne Ankündigung jederzeit eingestellt werden.*
+*DISCLAIMER: Bei diesem Modul handelt es sich um ein privates Projekt für die persönliche Nutzung. Es ist keine offizielle Integration von oder für Amazon Alexa. Daher kann die Funktion ohne Ankündigung jederzeit eingestellt werden.*
 
 ## Inhaltsverzeichnis
 
-1. [Dokumentation der Module](#dokumenation-der-module)
+1. [Dokumentation der Module](#dokumentation-der-module)
 2. [Einrichten in IP-Symcon](#einrichtung)
 3. [Changelog](#changelog)
 4. [Quellen](#quellen)
 
-## Dokumenation der Module
+## Dokumentation der Module
 - __Echo Device__ ([Dokumentation](Echo%20Device/README.md))  
 	Modul zur Steuerung der Musikwiedergabe, Text-Ansagen und Ausführung von Routinen auf Echo-Geräten.
 
 - __Echo IO__ ([Dokumentation](Echo%20IO))  
 	Modul zu Authenzifizierung mit dem Amazon-Alexa-Account.
 
-- __Echo Configurator__ ([Dokumentation](Amazon%20Echo%20Configurator))  
+- __Echo Configurator__ ([Dokumentation](Echo%20Configurator))  
 	Konfigurator zum Erstellen und Einrichten der Echo Device Instanzen.
 
 - __Echo Bot__ ([Dokumentation](EchoBot))  
@@ -39,12 +39,15 @@ Ab Version 2.0 erfolgt die Authentifizierung ausschließlich mittels Refresh-Tok
 
 ### Modul und Instanzen installieren
 1. Im Module-Store das Modul *Echo Remote 2* installieren.
-2. Im Objektbaum, der IP-Symcon Verwaltungskonsole eine *Amazon Echo Remote IO*-Instanz erstellen und den Refresh-Token (siehe unten) einfügen.
-3. Anschließend eine *Amazon Echo Remote Konfigurator*-Instanz erstellen.
-4. *Amazon Echo Remote Konfigurator* öffnen und für die gewünschten Echo-Geräte jeweils eine *Echo Remote* Instanz erstellen.
+2. Im Objektbaum, der IP-Symcon Verwaltungskonsole eine *Echo IO*-Instanz erstellen und den Refresh-Token (siehe unten) einfügen.
+3. Anschließend eine *Echo Konfigurator*-Instanz erstellen.
+4. *Echo Konfigurator* öffnen und für die gewünschten Echo-Geräte jeweils eine *Echo Device* Instanz erstellen.
 
 ###  Refresh-Token generieren
 Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Windos, MacOS, Linux)](https://github.com/adn77/alexa-cookie-cli/releases/latest) auf einem beliebigen Rechner erstellt werden. Hierzu sind die folgenden Schritte notwendig:
+
+#### Voraussetzungen
+Im Amazon-Konto muss **Zwei-Schritt-Verifizierung (2FA) mit Authentifizierungs-App** aktiviert sein. Verifizierungscodes per SMS/Email funktionieren nicht!
 
 #### Windows
 1. Tool vom o.g. Link herunterladen und mit Doppelklick die Datei `alexa-cookie-cli-win-x64.exe`ausführen. Es öffnet sich die Konsole, in der folgende Meldung angezeigt wird:
@@ -76,7 +79,7 @@ Der Refresh-Token kann mit Hilfe des [Alexa-Cookie-CLI Tools (verfügbar für Wi
 
 ## Changelog
 
-Version 2.6 (2025-05-09)
+Version 2.6 (2025-05-18)
 * Neu: Alexa Einkauf- und ToDo-Listen (Modul)
    * Einträge hinzufügen, abhaken und löschen per Skript
    * Eigene Darstellung für Tile-Visualisierung  

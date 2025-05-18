@@ -3,7 +3,7 @@
     "name":               "EchoRemote",
     "type":               3,
     "vendor":             "Amazon",
-    "aliases":            ["Amazon Echo Remote"],
+    "aliases":            ["Echo Device"],
     "parentRequirements": ["{8E187D67-F330-2B1D-8C6E-B37896D7AE3E}"],
     "childRequirements":  [],
     "implemented":        ["{E41E38AC-30D7-CA82-DEF5-9561A5B06CD7}"],
