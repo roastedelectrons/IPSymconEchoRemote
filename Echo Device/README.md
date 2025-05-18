@@ -42,8 +42,6 @@ Modul zur Steuerung der Musikwiedergabe, Text-Ansagen und Ausführung von Routin
 |Mute | CheckBox | Variable für Mute anlegen|
 |DND | CheckBox | Variable für Bitte nicht stören anlegen|
 |AlarmInfo | CheckBox | Variablen für Weckzeiten anlegen (nächste Weckzeit, letzte Weckzeit)|
-|ShoppingList | CheckBox | Variable für eine Einkaufsliste anlegen|
-|TaskList | CheckBox | Variable für eine Aufgabenliste anlegen|
 |EchoActions | CheckBox | Variable für Aktionen anlegen (z.B. Kurzes Briefing, Verkehr, Wetter, etc.)|
 |EchoTTS | CheckBox | Variable für Text-To-Speech anlegen|
 |LastAction | CheckBox | Variablen für letzte Aktion anlegen (Funktion muss in EchoIO-Instanz aktiviert werden)|

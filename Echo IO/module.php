@@ -9,7 +9,7 @@ require_once __DIR__ . '/../libs/VariableProfileHelper.php';
 
 // Modul für Amazon Echo Remote
 
-class AmazonEchoIO extends IPSModule
+class EchoIO extends IPSModule
 {
     use IPSymconEchoRemote\EchoBufferHelper;
     use IPSymconEchoRemote\EchoDebugHelper;

@@ -425,15 +425,15 @@ class AlexaList extends IPSModule
         $result = $this->SendCommand($url, $data, 'POST');
 
 
-        $lists = $result['listInfoList'];
-
-        if (!is_array($lists)) {
-            return [];
+        if (isset($result['listInfoList']) && is_array($result['listInfoList'])) {
+            
+            $this->WriteAttributeString('Lists', json_encode($result['listInfoList']));
+    
+            return $result['listInfoList'];
         }
 
-        $this->WriteAttributeString('Lists', json_encode($lists));
+        return [];
 
-        return $lists;
     }
 
     private function GetListIDsForSelect()
