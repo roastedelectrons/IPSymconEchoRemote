@@ -1,5 +1,5 @@
-# Alexa SmartHomeDevice Configurator
-(Beschreibung)
+# Alexa Smart Home Configurator
+Konfigurator zum Erstellen und Einrichten von Alexa Smart Home Device Instanzen.
 
 ## Inhaltsverzeichnis
 1. [Funktionsumfang](#funktionsumfang)

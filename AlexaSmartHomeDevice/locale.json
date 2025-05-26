@@ -1,6 +1,8 @@
 {
   "translations": {
     "de": {
+      "AlexaSmartHome Device": "AlexaSmartHome Gerät",
+      "Alexa Smart Home Device": "Alexa Smart Home Gerät",
       "Invalid EntityID": "Ungültige EntityID",
       "Update interval": "Aktualisierungsintervall",
       "Device Information": "Geräteinformationen",

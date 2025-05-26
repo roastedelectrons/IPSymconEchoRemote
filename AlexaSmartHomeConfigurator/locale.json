@@ -1,6 +1,8 @@
 {
   "translations": {
     "de": {
+      "AlexaSmartHome Configurator": "AlexaSmartHome Konfigurator",
+      "Alexa Smart Home Configurator":"Alexa Smart Home Konfigurator",
       "Devices": "Geräte",
       "Name": "Name",
       "Description": "Beschreibung",

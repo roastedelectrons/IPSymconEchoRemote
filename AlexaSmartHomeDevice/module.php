@@ -195,7 +195,11 @@ class AlexaSmartHomeDevice extends IPSModule
                 case 'Alexa.ModeController':
 
                     $instanceName = $capability['instance'];
-                    $variableName = $this->getFriendlyName($capability['resources']['friendlyNames'], $capability['instance']);
+                    if (isset($capability['resources']['friendlyNames'])){
+                        $variableName = $this->getFriendlyName($capability['resources']['friendlyNames'], $capability['instance']);
+                    } else {
+                        $variableName = $capability['instance'];
+                    }
                     $variableIdent = $interfaceNameIdent.'_mode_'.$this->sanitizeIdent($capability['instance']);                   
 
                     // Create Mode Profile
@@ -226,7 +230,12 @@ class AlexaSmartHomeDevice extends IPSModule
                 case 'Alexa.RangeController':
 
                     $instanceName = $capability['instance'];
-                    $variableName = $this->getFriendlyName($capability['resources']['friendlyNames'], $capability['instance']);
+                    if (isset($capability['resources']['friendlyNames'])){
+                        $variableName = $this->getFriendlyName($capability['resources']['friendlyNames'], $capability['instance']);
+                    } else {
+                        $variableName = $capability['instance'];
+                    }
+
                     $variableIdent = $interfaceNameIdent.'_rangeValue_'.$this->sanitizeIdent($capability['instance']);                   
 
                     // Presets

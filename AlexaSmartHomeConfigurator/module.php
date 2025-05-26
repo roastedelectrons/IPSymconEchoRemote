@@ -6,7 +6,7 @@ require_once __DIR__ . '/../libs/EchoBufferHelper.php';
 require_once __DIR__ . '/../libs/EchoDebugHelper.php';
 require_once __DIR__ . '/../libs/AlexaSmartHome.php';
 
-class AlexaSmartHomeDeviceConfigurator extends IPSModule
+class AlexaSmartHomeConfigurator extends IPSModule
 {
     use IPSymconEchoRemote\EchoBufferHelper;
     use IPSymconEchoRemote\EchoDebugHelper;

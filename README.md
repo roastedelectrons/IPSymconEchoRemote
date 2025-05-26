@@ -35,6 +35,12 @@ Ab Version 2.0 erfolgt die Authentifizierung ausschließlich mittels Refresh-Tok
 - __Alexa List__ ([Dokumentation](AlexaList))  
 	Modul zur Darstellung und Bearbeitung von Alexa Einkaufs- und Aufgabenlisten in IP-Symcon.
 
+- __Alexa Smart Home Device__ ([Dokumentation](AlexaSmartHomeDevice))  
+	Modul zum Steuern von mit Alexa verbundenen Smart-Home-Geräten aus IP-Symcon heraus.
+
+- __Alexa Smart Home Configurator__ ([Dokumentation](AlexaSmartHomeConfigurator))  
+	Konfigurator zum Erstellen und Einrichten von Alexa Smart Home Device Instanzen.
+
 ## Einrichtung 
 
 ### Modul und Instanzen installieren
@@ -78,6 +84,12 @@ Im Amazon-Konto muss **Zwei-Schritt-Verifizierung (2FA) mit Authentifizierungs-A
 
 
 ## Changelog
+
+Version 2.7 (2025-05-26) BETA
+* Neu: Alexa Smart Home Geräte
+   * Geräte, die mit Alexa verbunden sind, können direkt aus Symcon gesteuert werden. Besonders geeignet für Geräte, für die kein Symcon Modul verfügbar ist, die aber eine Alexa-Integration haben.
+   * Unterstützung für Thermostate, Klimaanlagen, Licht, Steckdosen, Rolläden, Schlösser, Szenen und weitere
+   * Einrichtung: Alexa Smart Home Konfigurator anlegen und aus diesem heraus die gewünschten Geräte-Instanzen erstellen
 
 Version 2.6 (2025-05-18)
 * Neu: Alexa Einkauf- und ToDo-Listen (Modul)

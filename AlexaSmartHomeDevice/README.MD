@@ -1,4 +1,4 @@
-# Alexa Smarthome Device
+# Alexa Smart Home Device
 Modul zum Steuern von mit Alexa verbundenen Smart-Home-Geräten aus IP-Symcon heraus.
 
 ## Inhaltsverzeichnis
