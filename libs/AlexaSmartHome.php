@@ -27,7 +27,8 @@ trait AlexaSmartHome
         return in_array($capability, $supportedCapabilities);
     }
 
-
+    /*
+    legacy: for /api/phoenix device list
     private function getSmartHomeDeviceList( bool $filterDuplicates = true)
     {
 
@@ -67,6 +68,42 @@ trait AlexaSmartHome
 
         return $devices;
     }
+    */
+
+    private function getSmartHomeDeviceList( bool $filterDuplicates = true)
+    {
+        $devices = array();
+
+        $result = $this->getSmartHomeDevicesNexus();
+
+        if (!$result['data']['endpoints']['items']){
+            return [];
+        }
+
+        foreach($result['data']['endpoints']['items'] as $appliance){
+            if (isset($appliance['legacyAppliance'])){
+                $devices[] = $appliance['legacyAppliance'];
+            }
+        }
+
+        // Filter duplicates
+        if ($filterDuplicates){
+            $entityIDList =  array_unique(array_column($devices, 'entityId'));
+            $uniqueDevices = array();
+    
+            foreach($entityIDList as $entityID){
+                $device = $this->filterSmartHomeDeviceByEntityID($entityID, $devices);
+                if ($device != array()){
+                    $uniqueDevices[] = $device;
+                }
+            }
+    
+            return $uniqueDevices;
+        }
+
+        return $devices;
+    }
+
 
     private function filterSmartHomeDeviceByEntityID( string $entityID, array $deviceList)
     {
@@ -112,6 +149,9 @@ trait AlexaSmartHome
         if (isset($device['connectedVia']) && $device['connectedVia'] != '' ){
             $connection = 'via '.$device['connectedVia'];
         }
+        if ($connection == ""){
+            $connection = explode('_', $device['applianceId'])[0];
+        }
         if ($connection == "AAA"){
             $connection = "via Echo Hub";
         }
@@ -138,6 +178,17 @@ trait AlexaSmartHome
         $data = [];
 
         $result = $this->SendCommand( $url, $data , 'GET');  
+        
+        return $result;        
+    }
+
+    public function getSmartHomeDevicesNexus()
+    {
+        $url = '/nexus/v1/graphql';
+
+        $data = json_decode('{"query":"\nquery CustomerSmartHome {\n  endpoints(\n    endpointsQueryParams: { paginationParams: { disablePagination: true } }\n  ) {\n    items {\n      endpointId\n      id\n      friendlyName\n      associatedUnits {\n        id\n      }\n      displayCategories {\n        all {\n          value\n        }\n        primary {\n          value\n        }\n      }\n      description {\n        type\n        value {\n          text\n        }\n      }\n      friendlyNameObject {\n        value {\n          text\n        }\n      }\n      legacyIdentifiers {\n        chrsIdentifier {\n          entityId\n        }\n        dmsIdentifier {\n          deviceType {\n            type\n            value {\n              text\n            }\n          }\n          deviceSerialNumber {\n            type\n            value {\n              text\n            }\n          }\n        }\n      }\n      isEnabled\n      serialNumber {\n        type\n        value {\n          text\n        }\n      }\n      softwareVersion{\n        type\n        value {\n          text\n        }\n      }\n      legacyAppliance {\n        applianceId\n        applianceTypes\n        endpointTypeId\n        friendlyName\n        friendlyDescription\n        manufacturerName\n        connectedVia\n        modelName\n        entityId\n        actions\n        mergedApplianceIds\n        capabilities\n        applianceNetworkState\n        version\n        isEnabled\n        customerDefinedDeviceType\n        customerPreference\n        alexaDeviceIdentifierList\n        aliases\n        driverIdentity\n        additionalApplianceDetails\n        isConsentRequired\n        applianceKey\n        appliancePairs\n        deduplicatedPairs\n        entityPairs\n        deduplicatedAliasesByEntityId\n        relations\n      }\n    }\n  }\n}\n"}', true);
+
+        $result = $this->SendCommand( $url, $data , 'POST');  
         
         return $result;        
     }
