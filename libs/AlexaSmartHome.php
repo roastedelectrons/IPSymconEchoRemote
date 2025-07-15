@@ -182,7 +182,7 @@ trait AlexaSmartHome
         return $result;        
     }
 
-    public function getSmartHomeDevicesNexus()
+    private function getSmartHomeDevicesNexus()
     {
         $url = '/nexus/v1/graphql';
 

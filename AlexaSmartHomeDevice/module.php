@@ -405,6 +405,15 @@ class AlexaSmartHomeDevice extends IPSModule
             case 'Update':
                 $this->UpdateState() ;
                 break;
+
+            case 'Debug':
+                $this->SendDebug('debug', '---START---' , 0);
+                $this->getSmartHomeDevice();
+                $this->getSmartHomeEntity();
+                $this->UpdateState();
+                $this->GetStateNexus();
+                $this->SendDebug('debug', '---END---' , 0);
+                break;
                 
         }
     }
@@ -566,6 +575,26 @@ class AlexaSmartHomeDevice extends IPSModule
         $this->SendDebug('deviceStates', json_encode($result) , 0);
 
         return $result;
+    }
+
+    private function GetStateNexus()
+    {
+        $url = '/nexus/v1/graphql';
+
+        $query['operationName'] = "getEndpointState";
+        $query['variables'] = [
+            "endpointId" => "amzn1.alexa.endpoint.".$this->getEntityID(),
+            "latencyTolerance" => "LOW"
+        ];
+        $query['query'] = json_decode('"fragment EndpointState on Endpoint {\n  id\n  enablement\n  features(latencyToleranceValue: $latencyTolerance) {\n    name\n    properties {\n      type\n      name\n      ... on TemperatureSensor {\n        name\n        value {\n          value\n          scale\n          __typename\n        }\n        accuracy\n        __typename\n      }\n      ... on ThermostatMode {\n        name\n        thermostatModeValue\n        accuracy\n        __typename\n      }\n      ... on Setpoint {\n        name\n        deviceNativeScaleValue\n        value {\n          value\n          scale\n          __typename\n        }\n        accuracy\n        __typename\n      }\n      ... on Lock {\n        name\n        lockState\n        accuracy\n        __typename\n      }\n      ... on Power {\n        name\n        powerStateValue\n        accuracy\n        __typename\n      }\n      ... on Reachability {\n        name\n        reachabilityStatusValue\n        accuracy\n        __typename\n      }\n      __typename\n      name\n      type\n      accuracy\n      ... on Brightness {\n        brightnessStateValue\n        __typename\n      }\n      ... on Lock {\n        lockState\n        __typename\n      }\n      ... on Power {\n        powerStateValue\n        __typename\n      }\n      ... on Reachability {\n        reachabilityStatusValue\n        __typename\n      }\n      ... on Setpoint {\n        deviceNativeScaleValue\n        value {\n          value\n          scale\n          __typename\n        }\n        __typename\n      }\n      ... on TemperatureSensor {\n        value {\n          value\n          scale\n          __typename\n        }\n        __typename\n      }\n      ... on ThermostatMode {\n        thermostatModeValue\n        __typename\n      }\n    }\n    __typename\n    name\n    instance\n  }\n  friendlyNameObject {\n    value {\n      text\n      __typename\n    }\n    __typename\n  }\n  legacyIdentifiers {\n    dmsIdentifier {\n      deviceType {\n        value {\n          text\n          __typename\n        }\n        __typename\n      }\n      deviceSerialNumber {\n        value {\n          text\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  displayCategories {\n    all {\n      value\n      __typename\n    }\n    primary {\n      value\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nquery getEndpointState($endpointId: String!, $latencyTolerance: LatencyToleranceValue) {\n  endpoint(id: $endpointId) {\n    ...EndpointState\n    __typename\n  }\n}\n"', true);
+
+        $data[] = $query;
+
+        $result = $this->SendCommand( $url, $data , 'POST'); 
+
+        $this->SendDebug('getEndpointState', json_encode($result) , 0);
+        
+        return $result;        
     }
 
     private function Switch( bool $state )
@@ -855,13 +884,16 @@ class AlexaSmartHomeDevice extends IPSModule
 
         $entityID = $this->getEntityID();
 
+        $result = [];
         foreach( $entities as $entity){
             if ($entity['id'] == $entityID ){
+                $this->SendDebug('entityInformation', json_encode($entity) , 0);
                 return $entity;
             }
         }
 
-        return array();
+        $this->SendDebug('entityInformation', json_encode([]) , 0);
+        return $result;
     }
 
     private function getCapability( string $name, string $instance = ''){
@@ -1013,10 +1045,24 @@ class AlexaSmartHomeDevice extends IPSModule
             'italic' => false,
             'color' => 7566195
         ];
-        $elements[] = [
+
+        $items = [];
+
+        $items[] = [
             'type'    => 'Button',
             'caption' => 'Load Device Information',
             'onClick' => 'IPS_RequestAction($id, "Internal_UpdateDeviceInformation", "");', 
+        ];
+
+        $items[] = [
+            'type'    => 'Button',
+            'caption' => 'Write Debug',
+            'onClick' => 'IPS_RequestAction($id, "Internal_Debug", "");', 
+        ];
+
+        $elements[] = [
+             'type' => 'RowLayout',
+             'items' => $items
         ];
 
         return $elements;
