@@ -435,7 +435,7 @@ class EchoBot extends IPSModule
     {
         $list = $this->GetAutomationList();
         $selectList[] = array(
-            'caption' => 'Select routine',
+            'caption' => $this->Translate('Select routine'),
             'value'   => ''
         );
 

@@ -25,7 +25,8 @@
       "Device": "Gerät",
       "Utterance": "Ausdruck",
       "Time": "Zeit",
-      "Please say the routines trigger once to an echo device before the test function can be used": "Bitte sagen sie den Auslöser der Routine einmal zu einem Echo Geräte, bevor die Testfunktion verwendet werden kann"
+      "Please say the routines trigger once to an echo device before the test function can be used": "Bitte sagen sie den Auslöser der Routine einmal zu einem Echo Geräte, bevor die Testfunktion verwendet werden kann",
+      "Select routine": "Routine auswählen"
     }
   }
 }
