@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/EchoBufferHelper.php';
 require_once __DIR__ . '/../libs/EchoDebugHelper.php';
-require_once __DIR__ . '/../libs/AlexaWebsocket.php';
 require_once __DIR__ . '/../libs/VariableProfileHelper.php';
 
 // Modul für Amazon Echo Remote
@@ -13,7 +12,6 @@ class EchoIO extends IPSModule
 {
     use IPSymconEchoRemote\EchoBufferHelper;
     use IPSymconEchoRemote\EchoDebugHelper;
-    use IPSymconEchoRemote\AlexaWebsocket;
     use IPSymconEchoRemote\VariableProfileHelper;
 
     private const STATUS_INST_WEBSOCKET_ERROR = 200; // websocket error
@@ -118,7 +116,6 @@ class EchoIO extends IPSModule
         $parentID = IPS_GetInstance($this->InstanceID)['ConnectionID'];
         if ( $parentID > 0 )
         {
-            $this->wsSetConfiguration(0);
             IPS_DisconnectInstance($this->InstanceID);
             $this->UnregisterMessage($parentID , IM_CHANGESTATUS);
         }
@@ -1596,64 +1593,6 @@ class EchoIO extends IPSModule
         return $ret;
     }
 
-    // Receive data from websocket
-    public function ReceiveData($JSONString)
-    {
-        $data = json_decode($JSONString);
-
-        $msg = $this->wsDecodeMessageAH($data->Buffer);
-
-        // Handshake
-        if ($msg['service'] == 'TUNE')
-        {
-            // Method 1
-            if ($msg['content']['protocolName'] == 'A:H')
-            {
-                $this->wsSendMessage( $this->encodeWSHandshake() );
-                IPS_Sleep( 100 );
-    
-                $this->wsSendMessage( $this->encodeGWHandshake() );
-                IPS_Sleep( 100 );
-    
-                $this->wsSendMessage( $this->encodeGWRegisterAH() );   
-            }
-
-             // Method 2
-             if ($msg['content']['protocolName'] == 'A:F')
-             {
-                 $this->wsSendMessage( $this->encodeWSHandshake() );
-                 IPS_Sleep( 100 );
-     
-     
-                 $this->wsSendMessage( $this->encodeGWRegisterAF() );   
-             }
-
-        }
-
-        if ($msg['service'] == 'FABE')
-        {
-            if (isset ($msg['content']['payload']['command']))
-            {
-                switch ( $msg['content']['payload']['command'] )
-                {
-                    case 'PUSH_ACTIVITY':
-                        $this->RegisterOnceTimer("GetLastActivityTimer", 'ECHOIO_GetLastActivity(' . $this->InstanceID . ');' );
-                        break;
-                }
-            }
-        }
-
-        return true;
-
-        //$this->SendDataToChildren(json_encode(['DataID' => '{26039E09-3FE0-A12C-D4F3-D68BCF46A884}', 'Buffer' => $data->Buffer]));
-    }
-
-    public function GetConfigurationForParent()
-    {
-        $config = $this->wsGetConfiguration( 1 );
-
-        return json_encode($config, JSON_UNESCAPED_SLASHES);
-    }
 
     public function UpdateAllDeviceVolumes()
     {
