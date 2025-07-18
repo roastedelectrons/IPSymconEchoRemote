@@ -796,9 +796,10 @@ class EchoIO extends IPSModule
             $this->SendDebug(__FUNCTION__, 'Error: (' . curl_errno($ch) . ') ' . curl_error($ch), 0);
             if ($this->ReadPropertyBoolean('LogMessageEx') )
             {
-                $this->LogMessage( 'Error in function ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
+                //$this->LogMessage( 'Error in function ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
+                trigger_error('curl error: '. curl_error($ch) .' ('. curl_errno($ch) . ')');
             }  
-            //Workaroud since the Echo Device Instances expext an array response
+
             return ['http_code' => 502, 'header' => '', 'body' => 'Error: (' . curl_errno($ch) . ') ' . curl_error($ch) ];
         }
 
@@ -808,35 +809,48 @@ class EchoIO extends IPSModule
         $this->SendDebug(__FUNCTION__, 'Send to URL: ' . print_r($url, true), 0);
         $this->SendDebug(__FUNCTION__, 'Curl Info: ' . $http_code . ' ' . print_r($info, true), 0);
         curl_close($ch);
-        //eine Fehlerbehandlung macht hier leider keinen Sinn, da 400 auch kommt, wenn z.b. der Bildschirm (Show) ausgeschaltet ist
 
         $returnValues = $this->getReturnValues($info, $result);
 
-        if ($info['http_code'] == 401)
-        {
-            $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
-        }
+        switch($info['http_code']){
+            case 200:
+                // success
+                break;
+                
+            case 400:
+                //eine allgemeine Fehlerbehandlung macht hier leider keinen Sinn, da 400 auch kommt, wenn z.b. der Bildschirm (Show) ausgeschaltet ist
+                //prüfe nur auf API Fehlermeldungen
+                $response = json_decode($returnValues['body'], true);
 
-        if ($info['http_code'] == 400) 
-        {
-            $response = json_decode($returnValues['body'], true);
-
-            if (isset($response['message']))
-            {
-                if ( $response['message'] == 'Rate exceeded'){
-                    trigger_error($response['message']);
+                if (isset($response['message']))
+                {
+                    if ( $response['message'] == 'Rate exceeded'){
+                        trigger_error('Too Many Requests (400)');
+                    } else {
+                        if ($this->ReadPropertyBoolean('LogMessageEx') )
+                        {
+                            trigger_error( 'Bad Request (400): '. $response['message']);
+                        }  
+                    }
                 } else {
-                    if ($this->ReadPropertyBoolean('LogMessageEx') )
-                    {
-                        $this->LogMessage( __FUNCTION__ .': Bad Request (400): '. $response['message'] , KL_ERROR);
-                    }  
+                    if ($this->ReadPropertyBoolean('LogMessageEx'))
+                        trigger_error("HTTP\nResponse Code: ".$info['http_code']."\nResponse Body: ". $returnValues['body']."\n");
                 }
-            }
-        }
+                break;
+        
+            case 401:
+                $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
+                trigger_error('Unauthorized (401)');
+                break;
 
-        if ($info['http_code'] == 429) 
-        {
-            trigger_error('Too many requests!');
+            case 429:
+                trigger_error('Too Many Requests (429)');
+                break;
+
+            default:
+                if ($this->ReadPropertyBoolean('LogMessageEx'))
+                    trigger_error("HTTP\nResponse Code: ".$info['http_code']."\nResponse Body: ". $returnValues['body']."\n");
+                break;
         }
 
         return $returnValues;
