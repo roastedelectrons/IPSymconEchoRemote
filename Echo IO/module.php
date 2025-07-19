@@ -816,40 +816,37 @@ class EchoIO extends IPSModule
             case 200:
                 // success
                 break;
-                
+
             case 400:
-                //eine allgemeine Fehlerbehandlung macht hier leider keinen Sinn, da 400 auch kommt, wenn z.b. der Bildschirm (Show) ausgeschaltet ist
-                //prüfe nur auf API Fehlermeldungen
+                //Eine allgemeine Fehlerbehandlung macht hier leider keinen Sinn, da 400 auch kommt, wenn z.b. der Bildschirm (Show) ausgeschaltet ist
+                //Prüfe nur auf API Fehlermeldungen
                 $response = json_decode($returnValues['body'], true);
 
                 if (isset($response['message']))
                 {
                     if ( $response['message'] == 'Rate exceeded'){
-                        trigger_error('Too Many Requests (400)');
+                        trigger_error('Too Many Requests (400): '. $url);
                     } else {
                         if ($this->ReadPropertyBoolean('LogMessageEx') )
                         {
-                            trigger_error( 'Bad Request (400): '. $response['message']);
+                            trigger_error("HTTP\nRequest Url: ".$url."\nResponse Code: ".$info['http_code']."\nResponse Body: ". $returnValues['body']."\n");
                         }  
                     }
-                } else {
-                    if ($this->ReadPropertyBoolean('LogMessageEx'))
-                        trigger_error("HTTP\nResponse Code: ".$info['http_code']."\nResponse Body: ". $returnValues['body']."\n");
                 }
                 break;
         
             case 401:
                 $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
-                trigger_error('Unauthorized (401)');
+                trigger_error('Unauthorized (401): '. $url);
                 break;
 
             case 429:
-                trigger_error('Too Many Requests (429)');
+                trigger_error('Too Many Requests (429): '. $url);
                 break;
 
             default:
                 if ($this->ReadPropertyBoolean('LogMessageEx'))
-                    trigger_error("HTTP\nResponse Code: ".$info['http_code']."\nResponse Body: ". $returnValues['body']."\n");
+                    trigger_error("HTTP\nRequest Url: ".$url."\nResponse Code: ".$info['http_code']."\nResponse Body: ". $returnValues['body']."\n");
                 break;
         }
 
@@ -2085,7 +2082,7 @@ class EchoIO extends IPSModule
                     [
                         'name' => 'LogMessageEx',
                         'type' => 'CheckBox',
-                        'caption' => 'Extented log messages'
+                        'caption' => 'Throw error messages for HTTP errors'
                     ]
                 ]
             ]

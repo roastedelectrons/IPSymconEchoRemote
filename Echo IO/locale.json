@@ -28,7 +28,7 @@
       "setup variables for last activity": "Variablen für letzte Aktivität anlegen",
       "Cookie expiration date": "Ablaufdatum des Cookies",
       "To generate the refresh token, follow the instructions on: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung": "Zum Erzeugen des Refresh Token, die folgende Anleitung befolgen: https://github.com/roastedelectrons/IPSymconEchoRemote#einrichtung",
-      "Extented log messages": "Erweiterte Log Meldungen",
+      "Throw error messages for HTTP errors": "Fehlermeldungen bei HTTP-Fehlern ausgeben",
       "Websocket (for evaluation of last activity)": "Websocket (zur Auswertung der letzten Aktion)",
       "Login was successful": "Die Anmeldung war erfolgreich",
       "Logout was successful": "Die Abmeldung war erfolgreich",
