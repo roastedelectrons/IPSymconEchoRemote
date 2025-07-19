@@ -249,7 +249,7 @@ class EchoIO extends IPSModule
         $this->SendDebug(__FUNCTION__ , 'Curl info: ' . json_encode($info), 0);
 
         if ( curl_errno($ch) ) {
-            $this->LogMessage( 'Error in function ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
+            $this->LogMessage( 'Connection Error in ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
             $this->SendDebug(__FUNCTION__ , 'Curl error: ' . curl_error($ch) .' ('. curl_errno($ch) . ')', 0);
             return false;
         } 
@@ -794,12 +794,7 @@ class EchoIO extends IPSModule
 
         if (curl_errno($ch)) {
             $this->SendDebug(__FUNCTION__, 'Error: (' . curl_errno($ch) . ') ' . curl_error($ch), 0);
-            if ($this->ReadPropertyBoolean('LogMessageEx') )
-            {
-                //$this->LogMessage( 'Error in function ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
-                trigger_error('curl error: '. curl_error($ch) .' ('. curl_errno($ch) . ')');
-            }  
-
+            $this->LogMessage( 'Connection Error in ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
             return ['http_code' => 502, 'header' => '', 'body' => 'Error: (' . curl_errno($ch) . ') ' . curl_error($ch) ];
         }
 
@@ -880,7 +875,7 @@ class EchoIO extends IPSModule
         $result = curl_exec($ch);
 
         if (curl_errno($ch)) {
-            $this->LogMessage( 'Error in function ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
+            $this->LogMessage( 'Connection Error in ' . __FUNCTION__ .' : ' . curl_error($ch) .' ('. curl_errno($ch) . ')' , KL_ERROR);
             return ['http_code' => 502, 'header' => '', 'body' => 'Error:' . curl_error($ch)];
         }
 
