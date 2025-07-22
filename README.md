@@ -85,11 +85,12 @@ Im Amazon-Konto muss **Zwei-Schritt-Verifizierung (2FA) mit Authentifizierungs-A
 
 ## Changelog
 
-Version 2.7 (2025-05-26) BETA
+Version 2.7 (2025-07-22)
 * Neu: Alexa Smart Home Geräte
    * Geräte, die mit Alexa verbunden sind, können direkt aus Symcon gesteuert werden. Besonders geeignet für Geräte, für die kein Symcon Modul verfügbar ist, die aber eine Alexa-Integration haben.
    * Unterstützung für Thermostate, Klimaanlagen, Licht, Steckdosen, Rolläden, Schlösser, Szenen und weitere
    * Einrichtung: Alexa Smart Home Konfigurator anlegen und aus diesem heraus die gewünschten Geräte-Instanzen erstellen
+* EchoIO: Verbesserte Fehlerbehandlung und -meldungen
 
 Version 2.6 (2025-05-18)
 * Neu: Alexa Einkauf- und ToDo-Listen (Modul)
@@ -244,122 +245,3 @@ Version 2.0 (2023-03-04)
 7. openhab-addon Amazon Echo Control (Java): https://github.com/openhab/openhab-addons/tree/main/bundles/org.openhab.binding.amazonechocontrol/src/main/java/org/openhab/binding/amazonechocontrol/internal
 8. Sequence Command Discovery: https://github.com/custom-components/alexa_media_player/wiki/Developers%3A-Sequence-Discovery
 9. Amazon Alexa Logo by [icons8]( https://icons8.com/icon/X28a9yj_gkpy/amazon-alexa-logo)
-
-## Dokumentation neuer Funktionen
-**PlayMusic**
-
-```php
-ECHOREMOTE_PlayMusic(int $InstanceID, string $searchPhrase, string $musicProviderId);
-``` 
-| Parameter        |  Beschreibung | Wert |
-|------------------|---------------|------|
-|_$InstanceID_     | InstanzID des Echo Remote Devices| |
-|_$searchPhrase_   |  Suchanfrage |z.B. "_Songname_ von _Interpret_", "_Albumname_ von _Interpret_",  "_Playlistname_", "_Radiosender-Name_" |
-|_$musicProviderId_ | Anbieter |z.b. 'DEFAULT', 'TUNEIN', 'AMAZON_MUSIC', 'CLOUDPLAYER', 'SPOTIFY', 'APPLE_MUSIC', 'DEEZER', 'I_HEART_RADIO' |
-
-_Beispiele:_
-```php
-$InstanceID = 12345; // InstanzID des Echo Remote Devices
-
-// Song von Amazon Music abspielen (Amazon Music Unlimited notwendig, sonst wird irgendein Song abgespielt)
-ECHOREMOTE_PlayMusic( $InstanceID, 'Songname von Interpret', 'AMAZON_MUSIC');
-
-// Album von Spotify abspielen
-ECHOREMOTE_PlayMusic( $InstanceID, 'Ablumname von Interpret', 'SPOTIFY');
-
-// Playlist 'Mein Discovery Mix' von Amazon Music abspielen (für andere Playlisten ist Amazon Music Unlimited notwendig)
-ECHOREMOTE_PlayMusic( $InstanceID, 'Mein Discovery Mix', 'CLOUDPLAYER');
-
-// Radiosender abspielen
-ECHOREMOTE_PlayMusic( $InstanceID, 'NDR 2 Niedersachsen', 'TUNEIN');
-
-```
-**SendMobilePush**
-
-Sendet eine Push-Nachricht an die Alexa-App.
-
-```php
-ECHOREMOTE_SendMobilePush(int $InstanceID, string $title, string $message);
-``` 
-| Parameter        |  Beschreibung | Wert |
-|------------------|---------------|------|
-|_$InstanceID_     | InstanzID des Echo Remote Devices| |
-|_$title_   |  Titel | |
-|_$message_ | Nachricht | |
-
-_Beispiele:_
-```php
-$InstanceID = 12345; // InstanzID des Echo Remote Devices
-
-ECHOREMOTE_SendMobilePush( $InstanceID, 'IP-Symcon', 'Die Waschmaschine ist fertig');
-
-```
-
-**AnnouncementEx**
-
-Annoucements müssen pro Gerät in der Alexa-App de-/aktiviert werden (Geräte > Echo und Alexa > Echo Gerät auswählen > Geräteeinstellungen (Zahnrad) > Kommunikation > Ankündigungen).
-
-Wenn *Do-not-Disturb* aktiviert ist, erfolgen auf dem jeweiligen Gerät keine Ansagen.
-
-```php
-ECHOREMOTE_AnnouncementEx(int $InstanceID, string $tts, array $instanceIDList, array $options );
-``` 
-| Parameter        |  Beschreibung | Wert |
-|------------------|---------------|------|
-|_$InstanceID_     | InstanzID des ausführenden Echo Remote Devices| |
-|_$instanceIDList_   |  Array mit InstanzID's auf denen die Ankündigung erfolgen soll. Wird ein leeres Array übergeben, erfolgt keine Ansage. Wird 'ALL_DEVICES' im Array übergeben, erfolgt die Ansage auf allen im Account registirerten Echo-Geräten| `[ 12345, 23456, 34567]` oder `['ALL_DEVICES']` |
-|_$tts_ | Ankündigung | `Text`|
-|_$options_ | Optionen (aktuell keine verfügbar) | `[]` |
-
-_Beispiel:_
-```php
-$InstanceID = 12345; // InstanzID des Echo Remote Devices
-$instanceIDList = [12345, 23456, 34567];
-
-ECHOREMOTE_AnnouncementEx( $InstanceID,  'Die Waschmaschine ist fertig', $instanceIDList, [] );
-
-```
-
-**TextToSpeechEx**
-
-```php
-ECHOREMOTE_TextToSpeechEx(int $InstanceID, string $tts, array $instanceIDList, array $options );
-``` 
-| Parameter        |  Beschreibung | Wert |
-|------------------|---------------|------|
-|_$InstanceID_     | InstanzID des ausführenden Echo Remote Devices| |
-|_$instanceIDList_   |  Array mit InstanzID's auf denen die Ankündigung erfolgen soll. Wird ein leeres Array übergeben, erfolgt keine Ansage. Wird 'ALL_DEVICES' im Array übergeben, erfolgt die Ansage auf allen im Account registirerten Echo-Geräten| `[ 12345, 23456, 34567]` oder `['ALL_DEVICES']` |
-|_$tts_ | Ankündigung | `Text`|
-|_$options_ | Optionen als Array | `[]` |
-|_$options['volume']_ | Lautsärke während Ansage| `['volume' => 35]` |
-
-_Beispiel:_
-```php
-$InstanceID = 12345; // InstanzID des Echo Remote Devices
-$instanceIDList = [12345, 23456, 34567];
-
-ECHOREMOTE_TextToSpeechEx( $InstanceID,  'Die Waschmaschine ist fertig', $instanceIDList, [] );
-
-```
-
-**TextToSpeechVolume**
-
-Wie TextToSpeech, jedoch kann die Lautstärke der Ansage übergeben werden. Nach der Ansage wird die Lautstärke wieder auf den vorherigen Wert zurückgesetzt.
-
-```php
-ECHOREMOTE_TextToSpeechVolume(int $InstanceID, string $tts, int $volume );
-``` 
-| Parameter        |  Beschreibung | Wert |
-|------------------|---------------|------|
-|_$InstanceID_     | InstanzID des ausführenden Echo Remote Devices| |
-|_$tts_ | Ankündigung | `Text`|
-|_$volume_ | Lautsärke der Ansage| `50` |
-
-_Beispiel:_
-```php
-$InstanceID = 12345; // InstanzID des Echo Remote Devices
-
-ECHOREMOTE_TextToSpeechVolume( $InstanceID,  'Die Waschmaschine ist fertig', 50 );
-
-```
-
