@@ -76,7 +76,7 @@ trait AlexaSmartHome
 
         $result = $this->getSmartHomeDevicesNexus();
 
-        if (!$result['data']['endpoints']['items']){
+        if (!isset($result['data']['endpoints']['items'])){
             return [];
         }
 
