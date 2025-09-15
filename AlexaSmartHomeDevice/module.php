@@ -106,6 +106,12 @@ class AlexaSmartHomeDevice extends IPSModule
                     $this->EnableAction($ident);
                     break;
 
+                case 'Alexa.PowerLevelController':
+                    $ident = $interfaceNameIdent.'_powerLevel';
+                    $this->MaintainVariable($ident, $this->Translate('power level'), VARIABLETYPE_INTEGER, '~Intensity.100', 1, true );
+                    $this->EnableAction($ident);
+                    break;
+
                 case 'Alexa.PercentageController':
                     $ident = $interfaceNameIdent.'_percentage';
                     $this->MaintainVariable($ident, $this->Translate('percentage'), 1, '~Intensity.100', 1, true );
@@ -323,6 +329,11 @@ class AlexaSmartHomeDevice extends IPSModule
                 $this->SetValue($ident, $value);
                 break;
 
+            case 'powerLevel':
+                $this->SetPowerLevel($value);
+                $this->SetValue($ident, $value);
+                break;
+
             case 'percentage':
                 $this->SetPercentage($value);
                 $this->SetValue($ident, $value);
@@ -447,6 +458,11 @@ class AlexaSmartHomeDevice extends IPSModule
                     case 'Alexa.PowerController':
                         $value = ($state['value'] == 'ON') ? true : false;
                         @$this->SetValue($namespaceIdent.'_powerState', $value);
+                        break;
+
+                    case 'Alexa.PowerLevelController':
+                        $value = intval($state['value']);
+                        @$this->SetValue($namespaceIdent.'_powerLevel', $value);
                         break;
 
                     case 'Alexa.PercentageController':
@@ -609,6 +625,26 @@ class AlexaSmartHomeDevice extends IPSModule
             'parameters' => ['action' => $action]
         ];
         $result = $this->SendCommand( $url, $data , 'PUT'); 
+        
+        return $result;
+    }
+
+    private function SetPowerLevel( int $level )
+    {
+        $url = '/api/phoenix/state';
+
+        if ($level > 100) $level = 100;
+        if ($level < 0) $level = 0;
+
+        $data['controlRequests'][] = [
+            'entityId' => $this->getEntityID(),
+            'entityType'=> 'ENTITY',
+            'parameters' => [
+                'action' => 'setPowerLevel',
+                'powerLevel' => $level
+            ]
+        ];
+        $result = $this->SendCommand( $url, $data , 'PUT');   
         
         return $result;
     }

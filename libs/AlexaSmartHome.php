@@ -8,6 +8,7 @@ trait AlexaSmartHome
         $supportedCapabilities = [
             'Alexa.EndpointHealth',
             'Alexa.PowerController',
+            'Alexa.PowerLevelController',
             'Alexa.PercentageController',
             'Alexa.BrightnessController',
             'Alexa.ColorController',
