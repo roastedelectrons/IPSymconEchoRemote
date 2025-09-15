@@ -170,6 +170,9 @@ class EchoRemote extends IPSModule
         $this->RegisterParent();
 
         $this->RegisterVariables();
+
+        $this->UpdateAlarm();
+
         //Apply filter
         $devicenumber = $this->ReadPropertyString('Devicenumber');
         $this->SetReceiveDataFilter('.*(' . $devicenumber . '|ALL_DEVICES'.').*');
@@ -1923,9 +1926,7 @@ class EchoRemote extends IPSModule
         }
 
         //update Alarm
-        if ($this->ReadPropertyBoolean('AlarmInfo')) {
-            $this->UpdateAlarm();
-        }
+        $this->UpdateAlarm();
 
 
         IPS_SemaphoreLeave ( 'UpdateStatus.'.$this->InstanceID );
@@ -2115,7 +2116,6 @@ class EchoRemote extends IPSModule
 
     private function ValidateConfiguration(): bool
     {
-        $this->SetTimerInterval('EchoAlarm', 0);
         if ($this->ReadPropertyString('Devicetype') === '') {
             $this->SetStatus(self::STATUS_INST_DEVICETYPE_IS_EMPTY);
         } elseif ($this->ReadPropertyString('Devicenumber') === '') {
@@ -2389,11 +2389,11 @@ class EchoRemote extends IPSModule
         $this->MaintainVariable('OnlineStatus', $this->Translate('Online status'), 0, '~Switch', $this->_getPosition(), $this->ReadPropertyBoolean('OnlineStatus'));
 
         // Alarm status variables
-        $this->RegisterVariablesAlarm();
+        $this->MaintainVariablesAlarm();
 
     }
 
-    private function RegisterVariablesAlarm()
+    private function MaintainVariablesAlarm()
     {
         // Get existing AlarmStatus variables
         $children = IPS_GetChildrenIDs($this->InstanceID);
@@ -2417,7 +2417,8 @@ class EchoRemote extends IPSModule
                 $Alarms[$ident]  = array(
                     'ident'     => $ident,
                     'time'      => substr( $notification['originalTime'], 0, 8),
-                    'status'    => ($notification['status'] == 'ON') ? true : false
+                    'status'    => ($notification['status'] == 'ON') ? true : false,
+                    'pattern'   => $this->getAlarmPattern($notification)
                 );
             }
         }
@@ -2425,7 +2426,7 @@ class EchoRemote extends IPSModule
         foreach($Alarms as $ident => $alarm){
 
             if ($alarm !== false && $this->ReadPropertyBoolean('AlarmStatus') ) {
-                $name = $this->Translate('Alarm').": ".$alarm['time'] ;
+                $name = $this->Translate('Alarm').": ".$alarm['time'] . ' ('.$alarm['pattern'].')';
                 $this->MaintainVariable($alarm['ident'], $name, 0, '~Switch', 100, true);
                 if ($this->CheckExistence($alarm['ident'])){
                     $this->SetValue($alarm['ident'], $alarm['status']);
@@ -2868,62 +2869,177 @@ class EchoRemote extends IPSModule
 
     public function UpdateAlarm(): bool
     {
+        $notifications = [];
 
-        $notifications = $this->GetNotifications();
-        if ($notifications === null) {
-            return false;
-        }
-
-        // Alarm status variables
-        if ( $this->ReadPropertyBoolean('AlarmStatus') ){
-            $this->RegisterVariablesAlarm();
-        }         
-
-        $alarmTime = 0;
-        $nextAlarm = 0; 
-        $now = time();
-
-        foreach ($notifications as $notification) {
-            if (($notification['type'] === 'Alarm' || $notification['type'] === 'MusicAlarm')
-                && ($notification['status'] === 'ON')
-                && ($notification['deviceSerialNumber'] === IPS_GetProperty($this->InstanceID, 'Devicenumber'))) {
-                $alarmTime = strtotime($notification['originalDate'] . 'T' . $notification['originalTime']);
-
-                // In case the alarm is just running and not yet switched off we have to skip it
-                if ( $alarmTime <= $now){
-                    continue;
-                }
-
-                if ($nextAlarm === 0) {
-                    $nextAlarm = $alarmTime;
-                } else {
-                    $nextAlarm = min($nextAlarm, $alarmTime);
-                }
+        if ($this->ReadPropertyBoolean('AlarmInfo') || $this->ReadPropertyBoolean('AlarmStatus')) {
+            $notifications = $this->GetNotifications();
+            if ($notifications === null) {
+                return false;
             }
         }
 
-        if ($nextAlarm === 0) {
-            $timerIntervalSec = 0;
-        } else {
-            $timerIntervalSec = $nextAlarm - $now;
+        // Update Alarm status variables
+        if ( $this->ReadPropertyBoolean('AlarmStatus') ){
+            $this->MaintainVariablesAlarm();
         }
 
-        if ($nextAlarm !== $this->GetValue('nextAlarmTime')) {
-            //neuen Wert und Timer setzen.
-            $this->SetValue('nextAlarmTime', $nextAlarm);
+        // Update Alarm Info variables
+        if ( $this->ReadPropertyBoolean('AlarmInfo') ){
+            $alarmTime = 0;
+            $nextAlarm = 0; 
+            $now = time();
 
-            $this->SetTimerInterval('EchoAlarm', $timerIntervalSec * 1000);
-        }
+            foreach ($notifications as $notification) {
+                if (($notification['type'] === 'Alarm' || $notification['type'] === 'MusicAlarm')
+                    && ($notification['status'] === 'ON')
+                    && ($notification['deviceSerialNumber'] === IPS_GetProperty($this->InstanceID, 'Devicenumber'))) {
+                    $alarmTime = $this->getNextAlarmTime($notification); //strtotime($notification['originalDate'] . 'T' . $notification['originalTime']);
 
-        // Set the timer in case of a restart of symcon
-        if ( $this->GetTimerInterval("EchoAlarm") === 0 && $timerIntervalSec > 0 )
-        {
+                    // In case the alarm is just running and not yet switched off we have to skip it
+                    if ( $alarmTime <= $now){
+                        continue;
+                    }
+
+                    if ($nextAlarm === 0) {
+                        $nextAlarm = $alarmTime;
+                    } else {
+                        $nextAlarm = min($nextAlarm, $alarmTime);
+                    }
+                }
+            }
+
+            if ($nextAlarm === 0) {
+                $timerIntervalSec = 0;
+            } else {
+                $timerIntervalSec = $nextAlarm - $now;
+            }
+
+            if ($nextAlarm !== $this->GetValue('nextAlarmTime')) {
+                //neuen Wert setzen.
+                $this->SetValue('nextAlarmTime', $nextAlarm);
+
+                $this->SetTimerInterval('EchoAlarm', $timerIntervalSec * 1000);
+            }
+
+            // Set the timer 
             $this->SetTimerInterval('EchoAlarm', $timerIntervalSec * 1000);         
+
+        } else {
+            $this->SetTimerInterval('EchoAlarm', 0);  
         }
 
         return true;
     }
 
+    private function getNextAlarmTime($alarm) {
+
+        $time = $alarm['originalTime'];
+        $date = $alarm['originalDate'];
+        $pattern = $alarm['recurringPattern'];
+        $patternRule = $alarm['rRuleData'];
+
+        // Aktuelles Datum und Uhrzeit
+        $currentDateTime = new DateTime();
+
+        // Eingabedatum und Uhrzeit kombinieren
+        $dateTimeString = $date . 'T' . $time;
+        $wakeUpDateTime = new DateTime($dateTimeString);
+
+        // Wenn die Weckzeit schon in der Vergangenheit liegt, auf den nächsten Weckzeitpunkt anpassen
+        if ($wakeUpDateTime <= $currentDateTime) {
+            switch ($pattern) {
+                case 'XXXX-WE': // Wochenende (Samstag und Sonntag)
+                    do {
+                        $wakeUpDateTime->modify('+1 day');
+                    } while ($wakeUpDateTime->format('N') < 6); // Bis Samstag (N = 6 für Samstag)
+                    break;
+
+                case 'XXXX-WD': // Wochentag (Montag bis Freitag)
+                    do {
+                        $wakeUpDateTime->modify('+1 day');
+                    } while ($wakeUpDateTime->format('N') > 5); // Bis Freitag (N = 5 für Freitag)
+                    break;
+
+                case 'P1D': // Täglich
+                    $wakeUpDateTime->modify('+1 day');
+                    break;
+
+                default: // Benutzerdefinierte Wochentage
+                    if (!empty($patternRule)) {
+                        $weekdays = $patternRule['byWeekDays'];
+                        $found = false;
+
+                        // Suche nach dem nächsten Wochentag, der im Array enthalten ist
+                        while (!$found) {
+                            $currentDay = $wakeUpDateTime->format('D'); // Abkürzung des Wochentages (z.B. 'Mon')
+                            $dayAbbreviation = strtoupper(substr($currentDay, 0, 2)); // 'Mo', 'Tu', 'We', ...
+
+                            // Prüfen, ob der aktuelle Wochentag im Array enthalten ist
+                            if (in_array($dayAbbreviation, $weekdays)) {
+                                // Wenn der Wecker an diesem Tag schon vergangen ist, gehe zum nächsten Tag
+                                if ($wakeUpDateTime <= $currentDateTime) {
+                                    $wakeUpDateTime->modify('+1 day');
+                                } else {
+                                    $found = true; // Wenn der Wecker in der Zukunft ist, beende die Suche
+                                }
+                            } else {
+                                $wakeUpDateTime->modify('+1 day'); // Andernfalls nächsten Tag prüfen
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+        // Rückgabe der nächsten Weckzeit als String im Format Y-m-d H:i:s
+        //return $wakeUpDateTime->format('Y-m-d H:i:s');
+        return $wakeUpDateTime->getTimestamp();
+    }
+
+    private function getAlarmPattern($alarm) {
+
+        $patternString = ""; 
+
+        switch ($alarm['recurringPattern']) {
+            case 'XXXX-WE': // Wochenende (Samstag und Sonntag)
+                $patternString = $this->Translate("on weekends");
+                break;
+
+            case 'XXXX-WD': // Wochentag (Montag bis Freitag)
+                $patternString = $this->Translate("on weekdays");
+                break;
+
+            case 'P1D': // Täglich
+                $patternString = $this->Translate("daily");
+                break;
+
+            default: // Benutzerdefinierte Wochentage
+                if (isset($alarm['rRuleData']['byWeekDays'])) {
+                    $days = [];
+
+                    foreach($alarm['rRuleData']['byWeekDays'] as $day){
+                        $days[] = ucfirst(strtolower($day));
+                    }
+                    // Define the correct order of the weekdays
+                    $weekdaysOrder = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+                    // Sort the array based on the position in the reference array
+                    usort($days, function($a, $b) use ($weekdaysOrder) {
+                        return array_search($a, $weekdaysOrder) - array_search($b, $weekdaysOrder);
+                    });
+        
+                    //Translate
+                    foreach($days as $index => $day){
+                        $days[$index] = $this->Translate($day);
+                    }
+
+                    $patternString = implode(', ', $days);
+                } else {
+                    $patternString = $this->Translate("once");
+                }
+                break;
+        }
+        return $patternString;
+    }
 
 
     /** GetDevicetype

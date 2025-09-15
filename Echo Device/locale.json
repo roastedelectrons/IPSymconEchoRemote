@@ -105,7 +105,18 @@
       "Online status": "Online Status",
       "On": "An",
       "Off": "Aus",
-      "TuneIn stations copied to favorites! Make sure that all station names in the favorits match those on tunein.com and press *apply changes*.": "TuneIn Staionen wurden Favoriten kopiert! Stelle sicher, dass alle Stationsnamen in der Favoritenliste den Stationsnamen auf tunein.com gleichen und klicke *Änderungen übernehmen*."
+      "TuneIn stations copied to favorites! Make sure that all station names in the favorits match those on tunein.com and press *apply changes*.": "TuneIn Staionen wurden Favoriten kopiert! Stelle sicher, dass alle Stationsnamen in der Favoritenliste den Stationsnamen auf tunein.com gleichen und klicke *Änderungen übernehmen*.",
+      "once": "einmalig",
+      "on weekdays": "an Wochentagen",
+      "on weekend": "am Wochenende",
+      "daily": "täglich",
+      "Mo": "Mo",
+      "Tu": "Di",
+      "We": "Mi",
+      "Th": "Do",
+      "Fr": "Fr",
+      "Sa": "Sa",
+      "Su": "So"
     }
   }
 }
