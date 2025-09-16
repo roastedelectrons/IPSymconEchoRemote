@@ -2038,7 +2038,7 @@ class EchoIO extends IPSModule
             [
                 'name' => 'VariablesLastActivity',
                 'type' => 'CheckBox',
-                'caption' => 'setup variables for last activity'],
+                'caption' => 'setup variables for last activity (call EchoIO_GetLastActivity() to update the variables)'],
             /*
             [
                 'type' => 'RowLayout',
@@ -2119,7 +2119,12 @@ class EchoIO extends IPSModule
             [
                 'type' => 'Button',
                 'caption' => 'Login Status',
-                'onClick' => "if (EchoIO_CheckLoginStatus(\$id)){echo '".$this->Translate('You are logged in')."';} else {echo '".$this->Translate('You are not logged in')."';}"]];
+                'onClick' => "if (EchoIO_CheckLoginStatus(\$id)){echo '".$this->Translate('You are logged in')."';} else {echo '".$this->Translate('You are not logged in')."';}"],
+            [
+                'type' => 'Button',
+                'caption' => 'Update last activity',
+                'onClick' => "EchoIO_GetLastActivity(\$id);"]
+            ];
 
         return $form;
     }

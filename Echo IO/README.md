@@ -16,8 +16,7 @@ Anmeldung am Amazon-Account.
 |active | CheckBox | aktiv|
 |language | Select | Echo Sprache|
 |refresh_token | PasswordTextBox | Refresh-Token|
-|TimerLastAction | CheckBox | Letzte Aktivität und Gerät abfragen (Hinweis: Diese Funktion führt zu erheblichem Netzwerk- und Internetverkehr, da alle 2.5 Sekunden eine Anfrage an den Server gestellt wird)|
-|VariablesLastActivity | CheckBox | Variablen für letzte Aktivität anlegen|
+|VariablesLastActivity | CheckBox | Variablen für letzte Aktivität anlegen (zum Aktualiseren der Variablen muss die Funktion ECHOIO_GetLastActivity() aufgerufen werden)|
 
 ***Experteneinstellungen***
 

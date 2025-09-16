@@ -84,6 +84,13 @@ Im Amazon-Konto muss **Zwei-Schritt-Verifizierung (2FA) mit Authentifizierungs-A
 
 
 ## Changelog
+Version 2.7.1 BETA (2025-09-15)
+* EchoRemote:
+   * Fix: Statusvariablen für neue Wecker werden korrekt angelegt
+   * Neu: Statusvariablen für Wecker enthalten im Namen das Wiederholungsmuster (z.B. täglich, an Wochentagen, etc.)
+   * Fix: nächster Wecker wird nun auch bei wiederholenden Weckzeiten korrekt berechnet
+* Alexa Smart Home Geräte:
+   * Neu: Unterstützung für PowerLevelController
 
 Version 2.7 (2025-07-22)
 * Neu: Alexa Smart Home Geräte
