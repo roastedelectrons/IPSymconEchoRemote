@@ -113,7 +113,7 @@ class EchoRemote extends IPSModule
         $this->SetBuffer('Volume', '');
         $this->RegisterTimer('EchoUpdate', 0, 'EchoRemote_UpdateStatus(' . $this->InstanceID . ');');
         $this->RegisterTimer('UpdatePlayerStatus', 0, 'EchoRemote_UpdatePlayerStatus(' . $this->InstanceID . ', 0);');
-        $this->RegisterTimer('EchoAlarm', 0, 'EchoRemote_RaiseAlarm(' . $this->InstanceID . ');');
+        $this->RegisterTimer('EchoAlarm', 0, 'IPS_RequestAction(' . $this->InstanceID . ', "RaiseAlarm", "");');
         $this->RegisterAttributeFloat('LastDeviceTimestamp', 0);
         $this->RegisterAttributeString('LastActivityID', '' ); 
         $this->RegisterAttributeString('Automations', '');
@@ -379,20 +379,24 @@ class EchoRemote extends IPSModule
             $this->SetAlarmStatus($alarmIndex, $Value);
         }
 
+        if ($Ident === 'RaiseAlarm') {
+            $this->RaiseAlarm();
+        }
+
     }
 
 
-    public function RaiseAlarm(): void
+    private function RaiseAlarm(): void
     {
-        //Alarmzeit setzen
-        $oldAlarmTime = $this->GetValue('nextAlarmTime');
-        $this->SetValue('lastAlarmTime', $oldAlarmTime);
-        $this->SendDebug(__FUNCTION__, 'lastAlarmTime set to ' . $oldAlarmTime . ' (' . date(DATE_RSS, $oldAlarmTime) . ')', 0);
+        if ( time() >= $this->GetValue('nextAlarmTime')){
+            //Alarmzeit setzen
+            $oldAlarmTime = $this->GetValue('nextAlarmTime');
+            $this->SetValue('lastAlarmTime', $oldAlarmTime);
+            $this->SendDebug(__FUNCTION__, 'lastAlarmTime set to ' . $oldAlarmTime . ' (' . date(DATE_RSS, $oldAlarmTime) . ')', 0);
+        }
 
         //Nächsten Timer abrufen
         $this->UpdateAlarm();
-
-        //alte Zeit wird nicht gelöscht, da Alexa den Wecker erst deaktiviert, wenn er abgelaufen ist
     }
 
     /** Rewind 30s
