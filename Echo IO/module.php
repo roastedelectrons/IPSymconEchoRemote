@@ -18,7 +18,7 @@ class EchoIO extends IPSModule
     private const STATUS_INST_NOT_AUTHENTICATED = 214; // authentication must be performed.
     private const STATUS_INST_REFRESH_TOKEN_IS_EMPTY = 215; // authentication must be performed.
 
-    private const UserAgentBrowser  = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15';
+    private const UserAgentBrowser  = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
     private const UserAgentApp      = 'AppleWebKit PitanguiBridge/2.2.595606.0-[HARDWARE=iPhone14_7][SOFTWARE=17.4.1][DEVICE=iPhone]';
 
     public function Create()
@@ -432,12 +432,15 @@ class EchoIO extends IPSModule
     {
         // csfr-token is needed for customer-history-records requests
 
-        $url = 'https://www.' . $this->GetAmazonURL() . '/alexa-privacy/apd/activity?disableGlobalNav=true&ref=activityHistory';
+        $url = 'https://www.' . $this->GetAmazonURL() . '/alexa-privacy/apd/home?disableGlobalNav=true&locale='.$this->GetLanguage().'&appVersion=2025.19';
 
-        $headers[] = 'User-Agent: '. self::UserAgentApp;
-        $headers[] = 'DNT: 1';
+        $headers[] = 'Sec-Fetch-Site: none';
+        $headers[] = 'Sec-Fetch-Mode: navigate';
         $headers[] = 'Connection: keep-alive';
-        $headers[] = 'Content-Type: application/json; charset=UTF-8';
+        $headers[] = 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
+        $headers[] = 'User-Agent: '. self::UserAgentBrowser;
+        $headers[] = 'Sec-Fetch-Dest: document';
+        $headers[] = 'Accept-Encoding: gzip, deflate, br';
 
         $result = $this->HttpRequest($url, $headers, null, 'GET');
 
@@ -484,7 +487,6 @@ class EchoIO extends IPSModule
         if ( !$result )
             return false;
 
-        $this->getCsrfToken();
 
         $this->GetAccessToken();
         
@@ -1433,25 +1435,24 @@ class EchoIO extends IPSModule
         if ($this->CheckRateLimit() === false)
             return false;
 
+        $this->getCsrfToken();
         $csrfToken = $this->ReadAttributeString('CsrfToken');
 
-        if ($csrfToken == ''){
-            $this->getCsrfToken();
-            $csrfToken = $this->ReadAttributeString('CsrfToken');
-            IPS_Sleep( 1000 );
-        }
-
-        $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2/?startTime='. round($startTime) .'&endTime='. round($endTime) .'&pageType=VOICE_HISTORY';
+        $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2?startTime='. round($startTime) .'&endTime='. round($endTime) .'&locale='.$this->GetLanguage().'&disableGlobalNav=true';
 
         $headers = array();
-        $headers[] = 'Content-Type: application/json;charset=utf-8';
         $headers[] = 'Accept: application/json, text/plain, */*';
+        $headers[] = 'Sec-Fetch-Site: same-origin';
         $headers[] = 'Accept-Language: '.$this->GetLanguage();
+        $headers[] = 'Accept-Encoding: gzip, deflate, br';
+        $headers[] = 'Sec-Fetch-Mode: cors';
+        $headers[] = 'Content-Type: application/json;charset=utf-8';
         $headers[] = 'Origin: https://www.' . $this->GetAmazonURL();
-        $headers[] = 'User-Agent: '. self::UserAgentApp;
-        $headers[] = 'authority: https://www.' . $this->GetAmazonURL();
-        $headers[] = 'referer: https://www.' . $this->GetAmazonURL() . '/alexa-privacy/apd/activity?disableGlobalNav=true&ref=activityHistory';
+        $headers[] = 'User-Agent: '. self::UserAgentBrowser;
+        $headers[] = 'Referer: https://www.' . $this->GetAmazonURL() . '/alexa-privacy/apd/rvh?disableGlobalNav=true&locale='.$this->GetLanguage().'&appVersion=2025.19';
         $headers[] = 'anti-csrftoken-a2z: ' . $csrfToken;
+        $headers[] = 'Connection: keep-alive';
+        $headers[] = 'Sec-Fetch-Dest: empty';
 
         $postfields['previousRequestToken'] = null;
 
