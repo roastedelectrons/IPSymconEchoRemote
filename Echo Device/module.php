@@ -2955,22 +2955,30 @@ class EchoRemote extends IPSModule
                 case 'XXXX-WE': // Wochenende (Samstag und Sonntag)
                     do {
                         $wakeUpDateTime->modify('+1 day');
-                    } while ($wakeUpDateTime->format('N') < 6); // Bis Samstag (N = 6 für Samstag)
+                    } while ($wakeUpDateTime->format('N') < 6 || $wakeUpDateTime <= $currentDateTime); // Bis Samstag (N = 6 für Samstag)
                     break;
 
                 case 'XXXX-WD': // Wochentag (Montag bis Freitag)
                     do {
                         $wakeUpDateTime->modify('+1 day');
-                    } while ($wakeUpDateTime->format('N') > 5); // Bis Freitag (N = 5 für Freitag)
+                    } while ($wakeUpDateTime->format('N') > 5 || $wakeUpDateTime <= $currentDateTime); // Bis Freitag (N = 5 für Freitag)
                     break;
 
                 case 'P1D': // Täglich
-                    $wakeUpDateTime->modify('+1 day');
+                    do {
+                        $wakeUpDateTime->modify('+1 day');
+                    } while ($wakeUpDateTime <= $currentDateTime);
                     break;
 
                 default: // Benutzerdefinierte Wochentage
                     if (!empty($patternRule)) {
                         $weekdays = $patternRule['byWeekDays'];
+
+                        // Prüfe, ob mindestens ein Wochentag nach unten stehendem Muster enthalten ist, um eine Endlosschleife zu verhindern
+                        if (empty(array_intersect($weekdays, ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']) )) {
+                            break;
+                        }
+                        
                         $found = false;
 
                         // Suche nach dem nächsten Wochentag, der im Array enthalten ist
@@ -2994,8 +3002,7 @@ class EchoRemote extends IPSModule
                     break;
             }
         }
-        // Rückgabe der nächsten Weckzeit als String im Format Y-m-d H:i:s
-        //return $wakeUpDateTime->format('Y-m-d H:i:s');
+
         return $wakeUpDateTime->getTimestamp();
     }
 
