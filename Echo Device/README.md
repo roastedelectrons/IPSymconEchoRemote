@@ -499,13 +499,6 @@ ECHOREMOTE_Previous( int $InstanceID );
 |-----| -----| ----- |
 |$InstanceID |int |ID der EchoRemote-Instanz |
 
-### RaiseAlarm
-```php
-ECHOREMOTE_RaiseAlarm( int $InstanceID );
-```
-|Parameter| Typ| Beschreibung |
-|-----| -----| ----- |
-|$InstanceID |int |ID der EchoRemote-Instanz |
 
 ### Repeat
 ```php

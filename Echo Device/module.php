@@ -3121,7 +3121,7 @@ class EchoRemote extends IPSModule
             [
                 'type'    => 'ExpansionPanel',
                 'caption' => 'Variables',
-                'expanded' => true,
+                'expanded' => false,
                 'items'   => [                
                     [
                         'name'    => 'PlayerControl',
@@ -3213,7 +3213,11 @@ class EchoRemote extends IPSModule
                                     'type' => 'Select',
                                     'options' => $this->GetMusicProviersFormField()
                                 ],
-                                'visible' => true]]]
+                                'visible' => true]]],
+                    [
+                        'type'    => 'Button',
+                        'caption' => 'Copy TuneIn stations to favorites',
+                        'onClick' => "EchoRemote_CopyTuneInStationsToFavorites(\$id);"]
                 ]
             ],
             [
@@ -3503,14 +3507,11 @@ class EchoRemote extends IPSModule
     {
         $form = [
             [
-                'type'    => 'TestCenter',],
-            [
-                'type'    => 'Label',
-                'caption' => 'Migration:'],
-            [
                 'type'    => 'Button',
-                'caption' => 'Copy TuneIn stations to favorites',
-                'onClick' => "EchoRemote_CopyTuneInStationsToFavorites(\$id);"]
+                'caption' => 'Update state variables',
+                'onClick' => 'EchoRemote_UpdateStatus($id);'],
+            [
+                'type'    => 'TestCenter',]
             ];
 
         return $form;

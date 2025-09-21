@@ -6,6 +6,7 @@
       "update interval": "Aktualisierungsintervall",
       "seconds": "Sekunden",
       "Variables" : "Variablen",
+      "Update state variables": "Statusvariablen aktualisieren",
       "setup variables for media player control (remote, shuffle, repeat, volume, info)": "Variablen für Mediaplayer-Steuerung anlegen (Fernbedienung, Zufallswiedergabe, Wiederholen, Lautstärke, Info)",
       "setup variables for extended info (title, artist, album, cover)": "Variablen für erweiterte Informationen anlegen (Titel, Interpret, Album, Cover)",
       "setup variables for alarm info (nextAlarmTime, lastAlarmTime)": "Variablen für Weckzeiten anlegen (nächste Weckzeit, letzte Weckzeit)",

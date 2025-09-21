@@ -48,6 +48,8 @@ ECHOIO_LogIn( int $InstanceID );
 |$InstanceID |int | |
 
 ### GetLastActivity
+Funktion liefert Informationen über die letzte Aktivität als Array und aktualisiert die Statusvariablen der letzten Aktivität.
+**Wichtig: nicht zyklisch aufrufen, da zu häufige Anfragen vom Server blockiert werden.**
 ```php
 ECHOIO_GetLastActivity( int $InstanceID );
 ```
