@@ -1288,6 +1288,13 @@ class EchoIO extends IPSModule
         $this->SendDebug($notification, $message, $format);
     }
 
+    public function TriggerEchoBot( int $delayMilliSeconds = 0 ){
+
+        IPS_Sleep($delayMilliSeconds);
+
+        $this->GetLastActivity();
+    }
+
 
     public function GetLastActivity()
     {

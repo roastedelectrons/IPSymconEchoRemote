@@ -49,6 +49,7 @@ ECHOIO_LogIn( int $InstanceID );
 
 ### GetLastActivity
 Funktion liefert Informationen über die letzte Aktivität als Array und aktualisiert die Statusvariablen der letzten Aktivität.
+
 **Wichtig: nicht zyklisch aufrufen, da zu häufige Anfragen vom Server blockiert werden.**
 ```php
 ECHOIO_GetLastActivity( int $InstanceID );
@@ -56,6 +57,18 @@ ECHOIO_GetLastActivity( int $InstanceID );
 |Parameter| Typ| Beschreibung |
 |-----| -----| ----- |
 |$InstanceID |int | |
+
+### TriggerEchoBot
+Fragt die letzte Aktivität mittels GetLastActivity ab und triggert dadurch den EchoBot. Diese Funktion bietet im Vergleich zu GetLastActivity zusätzlich die Möglichkeit als Parameter eine Wartezeit zu übergeben, nach der GetLastActivity aufgerufen wird. Dies kann sinnvoll sein, wenn der EchoBot manchmal nicht korrekt getriggert wird, bzw. die letzte Aktivität noch nicht abgerufen werden konnte.
+
+**Wichtig: nicht zyklisch aufrufen, da zu häufige Anfragen vom Server blockiert werden.**
+```php
+ECHOIO_TriggerEchoBot( int $InstanceID, int $delayMilliSeconds );
+```
+|Parameter| Typ| Beschreibung |
+|-----| -----| ----- |
+|$InstanceID |int | |
+|$delayMilliSeconds |int | Wartezeit in Millisekunden |
 
 ### CheckLoginStatus
 ```php

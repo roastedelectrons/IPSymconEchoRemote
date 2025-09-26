@@ -20,10 +20,10 @@ Damit das Modul mitbekommt, dass ein Echo-Gerät angesprochen und eine Routine g
 
 1. IP-Symcon: Kerninstanzen -> Alexa
     1. Unter Szenen -> `hinzufügen`
-        - Name: TriggerLastActivity
+        - Name: TriggerEchoBot
         - Ziel: EchoIO
         - Aktion: Experte -> Führe erweiterte Instanzfunktion aus
-        - Funktion: ECHOIO_GetLastActivity auswählen
+        - Funktion: ECHOIO_TriggerEchoBot auswählen. Sollte es vorkommen, dass der EchoBot gelegentlich nicht wie gewünscht reagiert, kann eine Wartezeit (z.B. 1000ms) als Parameter übergeben werden. Die letzte Aktivität wird dann erst nach dieser Wartezeit abgerufen.
     2. Speichern 
 2. Einem beliebigen Echo-Gerät sagen: "Alexa, suche neue Geräte". In der Alexa App sollte nun eine neue Szene mit dem oben vergebenen Namen verfügbar sein. Diese Szene wird für Einrichtung der jeweiligen EchoBots benötigt (siehe unten).
 
@@ -33,7 +33,7 @@ Damit das Modul mitbekommt, dass ein Echo-Gerät angesprochen und eine Routine g
 ### In Alexa App: 
 1. Routine erstellen
     - Ereignis hinzufügen -> Stimme -> Einen oder mehrere Sätze definieren, die die Routine starten sollen. 
-    - Aktion hinzufügen -> SmartHome -> Szenen -> TriggerLastActivity auswählen
+    - Aktion hinzufügen -> SmartHome -> Szenen -> TriggerEchoBot auswählen
 
 ### In IP-Symcon: 
 1. EchoBot Instanz erstellen
