@@ -84,7 +84,7 @@ Im Amazon-Konto muss **Zwei-Schritt-Verifizierung (2FA) mit Authentifizierungs-A
 
 
 ## Changelog
-Version 2.8 BETA (2025-09-26)
+Version 2.8 (2025-09-26)
 * EchoRemote:
    * Fix: Statusvariablen für neue Wecker werden korrekt angelegt
    * Neu: Statusvariablen für Wecker enthalten im Namen das Wiederholungsmuster (z.B. täglich, an Wochentagen, etc.)
