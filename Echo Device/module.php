@@ -2896,7 +2896,7 @@ class EchoRemote extends IPSModule
             foreach ($notifications as $notification) {
                 if (($notification['type'] === 'Alarm' || $notification['type'] === 'MusicAlarm')
                     && ($notification['status'] === 'ON')
-                    && ($notification['deviceSerialNumber'] === IPS_GetProperty($this->InstanceID, 'Devicenumber'))) {
+                    && ($notification['deviceSerialNumber'] === $this->ReadPropertyString('Devicenumber'))) {
                     $alarmTime = $this->getNextAlarmTime($notification); //strtotime($notification['originalDate'] . 'T' . $notification['originalTime']);
 
                     // In case the alarm is just running and not yet switched off we have to skip it
