@@ -22,7 +22,8 @@ trait AlexaSmartHome
             'Alexa.RangeController',
             'Alexa.ToggleController',
             'Alexa.LockController',
-            'Alexa.InventoryLevelSensor'
+            'Alexa.InventoryLevelSensor',
+            'Alexa.ContactSensor'
         ];
 
         return in_array($capability, $supportedCapabilities);

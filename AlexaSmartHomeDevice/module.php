@@ -151,6 +151,10 @@ class AlexaSmartHomeDevice extends IPSModule
                     $this->MaintainVariable($ident, $this->Translate('illuminance'), 1, '~Illumination', 1, true );
                     break;
 
+                case 'Alexa.ContactSensor':
+                    $ident = $interfaceNameIdent.'_detectionState';
+                    $this->MaintainVariable($ident, $this->Translate('contact'), 0, '~Window', 1, true );
+                    break; 
                 /*
                 case 'Alexa.MotionSensor':
                     $this->MaintainVariable('detectionState', $this->Translate('motion'), 0, '~Motion', 1, true );
@@ -501,6 +505,11 @@ class AlexaSmartHomeDevice extends IPSModule
                             @$this->SetValue($namespaceIdent.'_illuminance', $value);
                         }
                         break;
+
+                    case 'Alexa.ContactSensor':
+                        $value = ($state['value'] == 'DETECTED') ? true : false;
+                        $this->SetValue($namespaceIdent.'_detectionState', $value);
+                        break; 
 
                     /*
                     case 'Alexa.MotionSensor':

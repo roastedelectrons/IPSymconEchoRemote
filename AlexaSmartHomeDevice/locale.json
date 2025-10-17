@@ -33,7 +33,8 @@
       "thermostat mode": "Thermostat Modus",
       "connectivity": "Konnektivität",
       "illuminance": "Beleuchtungsstärke",
-      "lock state": "Verriegelungszustand"
+      "lock state": "Verriegelungszustand",
+      "contact": "Kontakt"
     }
   }
 }
