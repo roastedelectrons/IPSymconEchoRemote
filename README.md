@@ -84,6 +84,10 @@ Im Amazon-Konto muss **Zwei-Schritt-Verifizierung (2FA) mit Authentifizierungs-A
 
 
 ## Changelog
+Version 2.8.1 (2025-10-17)
+* AlexaSmartHomeDevice:
+   * Neu: Unterstützung für ContactSensor
+
 Version 2.8 (2025-09-26)
 * EchoRemote:
    * Fix: Statusvariablen für neue Wecker werden korrekt angelegt
