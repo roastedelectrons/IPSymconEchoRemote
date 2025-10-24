@@ -1,8 +1,8 @@
 {
   "id": "{F5204558-5349-4C73-82E3-09CD2254C513}",
-  "author": "Fonzo/bumaas forked by roastedelectrons",
-  "name": "Amazon Echo Remote",
-  "url": "http://www.amazon.de/echo",
+  "author": "hirschbrat",
+  "name": "Echo Remote",
+  "url": "https://github.com/roastedelectrons/IPSymconEchoRemote",
   "compatibility": {
     "version": "6.1"
   },
