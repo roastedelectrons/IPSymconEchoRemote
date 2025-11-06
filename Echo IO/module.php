@@ -20,6 +20,7 @@ class EchoIO extends IPSModule
 
     private const UserAgentBrowser  = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
     private const UserAgentApp      = 'AppleWebKit PitanguiBridge/2.2.595606.0-[HARDWARE=iPhone14_7][SOFTWARE=17.4.1][DEVICE=iPhone]';
+    private const AppVersion        = '2.2.595606.0';
 
     public function Create()
     {
@@ -477,14 +478,14 @@ class EchoIO extends IPSModule
             return false;
         }
 
-        $result = $this->GetCookieByRefreshToken();
 
-        if ( !$result )
+        if ( !$this->GetCookieByRefreshToken() )
             return false;
 
-        $result = $this->GetCSRF();
+        if ( !$this->getCustomerID() )
+            return false;
 
-        if ( !$result )
+        if ( !$this->GetCSRF())
             return false;
 
 
@@ -521,70 +522,15 @@ class EchoIO extends IPSModule
         return $this->deleteFile($this->getCookiesFileName());
     }
 
-    /**
-     * checks if the user is authenticated and saves the custonmerId in a buffer.
-     *
-     * @return bool
-     */
     public function CheckLoginStatus(): bool
     {
-        $this->SendDebug(__FUNCTION__, '== started ==', 0);
-        //######################################################
-        //
-        // bootstrap with GUI-Version writes GUI version to cookie
-        //  returns among other the current authentication state
-        //
-        // AUTHSTATUS=$(${CURL} ${OPTS} -s -b ${COOKIE} -A "${BROWSER}" -H "DNT: 1" -H "Connection: keep-alive" -L https://${ALEXA}/api/bootstrap?version=${GUIVERSION}
-        //   | sed -r 's/^.*"authenticated":([^,]+),.*$/\1/g')
+        $authenticated = false;
 
-        if ( !$this->ReadPropertyBoolean('active') )
-        {
-            $this->LogMessage( __FUNCTION__ .': EchoIO Instance is inactive'  , KL_ERROR);
-            return false;
-        }
-
-        $url = 'https://'. $this->GetAlexaURL().'/api/bootstrap?version=0';
-
-        $headers[] = 'User-Agent: ' . self::UserAgentApp;
-        $headers[] = 'DNT: 1';
-        $headers[] = 'Connection: keep-alive';
-        $headers[] = 'Content-Type: application/json; charset=UTF-8';            
-        $headers[] = 'Origin: https://' . $this->GetAlexaURL();
-        $headers[] = 'csrf: ' . $this->getCsrfFromCookie();
-
-        $result = $this->HttpRequest($url, $headers);
-
-        if ($result['body'] === null) {
-            $return = null;
-        } else {
-            $return = json_decode($result['body'], false);
-        }
-
-        if ($return === null) {
-            $this->SendDebug(__FUNCTION__, 'Not authenticated (return is null)! ', 0);
-
-            $authenticated = false;
-        } elseif (!property_exists($return, 'authentication')) {
-            $this->SendDebug(
-                __FUNCTION__, 'Not authenticated (property authentication not found)! ' . $result['body'], 0
-            );
-
-            $authenticated = false;
-        } elseif ($return->authentication->authenticated) {
-            //$this->WriteAttributeString('customerID', $return->authentication->customerId); //TEST
-            $this->SetBuffer('customerID', $return->authentication->customerId);
-            $this->SendDebug(__FUNCTION__, 'CustomerID: ' . $return->authentication->customerId, 0);
+        if ($this->getCustomerID() != false){
             $authenticated = true;
-        } else {
-            $this->SendDebug(
-                __FUNCTION__, 'Not authenticated (property authenticated is false)! ' . $result['body'], 0
-            );
-
-            $authenticated = false;
         }
 
         if (!$authenticated) {
-            //$this->WriteAttributeString('customerID', ''); //TEST
             $this->SetBuffer('customerID', '');
             $statusCode = self::STATUS_INST_NOT_AUTHENTICATED;
         } else 
@@ -599,6 +545,31 @@ class EchoIO extends IPSModule
         }
 
         return $authenticated;
+    }
+
+    private function getCustomerID(){
+        $url = 'https://'. $this->GetAlexaURL()."/api/users/me?platform=ios&version=".self::AppVersion;
+        
+        $headers[] = 'Connection: keep-alive';
+        $headers[] = 'Accept: application/json';
+        $headers[] = 'User-Agent: ' . self::UserAgentApp;
+        $headers[] = 'Accept-Language: de-DE,de-DE;q=1.0,tr-DE;q=0.9,en-GB;q=0.8,fr-DE;q=0.7';
+        $headers[] = 'Accept-Encoding: gzip, deflate, br';
+
+        $result = $this->HttpRequest($url, $headers, null, 'GET' );
+
+        if ($result['http_code'] != 200){
+            return false;
+        }
+
+        $body = json_decode($result['body'], true);
+
+        if ($body['id'] != null){
+            $this->SetBuffer('customerID', $body['id']);
+            return $body['id'];
+        }
+
+        return false;
     }
 
     /**  Send to Echo API
