@@ -84,9 +84,11 @@ Im Amazon-Konto muss **Zwei-Schritt-Verifizierung (2FA) mit Authentifizierungs-A
 
 
 ## Changelog
-Version 2.8.1 (2025-10-17)
+Version 2.8.1 (2025-11-06)
 * AlexaSmartHomeDevice:
    * Neu: Unterstützung für ContactSensor
+* EchoIO: 
+   * Fix: LogIn
 
 Version 2.8 (2025-09-26)
 * EchoRemote:
