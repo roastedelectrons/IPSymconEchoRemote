@@ -369,7 +369,7 @@ class EchoIO extends IPSModule
 
         foreach ( $urls as $path )
         {
-            $url = 'https://' . $this->GetAlexaURL() . $path;
+            $url = 'https://alexa.' . $this->GetAmazonURL() . $path;
             
             $this->HttpRequestCookie($url, $headers);
     
@@ -907,7 +907,7 @@ class EchoIO extends IPSModule
         $language = $this->ReadPropertyInteger('language');
         switch ($language) {
             case 0: // de
-                $alexa_url = 'alexa.amazon.de';
+                $alexa_url = 'eu-api-alexa.amazon.de';
                 break;
 
             case 1:
