@@ -46,6 +46,7 @@ class EchoIO extends IPSModule
         $this->RegisterAttributeInteger('LastCookieRefresh', 0);
         $this->RegisterAttributeInteger('CookieExpirationDate', 0);
         $this->RegisterAttributeString( 'CsrfToken', '' ); 
+        $this->RegisterAttributeString( 'CustomerID', '' );
 
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
         $this->RegisterTimer('RefreshAccessToken', 0, 'ECHOIO_GetAccessToken(' . $this->InstanceID . ');');
@@ -508,7 +509,7 @@ class EchoIO extends IPSModule
     public function LogOff(): bool
     {
         $this->SendDebug(__FUNCTION__, '== started ==', 0);
-        $url = 'https://' . $this->GetAlexaURL() . '/logout';
+        $url = 'https://alexa.' . $this->GetAmazonURL() . '/logout';
 
         $headers = [
             'DNT: 1',
@@ -519,6 +520,7 @@ class EchoIO extends IPSModule
         $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
         $this->WriteAttributeInteger('CookieExpirationDate', 0);
         $this->WriteAttributeString('CsrfToken', '');
+        $this->WriteAttributeString('CustomerID', '');
         return $this->deleteFile($this->getCookiesFileName());
     }
 
@@ -526,12 +528,11 @@ class EchoIO extends IPSModule
     {
         $authenticated = false;
 
-        if ($this->getCustomerID() != false){
+        if ($this->getCustomerStatus() != false){
             $authenticated = true;
         }
 
         if (!$authenticated) {
-            $this->SetBuffer('customerID', '');
             $statusCode = self::STATUS_INST_NOT_AUTHENTICATED;
         } else 
         {
@@ -565,8 +566,32 @@ class EchoIO extends IPSModule
         $body = json_decode($result['body'], true);
 
         if ($body['id'] != null){
-            $this->SetBuffer('customerID', $body['id']);
+            $this->WriteAttributeString('CustomerID', $body['id']);
             return $body['id'];
+        }
+
+        return false;
+    }
+
+    private function getCustomerStatus(){
+        $url = 'https://'. $this->GetAlexaURL()."/api/customer-status";
+        
+        $headers[] = 'Connection: keep-alive';
+        $headers[] = 'Accept: application/json';
+        $headers[] = 'User-Agent: ' . self::UserAgentApp;
+        $headers[] = 'Accept-Language: de-DE,de-DE;q=1.0,tr-DE;q=0.9,en-GB;q=0.8,fr-DE;q=0.7';
+        $headers[] = 'Accept-Encoding: gzip, deflate, br';
+
+        $result = $this->HttpRequest($url, $headers, null, 'GET' );
+
+        if ($result['http_code'] != 200){
+            return false;
+        }
+
+        $body = json_decode($result['body'], true);
+
+        if (is_array($body)){
+            return $body;
         }
 
         return false;
@@ -591,10 +616,11 @@ class EchoIO extends IPSModule
         }
 
         $headers[] = 'User-Agent: ' . self::UserAgentApp;
-        $headers[] = 'DNT: 1';
         $headers[] = 'Connection: keep-alive';
-        $headers[] = 'Content-Type: application/json; charset=UTF-8';            
-        $headers[] = 'Origin: https://' . $this->GetAlexaURL();
+        $header [] = 'Accept: application/json; charset=utf-8';
+        $header [] = 'Accept-Language: de-DE,de-DE;q=1.0,tr-DE;q=0.9,en-GB;q=0.8,fr-DE;q=0.7';
+        $headers[] = 'Content-Type: application/json; charset=UTF-8'; 
+        $header [] = 'Accept-Encoding: gzip, deflate, br';           
         $headers[] = 'csrf: ' . $this->getCsrfFromCookie();
 
 
@@ -856,28 +882,6 @@ class EchoIO extends IPSModule
         curl_close($ch);
 
         return $this->getReturnValues($info, $result);
-    }
-
-    private function GetHeader(): array
-    {
-        $csrf = '';
-
-        $csrf = $this->getCsrfFromCookie();
-
-        $headers = [
-            'User-Agent: ' . $this->GetUserAgent(),
-            'DNT: 1',
-            'Connection: keep-alive',
-            'Content-Type: application/json; charset=UTF-8',            
-            'Referer: http://alexa.' . $this->GetAmazonURL() . '/spa/index.html',
-            'Origin: https://alexa.' . $this->GetAmazonURL()
-        ];
-
-        if ($csrf) {
-            $headers[] = 'csrf: ' . $csrf;
-        }
-
-        return $headers;
     }
 
 
@@ -1546,7 +1550,7 @@ class EchoIO extends IPSModule
                 break;
 
             case 'GetCustomerID':
-                $result = $this->GetBuffer('customerID');
+                $result = $this->ReadAttributeString('CustomerID');
                 break;
 
             case 'GetLanguage':
