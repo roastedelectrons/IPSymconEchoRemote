@@ -18,6 +18,7 @@ Ab Version 2.0 erfolgt die Authentifizierung ausschließlich mittels Refresh-Tok
 2. [Einrichten in IP-Symcon](#einrichtung)
 3. [Changelog](#changelog)
 4. [Quellen](#quellen)
+5. [Lizenz](#lizenz)
 
 ## Dokumentation der Module
 - __Echo Device__ ([Dokumentation](Echo%20Device/README.md))  
@@ -88,7 +89,7 @@ Version 2.8.1 (2025-11-06)
 * AlexaSmartHomeDevice:
    * Neu: Unterstützung für ContactSensor
 * EchoIO: 
-   * Fix: LogIn
+   * Fix: Anpassung des Logins an API-Änderungen 
 
 Version 2.8 (2025-09-26)
 * EchoRemote:
@@ -262,3 +263,10 @@ Version 2.0 (2023-03-04)
 7. openhab-addon Amazon Echo Control (Java): https://github.com/openhab/openhab-addons/tree/main/bundles/org.openhab.binding.amazonechocontrol/src/main/java/org/openhab/binding/amazonechocontrol/internal
 8. Sequence Command Discovery: https://github.com/custom-components/alexa_media_player/wiki/Developers%3A-Sequence-Discovery
 9. Amazon Alexa Logo by [icons8]( https://icons8.com/icon/X28a9yj_gkpy/amazon-alexa-logo)
+
+## Lizenz
+Dieses Projekt ist ein Fork von [Wolbolar/IPSymconEchoRemote](https://github.com/Wolbolar/IPSymconEchoRemote), ursprünglich entwickelt von Fonzo und weiteren Mitwirkenden.
+
+Änderungen und Weiterentwicklungen seit 2023 durch roastedelectrons.
+
+Lizenziert unter der GNU General Public License v2.0.
