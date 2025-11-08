@@ -526,22 +526,23 @@ class EchoIO extends IPSModule
 
     public function CheckLoginStatus(): bool
     {
-        $authenticated = false;
 
-        if ($this->getCustomerStatus() != false){
+        $status = @$this->getCustomerStatus();
+
+        if ($status != false){
             $authenticated = true;
+        } else {
+            $authenticated = false;
         }
 
         if (!$authenticated) {
             $statusCode = self::STATUS_INST_NOT_AUTHENTICATED;
-        } else 
-        {
+        } else {
             $statusCode = IS_ACTIVE;
             $this->setCookieRefreshTimer();
         }
 
-        if ( $this->GetStatus() != $statusCode)
-        {
+        if ( $this->GetStatus() != $statusCode){
             $this->SetStatus( $statusCode );
         }
 
