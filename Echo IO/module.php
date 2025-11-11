@@ -628,7 +628,7 @@ class EchoIO extends IPSModule
         return $this->HttpRequest($url, $headers, $postfields, $method );
     }
 
-    private function AmazonApiRequest(string $url, mixed $data = null, string $method = null)
+    private function AmazonApiRequest(string $url, $data = null, string $method = null)
     {
 
         if ( $this->GetStatus() != 102 )
@@ -742,13 +742,13 @@ class EchoIO extends IPSModule
      *
      * @param string $url
      * @param array $header
-     * @param array $postfields
+     * @param mixed $postfields
      * @param bool|null $optpost
      * @param string $type
      *
      * @return mixed
      */
-    private function HttpRequest(string $url, array $header, mixed $postfields = null, string $type = null)
+    private function HttpRequest(string $url, array $header, $postfields = null, string $type = null)
     {
         $this->SendDebug(__FUNCTION__, 'Header: ' . json_encode($header), 0);
 
