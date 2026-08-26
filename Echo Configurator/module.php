@@ -33,6 +33,7 @@ class EchoConfigurator extends IPSModule
         'A32DOYMUN6DTXA'   => ['name' => 'Echo Dot (3.Gen)'],
         'A1RABVCI4QCIKC'   => ['name' => 'Echo Dot (3.Gen)'],
         'A2U21SRK4QGSE1'   => ['name' => 'Echo Dot (4.Gen)'],
+        'A1MR3F8QRZNAXI'   => ['name' => 'Echo Dot Max'],
         'AILBSA2LNTOYL'    => ['name' => 'Reverb App'],
         'A15ERDAKK5HQQG'   => ['name' => 'Sonos'],
         'A2OSP3UA4VC85F'   => ['name' => 'Sonos One'],
