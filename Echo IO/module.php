@@ -45,7 +45,6 @@ class EchoIO extends IPSModule
         $this->RegisterAttributeString( 'LastActivityID', '' ); 
         $this->RegisterAttributeInteger('LastCookieRefresh', 0);
         $this->RegisterAttributeInteger('CookieExpirationDate', 0);
-        $this->RegisterAttributeString( 'CsrfToken', '' ); 
         $this->RegisterAttributeString( 'CustomerID', '' );
 
         $this->RegisterTimer('RefreshCookie', 0, 'ECHOIO_LogIn(' . $this->InstanceID . ');');
@@ -430,28 +429,26 @@ class EchoIO extends IPSModule
 
     }
 
-    private function getCsrfToken()
+    private function getCsrfTokenForCustomerHistoryRecords()
     {
         // csfr-token is needed for customer-history-records requests
 
-        $url = 'https://www.' . $this->GetAmazonURL() . '/alexa-privacy/apd/home?disableGlobalNav=true&locale='.$this->GetLanguage().'&appVersion=2025.19';
+        $url = 'https://www.' . $this->GetAmazonURL() . '/alexa-privacy/apd/csrf-token';
 
-        $headers[] = 'Sec-Fetch-Site: none';
-        $headers[] = 'Sec-Fetch-Mode: navigate';
-        $headers[] = 'Connection: keep-alive';
-        $headers[] = 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
-        $headers[] = 'User-Agent: '. self::UserAgentBrowser;
-        $headers[] = 'Sec-Fetch-Dest: document';
+        $headers[] = 'Content-Type: application/json';
+        $headers[] = 'Connection: keep-alive';    
+        $headers[] = 'Accept: text/plain, text/html';
+        $headers[] = 'User-Agent: '. self::UserAgentApp;
+        $headers[] = 'Accept-Language: de-DE,de-DE;q=1.0,tr-DE;q=0.9,en-GB;q=0.8,fr-DE;q=0.7';
         $headers[] = 'Accept-Encoding: gzip, deflate, br';
 
         $result = $this->HttpRequest($url, $headers, null, 'GET');
 
         if ($result['http_code'] == 200){
-            $csrfToken = $this->getStringBetween($result['body'], '<meta name="csrf-token" content="',  '" />');
+            $csrfToken = $result['body'];
 
             if ($csrfToken != ''){
-                $this->WriteAttributeString('CsrfToken', $csrfToken );
-                return true;
+                return $csrfToken;
             }
         }
 
@@ -519,7 +516,6 @@ class EchoIO extends IPSModule
 
         $this->SetStatus(self::STATUS_INST_NOT_AUTHENTICATED);
         $this->WriteAttributeInteger('CookieExpirationDate', 0);
-        $this->WriteAttributeString('CsrfToken', '');
         $this->WriteAttributeString('CustomerID', '');
         return $this->deleteFile($this->getCookiesFileName());
     }
@@ -1301,19 +1297,19 @@ class EchoIO extends IPSModule
         
         $lastActivity = [];
 
-        if (is_array($result) && isset($result['customerHistoryRecords']) )
+        if (is_array($result) && isset($result['alexaHistoryRecords']) )
         {
-            foreach ($result['customerHistoryRecords'] as $activity)
+            foreach ($result['alexaHistoryRecords'] as $activity)
             {
                 if ( isset($activity['utteranceType']) && in_array($activity['utteranceType'], array('GENERAL')) ) // 'ROUTINES_OR_TAP_TO_ALEXA'
                 {
-                    $ids = explode('#', $activity['recordKey']); //0:customerID, 1:timestamp, 2:deviceType, 2:deviceSerial
-                    $lastActivity['id'] =  $activity['recordKey'];
+                    $ids = explode('#', $activity['activityKey']); //0:customerID, 1:timestamp, 2:deviceType, 2:deviceSerial
+                    $lastActivity['id'] =  $activity['activityKey'];
                     $lastActivity['timestamp'] =  round( ($activity['timestamp'] / 1000), 3);
                     $lastActivity['timestampMilliseconds'] = $activity['timestamp'];
-                    $lastActivity['deviceType'] =  $ids[2];
-                    $lastActivity['serialNumber'] =  $ids[3];
-                    $lastActivity['deviceName'] = $activity['device']['deviceName'];
+                    $lastActivity['deviceType'] =  $activity['deviceInfo']['deviceType'];
+                    $lastActivity['serialNumber'] =  $activity['deviceInfo']['deviceSerialNumber'];
+                    $lastActivity['deviceName'] = $activity['deviceInfo']['deviceName'];
                     $lastActivity['utteranceType'] = $activity['utteranceType'];
                     $lastActivity['domain'] = $activity['domain'];
                     $lastActivity['intent'] = $activity['intent'];
@@ -1418,32 +1414,25 @@ class EchoIO extends IPSModule
         if ($this->CheckRateLimit() === false)
             return false;
 
-        $this->getCsrfToken();
-        $csrfToken = $this->ReadAttributeString('CsrfToken');
+        $csrfToken = $this->getCsrfTokenForCustomerHistoryRecords();
 
-        $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rvh/customer-history-records-v2?startTime='. round($startTime) .'&endTime='. round($endTime) .'&locale='.$this->GetLanguage().'&disableGlobalNav=true';
+        $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/rah/alexa-history-records-v2?startTime='. round($startTime) .'&endTime='. round($endTime);
 
         $headers = array();
-        $headers[] = 'Accept: application/json, text/plain, */*';
-        $headers[] = 'Sec-Fetch-Site: same-origin';
+        $headers[] = 'Accept: application/json';
         $headers[] = 'Accept-Language: '.$this->GetLanguage();
         $headers[] = 'Accept-Encoding: gzip, deflate, br';
-        $headers[] = 'Sec-Fetch-Mode: cors';
         $headers[] = 'Content-Type: application/json;charset=utf-8';
-        $headers[] = 'Origin: https://www.' . $this->GetAmazonURL();
-        $headers[] = 'User-Agent: '. self::UserAgentBrowser;
-        $headers[] = 'Referer: https://www.' . $this->GetAmazonURL() . '/alexa-privacy/apd/rvh?disableGlobalNav=true&locale='.$this->GetLanguage().'&appVersion=2025.19';
+        $headers[] = 'User-Agent: '. self::UserAgentApp;
         $headers[] = 'anti-csrftoken-a2z: ' . $csrfToken;
         $headers[] = 'Connection: keep-alive';
-        $headers[] = 'Sec-Fetch-Dest: empty';
 
-        $postfields['previousRequestToken'] = null;
+        $postfields = '{}';
 
         $result = $this->HttpRequest($url, $headers, $postfields, 'POST');
 
         if (isset($result['http_code']) && $result['http_code'] == 403) {
             // invalid csrf-token
-            $this->WriteAttributeString('CsrfToken', '');
         }
 
         if (isset($result['http_code']) && $result['http_code'] == 429) {
