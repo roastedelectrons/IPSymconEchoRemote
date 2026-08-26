@@ -85,6 +85,10 @@ Im Amazon-Konto muss **Zwei-Schritt-Verifizierung (2FA) mit Authentifizierungs-A
 
 
 ## Changelog
+Version 2.8.2 (2026-08-26)
+* EchoIO: 
+   * Fix: GetLastActivity nutzt neue api  
+
 Version 2.8.1 (2025-11-08)
 * AlexaSmartHomeDevice:
    * Neu: Unterstützung für ContactSensor
