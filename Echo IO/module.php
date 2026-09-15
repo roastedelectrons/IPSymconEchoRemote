@@ -1303,7 +1303,15 @@ class EchoIO extends IPSModule
             {
                 if ( isset($activity['utteranceType']) && in_array($activity['utteranceType'], array('GENERAL')) ) // 'ROUTINES_OR_TAP_TO_ALEXA'
                 {
-                    $ids = explode('#', $activity['activityKey']); //0:customerID, 1:timestamp, 2:deviceType, 2:deviceSerial
+                    if (!isset($activity['deviceInfo'])){
+                        // Manchmal ist deviceInfo (noch?) nicht gesetzt
+                        $ids = explode('#', $activity['activityKey']); //0:customerID, 1:timestamp, 2:deviceType, 3:deviceSerial
+                        
+                        $activity['deviceInfo']['deviceType'] = $ids[2];
+                        $activity['deviceInfo']['deviceSerialNumber'] = $ids[3];
+                        $activity['deviceInfo']['deviceName'] = $this->GetDevice( $activity['deviceInfo']['deviceSerialNumber'],  $activity['deviceInfo']['deviceType'])['accountName'];
+                    }
+
                     $lastActivity['id'] =  $activity['activityKey'];
                     $lastActivity['timestamp'] =  round( ($activity['timestamp'] / 1000), 3);
                     $lastActivity['timestampMilliseconds'] = $activity['timestamp'];
