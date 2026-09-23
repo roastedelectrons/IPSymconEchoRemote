@@ -1301,7 +1301,7 @@ class EchoIO extends IPSModule
         {
             foreach ($result['alexaHistoryRecords'] as $activity)
             {
-                if ( isset($activity['utteranceType']) && in_array($activity['utteranceType'], array('GENERAL')) ) // 'ROUTINES_OR_TAP_TO_ALEXA'
+                if ( $activity['type'] == 'UTTERANCE' && $activity['utteranceType'] == 'GENERAL' ) // 'ROUTINES_OR_TAP_TO_ALEXA'
                 {
                     if (!isset($activity['deviceInfo'])){
                         // Manchmal ist deviceInfo (noch?) nicht gesetzt
@@ -1312,6 +1312,7 @@ class EchoIO extends IPSModule
                         $activity['deviceInfo']['deviceName'] = $this->GetDevice( $activity['deviceInfo']['deviceSerialNumber'],  $activity['deviceInfo']['deviceType'])['accountName'];
                     }
 
+                    $lastActivity['type'] = $activity['type'];
                     $lastActivity['id'] =  $activity['activityKey'];
                     $lastActivity['timestamp'] =  round( ($activity['timestamp'] / 1000), 3);
                     $lastActivity['timestampMilliseconds'] = $activity['timestamp'];
@@ -1336,6 +1337,31 @@ class EchoIO extends IPSModule
                             $lastActivity['response'] .= $recordItem['transcriptText'] . ' ';
                         }
                     }
+
+                    if (isset($activity['personsInfo'][0]['personFirstName'])) {
+                        $lastActivity['person'] = $activity['personsInfo'][0]['personFirstName'];
+                    }
+                    
+                    break;
+                }
+
+                if ( $activity['type'] == 'CONVERSATION' ) 
+                {
+                    $lastActivity['type'] = $activity['type'];
+                    $lastActivity['id'] =  $activity['conversationId'];
+                    $lastActivity['timestamp'] =  round( ($activity['timestamp'] / 1000), 3);
+                    $lastActivity['timestampMilliseconds'] = $activity['timestamp'];
+                    $lastActivity['startTime'] =  $activity['startTime'];
+                    $lastActivity['endTime'] =  $activity['endTime'];
+                    $lastActivity['deviceType'] =  $activity['deviceInfo'][0]['deviceType'];
+                    $lastActivity['serialNumber'] =  $activity['deviceInfo'][0]['deviceSerialNumber'];
+                    $lastActivity['deviceName'] = $activity['deviceInfo'][0]['deviceName'];
+                    $lastActivity['domain'] = $activity['title'];
+                    $lastActivity['utterance'] = $activity['subTitle'];
+                    $lastActivity['response'] = '';
+                    $lastActivity['person']  = '';
+                    $lastActivity['instanceID']  = $this->GetInstanceIDBySerialNumber($lastActivity['serialNumber'], $lastActivity['deviceType']);
+                    $lastActivity['conversationDetail'] = $this->GetCustomerConversationDetail($activity['conversationId'], $activity['startTime']);
 
                     if (isset($activity['personsInfo'][0]['personFirstName'])) {
                         $lastActivity['person'] = $activity['personsInfo'][0]['personFirstName'];
@@ -1446,6 +1472,37 @@ class EchoIO extends IPSModule
         if (isset($result['http_code']) && $result['http_code'] == 429) {
             $this->ActivateRateLimit();
         } 
+
+        if (isset($result['http_code']) && $result['http_code'] == 200) {
+            return json_decode($result['body'], true);
+        }
+ 
+        return false;
+    }
+
+    private function GetCustomerConversationDetail( $conversationId, $startTime)
+    {
+        $csrfToken = $this->getCsrfTokenForCustomerHistoryRecords();
+
+        $query = [
+            'conversationId' => $conversationId,
+            'timestamp'      => $startTime,
+            'sort'           => 'ASCENDING',
+            'customerId'     => $this->ReadAttributeString('CustomerID')
+        ];
+
+        $url = 'https://www.'. $this->GetAmazonURL() .'/alexa-privacy/apd/csd/customer-conversation-detail?'. http_build_query($query);
+
+        $headers = array();
+        $headers[] = 'Accept: application/json';
+        $headers[] = 'Accept-Language: '.$this->GetLanguage();
+        $headers[] = 'Accept-Encoding: gzip, deflate, br';
+        $headers[] = 'Content-Type: application/json;charset=utf-8';
+        $headers[] = 'User-Agent: '. self::UserAgentApp;
+        //$headers[] = 'anti-csrftoken-a2z: ' . $csrfToken;
+        $headers[] = 'Connection: keep-alive';
+
+        $result = $this->HttpRequest($url, $headers, null, 'GET');
 
         if (isset($result['http_code']) && $result['http_code'] == 200) {
             return json_decode($result['body'], true);
