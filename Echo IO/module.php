@@ -1317,7 +1317,7 @@ class EchoIO extends IPSModule
                     $lastActivity['timestamp'] =  round( ($activity['timestamp'] / 1000), 3);
                     $lastActivity['timestampMilliseconds'] = $activity['timestamp'];
                     $lastActivity['deviceType'] =  $activity['deviceInfo']['deviceType'];
-                    $lastActivity['serialNumber'] =  $activity['deviceInfo']['deviceSerialNumber'];
+                    $lastActivity['serialNumber'] = $activity['deviceInfo']['deviceSerialNumber'];
                     $lastActivity['deviceName'] = $activity['deviceInfo']['deviceName'];
                     $lastActivity['utteranceType'] = $activity['utteranceType'];
                     $lastActivity['domain'] = $activity['domain'];
@@ -1349,19 +1349,38 @@ class EchoIO extends IPSModule
                 {
                     $lastActivity['type'] = $activity['type'];
                     $lastActivity['id'] =  $activity['conversationId'];
+                    $lastActivity['conversationId'] =  $activity['conversationId'];
                     $lastActivity['timestamp'] =  round( ($activity['timestamp'] / 1000), 3);
                     $lastActivity['timestampMilliseconds'] = $activity['timestamp'];
                     $lastActivity['startTime'] =  $activity['startTime'];
                     $lastActivity['endTime'] =  $activity['endTime'];
-                    $lastActivity['deviceType'] =  $activity['deviceInfo'][0]['deviceType'];
-                    $lastActivity['serialNumber'] =  $activity['deviceInfo'][0]['deviceSerialNumber'];
-                    $lastActivity['deviceName'] = $activity['deviceInfo'][0]['deviceName'];
+                    $lastActivity['deviceType'] =  '';
+                    $lastActivity['serialNumber'] =  '';
+                    $lastActivity['deviceName'] = '';
                     $lastActivity['domain'] = $activity['title'];
+                    $lastActivity['intent'] = '';
                     $lastActivity['utterance'] = $activity['subTitle'];
                     $lastActivity['response'] = '';
                     $lastActivity['person']  = '';
                     $lastActivity['instanceID']  = $this->GetInstanceIDBySerialNumber($lastActivity['serialNumber'], $lastActivity['deviceType']);
                     $lastActivity['conversationDetail'] = $this->GetCustomerConversationDetail($activity['conversationId'], $activity['startTime']);
+
+                    if (isset($activity['deviceInfo'][0]['deviceSerialNumber'])){
+                        $lastActivity['deviceType'] =  $activity['deviceInfo'][0]['deviceType'];
+                        $lastActivity['serialNumber'] =  $activity['deviceInfo'][0]['deviceSerialNumber'];
+                        $lastActivity['deviceName'] = $activity['deviceInfo'][0]['deviceName'];
+                    }
+
+                    foreach($lastActivity['conversationDetail']['conversationTurns'] as $conversation){
+                        if ($conversation['fragment']['metadata']['purpose'] == "AGENT"){
+                            $lastActivity['response'] = $conversation['fragment']['variants'][0]['content']['text'];
+                        }
+                        if ($conversation['fragment']['metadata']['purpose'] == "USER"){
+                            $lastActivity['utterance'] = $conversation['fragment']['variants'][0]['content']['text'];
+                            $lastActivity['id'] = $conversation['utteranceId'];
+                            break;
+                        }
+                    }
 
                     if (isset($activity['personsInfo'][0]['personFirstName'])) {
                         $lastActivity['person'] = $activity['personsInfo'][0]['personFirstName'];
@@ -1376,22 +1395,19 @@ class EchoIO extends IPSModule
 
         if ($lastActivity != [])
         {
+            $this->SetValueEx('LastDevice', $lastActivity['serialNumber'] );
+            $this->SetValueEx('LastAction', $lastActivity['utterance'] );
+            $this->SetValueEx('LastActivityTimestamp', intval($lastActivity['timestamp']) );
+            $this->SetValueEx('LastActivityIntent', $lastActivity['intent'] );
+            $this->SetValueEx('LastActivityResponse', $lastActivity['response'] );
+            $this->SetValueEx('LastActivityPerson', $lastActivity['person'] );
+
+            $this->SetBuffer('LastActivityTimestamp',  $lastActivity['timestampMilliseconds']);   
+
             if ( $lastActivity['id'] != $this->ReadAttributeString( 'LastActivityID' ) )
             {
-                $this->SetValueEx('LastDevice', $lastActivity['serialNumber'] );
-                $this->SetValueEx('LastAction', $lastActivity['utterance'] );
-                $this->SetValueEx('LastActivityTimestamp', intval($lastActivity['timestamp']) );
-                $this->SetValueEx('LastActivityIntent', $lastActivity['intent'] );
-                $this->SetValueEx('LastActivityResponse', $lastActivity['response'] );
-                $this->SetValueEx('LastActivityPerson', $lastActivity['person'] );
                 $this->SendDataToChild( $lastActivity['serialNumber'] , $lastActivity['deviceType'] , 'LastAction', $lastActivity);
-                $this->WriteAttributeString( 'LastActivityID', $lastActivity['id']);        
-                $this->SetBuffer('LastActivityTimestamp',  $lastActivity['timestampMilliseconds']);        
-            }
-
-            if (@$this->GetValue('LastActivityPerson') != $lastActivity['person'])
-            {
-                $this->SetValueEx('LastActivityPerson', $lastActivity['person'] );
+                $this->WriteAttributeString( 'LastActivityID', $lastActivity['id']);             
             }
         }
 
@@ -1487,7 +1503,7 @@ class EchoIO extends IPSModule
         $query = [
             'conversationId' => $conversationId,
             'timestamp'      => $startTime,
-            'sort'           => 'ASCENDING',
+            'sort'           => 'DESCENDING',
             'customerId'     => $this->ReadAttributeString('CustomerID')
         ];
 
