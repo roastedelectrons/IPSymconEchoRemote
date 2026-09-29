@@ -1362,23 +1362,25 @@ class EchoIO extends IPSModule
                     $lastActivity['utterance'] = $activity['subTitle'];
                     $lastActivity['response'] = '';
                     $lastActivity['person']  = '';
-                    $lastActivity['instanceID']  = $this->GetInstanceIDBySerialNumber($lastActivity['serialNumber'], $lastActivity['deviceType']);
+                    $lastActivity['instanceID']  = 0;
                     $lastActivity['conversationDetail'] = $this->GetCustomerConversationDetail($activity['conversationId'], $activity['startTime']);
 
                     if (isset($activity['deviceInfo'][0]['deviceSerialNumber'])){
                         $lastActivity['deviceType'] =  $activity['deviceInfo'][0]['deviceType'];
                         $lastActivity['serialNumber'] =  $activity['deviceInfo'][0]['deviceSerialNumber'];
                         $lastActivity['deviceName'] = $activity['deviceInfo'][0]['deviceName'];
+                        
+                        $lastActivity['instanceID']  = $this->GetInstanceIDBySerialNumber($lastActivity['serialNumber'], $lastActivity['deviceType']);
                     }
 
                     foreach($lastActivity['conversationDetail']['conversationTurns'] as $conversation){
+                        // iteriere durch die conversation und speichere die letzte (d.h. aktuellste, da conversationen aufsteigend sortiert sind)
                         if ($conversation['fragment']['metadata']['purpose'] == "AGENT"){
                             $lastActivity['response'] = $conversation['fragment']['variants'][0]['content']['text'];
                         }
                         if ($conversation['fragment']['metadata']['purpose'] == "USER"){
                             $lastActivity['utterance'] = $conversation['fragment']['variants'][0]['content']['text'];
                             $lastActivity['id'] = $conversation['utteranceId'];
-                            break;
                         }
                     }
 
@@ -1503,7 +1505,7 @@ class EchoIO extends IPSModule
         $query = [
             'conversationId' => $conversationId,
             'timestamp'      => $startTime,
-            'sort'           => 'DESCENDING',
+            'sort'           => 'ASCENDING',
             'customerId'     => $this->ReadAttributeString('CustomerID')
         ];
 
