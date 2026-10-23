@@ -30,6 +30,7 @@ class EchoBot extends IPSModule
 
         $this->RegisterAttributeString('Automations', '');
         $this->RegisterAttributeString('LastActivity', '');
+        $this->RegisterAttributeString('LastActivityID', '');
 
         $this->ConnectParent('{C7F853A4-60D2-99CD-A198-2C9025E2E312}');
 
@@ -154,6 +155,8 @@ class EchoBot extends IPSModule
         switch ($data['Type'])
         {            
             case 'LastAction':
+
+                if ($this->GetStatus() !== IS_ACTIVE) return;
                 
                 $utterances = $this->GetUtteranceByAutomationId($this->ReadPropertyString('AutomationID'));
 
@@ -167,12 +170,14 @@ class EchoBot extends IPSModule
 
                 if ($match === false) return;
 
-                $this->LogMessage($payload['deviceName'].': '.$payload['utterance'], KL_NOTIFY);
-                $this->WriteAttributeString('LastActivity', json_encode($payload) ); 
+                if ($payload['serialNumber'] == '') return; // if device serial is missing, wait for next Message (this happens if Alexa+ is enabled)
 
-                if ($this->GetStatus() !== IS_ACTIVE) return;
-
-                $this->RunAction($payload);
+                if ($this->ReadAttributeString('LastActivityID') != $payload['id']){
+                    $this->LogMessage($payload['deviceName'].': '.$payload['utterance'], KL_NOTIFY);
+                    $this->WriteAttributeString('LastActivity', json_encode($payload) ); 
+                    $this->WriteAttributeString('LastActivityID', $payload['id']); 
+                    $this->RunAction($payload);
+                }
 
                 break;
 

@@ -1404,13 +1404,20 @@ class EchoIO extends IPSModule
             $this->SetValueEx('LastActivityResponse', $lastActivity['response'] );
             $this->SetValueEx('LastActivityPerson', $lastActivity['person'] );
 
-            $this->SetBuffer('LastActivityTimestamp',  $lastActivity['timestampMilliseconds']);   
-
+            if ($lastActivity['serialNumber'] != '' && $lastActivity['utterance'] != ''){
+                $this->SetBuffer('LastActivityTimestamp',  $lastActivity['timestampMilliseconds']); 
+                $this->SetTimerInterval('GetLastActivity', 0);
+            } else {
+                $this->SetTimerInterval('GetLastActivity', 5000);
+            }
+  
+            /*
             if ( $lastActivity['id'] != $this->ReadAttributeString( 'LastActivityID' ) )
             {
-                $this->SendDataToChild( $lastActivity['serialNumber'] , $lastActivity['deviceType'] , 'LastAction', $lastActivity);
                 $this->WriteAttributeString( 'LastActivityID', $lastActivity['id']);             
             }
+            */
+            $this->SendDataToChild( $lastActivity['serialNumber'] , $lastActivity['deviceType'] , 'LastAction', $lastActivity);
         }
 
         return $lastActivity;
